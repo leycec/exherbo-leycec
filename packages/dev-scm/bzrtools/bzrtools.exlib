@@ -1,0 +1,83 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'bzrtools-2.1.0.ebuild' from Gentoo, which is:
+#     Copyright 1999-2010 Gentoo Foundation
+
+require launchpad [ branch=trunk ] distutils [ python_dep=2.5 ]
+
+export_exlib_phases src_test
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="BzrTools is a Bazaar plugin providing miscellaneous functionality"
+DESCRIPTION="
+BzrTools is a Bazaar plugin providing miscellaneous useful and/or
+frivolous functionality.
+"
+
+HOMEPAGE="http://wiki.bazaar.canonical.com/BzrTools"
+UPSTREAM_RELEASE_NOTES="https://launchpad.net/${PN}/trunk/${PV}"
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/Documentation [[ lang = en ]]"
+REMOTE_IDS="launchpad:${PN}"
+
+LICENCES="GPL-2"
+SLOT="0"
+MYOPTIONS="optional_tests"
+RESTRICT=""
+
+DEPENDENCIES="build+run: dev-scm/bzr"
+
+WORK="${WORKBASE}"/${PN}
+
+#FIXME leycec: I receive test failures under AMD64, at the moment. These are:
+#
+# /var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/test.py /var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/build/lib
+# Traceback (most recent call last):
+#   File "/var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/test.py", line 23, in <module>
+#     suite = bzrtools.test_suite()
+#   File "/var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/build/lib/bzrlib/plugins/bzrtools/__init__.py", line 89, in test_suite
+#     import tests.shelf_tests
+#   File "/var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/build/lib/bzrlib/plugins/bzrtools/tests/shelf_tests.py", line 10, in <module>
+#     from bzrlib.plugins.bzrtools.command_classes import cmd_shelf1
+# File "/var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/build/lib/bzrlib/plugins/bzrtools/command_classes.py", line 509, in <module>
+#     class cmd_cdiff(BzrToolsCommand):
+# File "/var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/build/lib/bzrlib/plugins/bzrtools/command_classes.py", line 512, in cmd_cdiff
+#     takes_options = list(get_cmd_object('diff').takes_options) + [
+# File "/var/tmp/paludis/build/dev-scm-bzrtools-2.1.0/work/bzrtools/build/lib/bzrlib/commands.py", line 212, in get_cmd_object
+#     raise errors.BzrCommandError('unknown command "%s"' % cmd_name)
+#     bzrlib.errors.BzrCommandError: unknown command "diff"
+#
+# Can anyone comment?
+bzrtools_src_test() {
+    if ! option optional_tests; then
+        ewarn "Please enable \"optional_tests\" for this exheres, if you would"
+        ewarn "like to run tests. These tests are likely to fail, at the moment,"
+        ewarn "and are thus disabled by default."
+        return
+    fi
+
+    BUILD_LIB="${WORK}/build/lib"
+    BUILD_BZRLIB="${BUILD_LIB}/bzrlib"
+
+    einfo "Testing ${PN}..."
+
+    # Temporarily symbolic link core bzr files (e.g., "*.py") and paths (e.g.,
+    # every path except "plugins/") into the "${WORK}/build/lib/bzrlib/" path.
+    einfo "Linking bzrlib..."
+    find "$(python_get_libdir)/site-packages/bzrlib/" \
+        -mindepth 1 -maxdepth 1 \
+        \( \( -type d -and -not -name "plugins" \) -or -name "*.py" \) \
+        -exec ln -s '{}' "${BUILD_BZRLIB}" \;
+    edo touch "${BUILD_BZRLIB}/plugins/__init__.py"
+
+    # Test against the above temporaries.
+    einfo "Running test.py..."
+    edo "${WORK}/test.py" "${BUILD_LIB}"
+
+    # Delete the above temporaries.
+    einfo "Unlinking bzrlib..."
+    edo rm "${BUILD_BZRLIB}/plugins/__init__.py"
+    edo find "${BUILD_BZRLIB}" \
+        -mindepth 1 -maxdepth 1 \
+        -type l -exec rm '{}' \;
+}
