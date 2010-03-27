@@ -1,4 +1,3 @@
-#!/bin/zsh
 # ====================[ README                             ]====================
 #
 # --------------------( SYNOPSIS                           )--------------------
@@ -6,6 +5,19 @@
 # repository maintaining ebuilds authored by leycec (i.e., Cecil Curry). Ebuilds
 # are thought to work with leycec's current machine (i.e., the AMD64-armed Dell
 # Zino), but should be treated with caution under other machines.
+#
+# --------------------( INSTALLATION                       )--------------------
+# Install this Exherbo repository as you would any other: e.g., via
+#
+#     # Configure a new Paludis repository configuration.
+#     sudo cat > /etc/paludis/repositories/leycec.conf <<EOF
+#       location = ${ROOT}/var/db/paludis/repositories/leycec
+#       sync = git://github.com/leycec/exherbo-leycec.git
+#       format = exheres
+#     EOF
+#
+#     # Retrieve the contents of this repository. (Note the "x-" prefix, below!)
+#     paludis -s x-leycec
 #
 # --------------------( COMMENTS                           )--------------------
 # Please send comments, patches, and patchy ululations as e-mail to leycec at:

@@ -1,29 +1,28 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
-# Based in part upon 'fvwm-2.5.26.ebuild', which is
+# Based in part upon 'boot_mounter.eclass', which is
 #    Copyright 1999-2008 Gentoo Foundation
-# $Header: /var/cvsroot/gentoo-x86/eclass/mount-boot.eclass,v 1.17 2009/10/09 20:57:08 vapier Exp $
-
-# --------------------( SYNOPSIS                           )--------------------
-# This eclass is really only useful for bootloaders.
 #
-# If the live system has a separate /boot partition configured, then this
-# function tries to ensure that it's mounted in rw mode, exiting with an
-# error if it cant. It does nothing if /boot isn't a separate partition.
+# --------------------( SYNOPSIS                           )--------------------
+# This exlib mounts "/boot" read-write if partitioned as a separate partition.
+# If already mounted read-only, this exlib remounts "/boot" read-write.
+#
+# This is of principal use for bootloaders and other exheres installing files to
+# "/boot".
 
-EXPORT_FUNCTIONS pkg_preinst pkg_prerm
+export_exlib_phases pkg_preinst pkg_prerm
 
-mount-boot_pkg_preinst() {
-    mount-boot_mount_boot_partition
+boot_mounter_pkg_preinst() {
+    boot_mounter
 }
 
-mount-boot_pkg_prerm() {
+boot_mounter_pkg_prerm() {
     touch "${ROOT}"/boot/.keep 2>/dev/null
-    mount-boot_mount_boot_partition
+    boot_mounter
     touch "${ROOT}"/boot/.keep 2>/dev/null
 }
 
-mount-boot_mount_boot_partition() {
+boot_mounter() {
     if [[ -n ${DONT_MOUNT_BOOT} ]] ; then
         return
     else
@@ -79,3 +78,4 @@ mount-boot_mount_boot_partition() {
         einfo
     fi
 }
+
