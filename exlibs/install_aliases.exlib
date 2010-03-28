@@ -81,6 +81,7 @@ alias set_document_dir="docinto"
 #
 #   cp "$filename1" "$filename2" ... "/usr/share/doc/$document_dir/"
 alias install_documents="dodoc"
+alias install_document="dodoc"
 
 # void install_html_documents(char *filename1, char *filename2, ...)
 #
@@ -88,6 +89,7 @@ alias install_documents="dodoc"
 # directory. This has no functional equivalent as it dynamically determines the
 # proper document directory to which each HTML file should be installed.
 alias install_html_documents="dohtml"
+alias install_html_document="dohtml"
 
 # ....................{ MANPAGES                           }....................
 # There is no "set_manpage_dir". Upstream packages already specify the package-
@@ -100,6 +102,7 @@ alias install_html_documents="dohtml"
 # directory. This has no functional equivalent as it dynamically determines the
 # proper manpage directory to which each manpage should be installed.
 alias install_manpages="doman"
+alias install_manpage="doman"
 
 # void install_manpage_as(char *filename1, char *filename2)
 #
@@ -117,6 +120,7 @@ alias install_manpage_as="newman"
 #
 #   cp "$filename1" "$filename2" ... "/usr/share/info/"
 alias install_info_files="doinfo"
+alias install_info_file="doinfo"
 
 # ....................{ LOCALES                            }....................
 # There is no "set_locale_dir". Upstream packages already specify the package-
@@ -129,6 +133,7 @@ alias install_info_files="doinfo"
 # directory. This has no functional equivalent as it dynamically determines the
 # proper locale directory to which each locale should be installed.
 alias install_locales="domo"
+alias install_locale="domo"
 
 # ....................{ LIBRARIES                          }....................
 # There is no "set_library_dir". Upstream packages already specify the package-
@@ -151,18 +156,21 @@ alias set_library_options="libopts"
 #
 #   cp "$filename1" "$filename2" ... "$library_dir/"
 alias install_libraries="dolib"
+alias install_library="dolib"
 
 # void install_a_libraries(char *filename1, char *filename2, ...)
 #
 # Copy "lib.a"-format absolute filenames to filenames having the same basename
 # under the above directory.
 alias install_a_libraries="dolib.a"
+alias install_a_library="dolib.a"
 
 # void install_so_libraries(char *filename1, char *filename2, ...)
 #
 # Copy "lib.so"-format absolute filenames to filenames having the same basename
 # under the above directory.
 alias install_so_libraries="dolib.so"
+alias install_so_library="dolib.so"
 
 # void install_library_as(char *filename1, char *filename2)
 #
@@ -193,6 +201,7 @@ alias install_so_library_as="newlib.so"
 #
 #   cp "$filename1" "$filename2" ... "$top_dir/bin/"
 alias install_binaries="dobin"
+alias install_binary="dobin"
 
 # void install_binary_as(char *filename1, char *filename2)
 #
@@ -222,6 +231,7 @@ alias cat_binary="herebin"
 #
 #   cp "$filename1" "$filename2" ... "$top_dir/sbin/"
 alias install_superuser_binaries="dosbin"
+alias install_superuser_binary="dosbin"
 
 # void install_superuser_binary_as(char *filename1, char *filename2)
 #
@@ -264,6 +274,7 @@ alias set_executable_options="exeopts"
 #
 #   cp "$filename1" "$filename2" ... "$executable_dir/"
 alias install_executables="doexe"
+alias install_executable="doexe"
 
 # void install_executable_as(char *filename1, char *filename2)
 #
@@ -284,45 +295,46 @@ alias install_executable_as="newexe"
 alias cat_executable="hereins"
 
 # ....................{ NON-EXECUTABLES                    }....................
-# void set_nonexecutable_dir(char *pathname)
+# void set_install_dir(char *pathname)
 #
-# Set the nonexecutable directory. The "*_nonexecutable_dir" family of functions, below,
+# Set the install directory. The "*_install_dir" family of functions, below,
 # operate on this directory until the next call to this function.
-alias set_nonexecutable_dir="insinto"
+alias set_install_dir="insinto"
 
-# void set_nonexecutable_options(char *options)
+# void set_install_options(char *options)
 #
-# Set options to be passed to the "nonexecutable" binary when nonexecutableing files and
+# Set options to be passed to the "install" binary when installing files and
 # directories to the above directory.
 #
 # This defaults to "-m0644" (i.e., the execute bit is not set).
-alias set_nonexecutable_options="insopts"
+alias set_install_options="insopts"
 
-# void install_nonexecutables(char *filename1, char *filename2, ...)
+# void install_files(char *filename1, char *filename2, ...)
 #
 # Copy absolute filenames to filenames having the same basename under the
 # above directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "$nonexecutable_dir/"
-alias install_nonexecutables="doins"
+#   cp "$filename1" "$filename2" ... "$file_dir/"
+alias install_files="doins"
+alias install_file="doins"
 
-# void install_nonexecutable_as(char *filename1, char *filename2)
+# void install_file_as(char *filename1, char *filename2)
 #
 # Copy absolute "$filename1" to relative "$filename2" under the above
 # directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$nonexecutable_dir/$filename2"
-alias install_nonexecutable_as="newins"
+#   cp "$filename1" "$file_dir/$filename2"
+alias install_file_as="newins"
 
-# void cat_nonexecutable(char *filename, char *file_contents)
+# void cat_file(char *filename, char *file_contents)
 #
 # Concatenate the string "file_contents" into a new relative "filename" under
 # the above directory. This is functionally equivalent to:
 #
-#   cat > "$nonexecutable_dir/$filename" <<EOF
+#   cat > "$file_dir/$filename" <<EOF
 #   $file_contents
 #   EOF
-alias cat_nonexecutable="hereins"
+alias cat_file="hereins"
 
 # ....................{ SYSTEM FILES                       }....................
 # void install_etc_confd_files(char *filename1, char *filename2, ...)
@@ -332,6 +344,7 @@ alias cat_nonexecutable="hereins"
 #
 #   cp "$filename1" "$filename2" ... "/etc/conf.d/"
 alias install_etc_confd_files="doconfd"
+alias install_etc_confd_file="doconfd"
 
 # void install_etc_envd_files(char *filename1, char *filename2, ...)
 #
@@ -339,7 +352,8 @@ alias install_etc_confd_files="doconfd"
 # "/etc/env.d/" directory. This is functionally equivalent to:
 #
 #   cp "$filename1" "$filename2" ... "/etc/env.d/"
-alias install_to_etc_envd="doenvd"
+alias install_etc_envd_files="doenvd"
+alias install_etc_envd_file="doenvd"
 
 # void install_etc_initd_files(char *filename1, char *filename2, ...)
 #
@@ -348,6 +362,7 @@ alias install_to_etc_envd="doenvd"
 #
 #   cp "$filename1" "$filename2" ... "/etc/init.d/"
 alias install_etc_initd_files="doinitd"
+alias install_etc_initd_file="doinitd"
 
 # void install_etc_confd_file_as(char *filename1, char *filename2)
 #

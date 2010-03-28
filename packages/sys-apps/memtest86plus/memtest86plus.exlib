@@ -33,10 +33,10 @@ memtest86plus_src_prepare() {
 
 memtest86plus_src_compile() {
     if option platform:amd64; then
-        einfo "MemTest86+ may not compile under your AMD64 architecture due to"
-        einfo "Exherbo's current lack of support for GCC multilib."
-        einfo
-        einfo "Let's try anyway, shall we?"
+        ewarn "MemTest86+ compiles troublesomely under AMD64 architectures due to the current"
+        ewarn "lack of support for 32-bit multilib compilation in Exherbo."
+        ewarn
+        ewarn "Let's try anyway, shall we?"
     fi
 
     default

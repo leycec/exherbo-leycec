@@ -15,16 +15,14 @@ BzrTools is a Bazaar plugin providing miscellaneous useful and/or
 frivolous functionality.
 "
 
+LICENCES="GPL-2"
 HOMEPAGE="http://wiki.bazaar.canonical.com/BzrTools"
 UPSTREAM_RELEASE_NOTES="https://launchpad.net/${PN}/trunk/${PV}"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/Documentation [[ lang = en ]]"
 REMOTE_IDS="launchpad:${PN}"
 
-LICENCES="GPL-2"
 SLOT="0"
 MYOPTIONS="optional_tests"
-RESTRICT=""
-
 DEPENDENCIES="build+run: dev-scm/bzr"
 
 WORK="${WORKBASE}"/${PN}
@@ -50,9 +48,8 @@ WORK="${WORKBASE}"/${PN}
 # Can anyone comment?
 bzrtools_src_test() {
     if ! option optional_tests; then
-        ewarn "Please enable \"optional_tests\" for this exheres, if you would"
-        ewarn "like to run tests. These tests are likely to fail, at the moment,"
-        ewarn "and are thus disabled by default."
+        ewarn "Please enable \"optional_tests\" for this exheres if you would like to run tests."
+        ewarn "These tests are currently likely to fail and are thus disabled by default."
         return
     fi
 
@@ -70,9 +67,19 @@ bzrtools_src_test() {
         -exec ln -s '{}' "${BUILD_BZRLIB}" \;
     edo touch "${BUILD_BZRLIB}/plugins/__init__.py"
 
-    # Test against the above temporaries.
+    #FIXME: Still fails. Wonder why?
+    # Temporarily disable path sandboxing. "bzrtools" tests require read access
+    # to "/bin" and "/usr/bin" among others.
+#   einfo "Disabling path sandboxing..."
+#   sydboxcmd 'off'
+
+    # Test against the above temporaries. 
     einfo "Running test.py..."
     edo "${WORK}/test.py" "${BUILD_LIB}"
+
+    # Reenable path sandboxing.
+#   einfo "Reenabling path sandboxing..."
+#   sydboxcmd 'on'
 
     # Delete the above temporaries.
     einfo "Unlinking bzrlib..."
