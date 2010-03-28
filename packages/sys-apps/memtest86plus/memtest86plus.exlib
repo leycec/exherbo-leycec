@@ -1,0 +1,79 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'memtest86+-4.00.ebuild' from Gentoo, which is:
+#     Copyright 1999-2010 Gentoo Foundation
+
+require boot_mounter install_aliases multilib
+export_exlib_phases src_compile src_configure src_prepare src_install pkg_postinst
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="MemTest86+ stress tests random access memory (RAM)."
+DESCRIPTION="
+MemTest86+ stress tests x86 architecture-specific random access memory (RAM)
+for errors. It tries to verify that that RAM will accept and correctly retain
+arbitrary patterns of data written to it, and that there are no errors in
+memory interaction or addressing."
+
+LICENCES="GPL-2"
+HOMEPAGE="http://www.memtest.org"
+DOWNLOADS="http://www.memtest.org/download/${PV}/memtest86+-${PV}.tar.gz"
+UPSTREAM_RELEASE_NOTES="http://www.memtest.org/#change"
+
+SLOT="0"
+MYOPTIONS="platform: amd64"
+DEPENDENCIES=""
+
+WORK="${WORKBASE}/memtest86+-${PV}"
+
+memtest86plus_src_prepare() {
+    default
+    expatch ${FILES}/00-fix_Makefile.patch
+}
+
+memtest86plus_src_compile() {
+    if option platform:amd64; then
+        einfo "MemTest86+ may not compile under your AMD64 architecture due to"
+        einfo "Exherbo's current lack of support for GCC multilib."
+        einfo
+        einfo "Let's try anyway, shall we?"
+    fi
+
+    default
+}
+
+memtest86plus_src_configure() {
+    einfo "Forcing 32-bit compilation..."
+    ABI=32
+    default
+}
+
+memtest86plus_src_install() {
+    default
+
+    set_install_dir "${ROOT}/boot/memtest86plus"
+    install_file memtest.bin
+}
+
+memtest86plus_pkg_postinst() {
+    einfo "MemTest86+ has been installed to /boot/memtest86plus/, but has not"
+    einfo "yet been integrated into your current bootloader. To do so, please"
+    einfo "manually edit your bootloader configuration: e.g.,"
+    einfo
+    einfo "* For GRUB 2, add the following lines to \"/boot/grub/grub.conf\""
+    einfo "  with '?' replaced by the numbers for your boot partition:"
+    einfo "  title=Memtest86+"
+    einfo "  root (hd?,?)"
+    einfo "  kernel /boot/memtest86plus/memtest.bin"
+    einfo
+    einfo "* For GRUB 1, add the following lines to \"/boot/grub/menu.lst\""
+    einfo "  with '?' replaced by the numbers for your boot partition:"
+    einfo "  title=Memtest86+"
+    einfo "  root (hd?,?)"
+    einfo "  kernel /boot/memtest86plus/memtest.bin"
+    einfo
+    einfo "* For LILO, add the following lines to \"/etc/lilo.conf\":"
+    einfo "  image = /boot/memtest86plus/memtest"
+    einfo "  label = Memtest86+"
+}
+
