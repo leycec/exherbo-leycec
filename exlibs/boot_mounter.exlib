@@ -39,7 +39,7 @@ boot_mounter() {
 
                 if ! edo mount -o remount,rw "${ROOT}/boot"; then
                     eerror "Boot partition cannot be remounted to /boot with read-write permissions!"
-                    die "Please remount your boot partition manually, then retry."
+                    die_unless_nonfatal "Please remount your boot partition manually, then retry."
                 fi
             else
                 einfo "Boot partition already mounted to /boot."
@@ -47,14 +47,14 @@ boot_mounter() {
         else
             if ! edo mount "${ROOT}/boot" -o rw; then
                 eerror "Boot partition cannot be mounted to /boot!"
-                die "Please mount your boot partition manually, then retry."
+                die_unless_nonfatal "Please mount your boot partition manually, then retry."
             fi
         fi
     elif [[ -d "${ROOT}/boot" ]]; then
         einfo "/boot already mounted under the current filesystem."
     else
         eerror "Boot partition not found, and /boot does not exist!"
-        die "Please mount your boot partition manually, then retry."
+        die_unless_nonfatal "Please mount your boot partition manually, then retry."
     fi
 
     eend 1 #"Mounting boot partition to /boot..."
