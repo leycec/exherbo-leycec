@@ -418,3 +418,13 @@ alias cat_etc_envd_file="hereenvd"
 #   EOF
 alias cat_etc_initd_file="hereinitd"
 
+# ....................{ JAVA FILES                         }....................
+# Java-specific aliases. Avoid calling these aliases for non-Java exheres since,
+# in that case, the functions they alias are unlikely to be defined.
+
+#FIXME: Not implemented, yet.
+# void install_jars(char *filename)
+#
+# Make a JAR file.
+alias install_jars="do_jars"
+alias install_javadocs="do_javadoc"
