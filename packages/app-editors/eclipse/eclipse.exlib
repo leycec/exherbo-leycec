@@ -1,0 +1,38 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY=""
+DESCRIPTION="
+"
+
+DOWNLOADS="http://ftp.x.org/contrib/utilities/${PNV}.tar.Z"
+HOMEPAGE="http://ftp.x.org/contrib/utilities/${PN}-8.README"
+REMOTE_IDS=""
+
+UPSTREAM_CHANGELOG=""
+UPSTREAM_DOCUMENTATION=""
+UPSTREAM_RELEASE_NOTES=""
+
+SLOT="0"
+LICENCES="public-domain"
+PLATFORMS="~amd64 ~x86"
+MYOPTIONS=""
+DEPENDENCIES="
+    build:
+        x11-proto/xproto
+    build+run:
+        x11-libs/libX11[>=1.1.5]
+"
+
+# The archive extracts to ${PN}/ rather than the standard ${PNV}/.
+WORK="${WORKBASE}"/${PN}
+
+DEFAULT_SRC_PREPARE_PATCHES=(
+    -p2 "${FILES}"/00-Makefile_fix.patch
+)
+
+DEFAULT_SRC_PREPARE_PATCHES=(
+    -p2 "${FILES}"/${PN}-1.6.2-dpkg_fix.patch
+)

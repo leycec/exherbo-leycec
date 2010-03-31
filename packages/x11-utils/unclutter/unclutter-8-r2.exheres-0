@@ -17,11 +17,11 @@ an xterm or xedit, for example. The human factors crowd would agree it
 should make things less distracting.
 "
 
-LICENCES="public-domain"
 HOMEPAGE="http://ftp.x.org/contrib/utilities/${PN}-8.README"
 DOWNLOADS="http://ftp.x.org/contrib/utilities/${PNV}.tar.Z"
 
 SLOT="0"
+LICENCES="public-domain"
 PLATFORMS="~amd64 ~x86"
 MYOPTIONS=""
 DEPENDENCIES="
@@ -31,15 +31,10 @@ DEPENDENCIES="
         x11-libs/libX11[>=1.1.5]
 "
 
-# The archive extracts to ${PN}/ rather than the standard ${PNV}/.
 WORK="${WORKBASE}"/${PN}
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}"/Makefile_fix.patch )
 
-src_prepare () {
-    default
-    expatch ${FILES}/00-fix_Makefile.patch
-}
-
-src_install () {
+src_install() {
     # Install man pages via the Makefile's "install.man" target.
     einfo "Installing manpage..."
     edo mkdir -p "${IMAGE}"/usr/bin
