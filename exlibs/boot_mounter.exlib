@@ -27,13 +27,13 @@ boot_mounter_pkg_prerm() {
 boot_mounter() {
     ebegin "Mounting boot partition to /boot..."
 
-    local is_boot_partition=$(           awk '!/^[[:blank:]]*#/ & $2 ~ /^\/boot$/ {print $2}' "${ROOT}/etc/fstab")
-    local is_boot_partition_mounted=$(   awk                     '$2 ~ /^\/boot$/ {print $2}' "${ROOT}/proc/mounts")
-    local is_boot_partition_mounted_ro=$(awk '$2 ~ /^\/$/ && $4 ~ /(^|,)rw($|,)/'             "${ROOT}/proc/mounts")
+    local IS_BOOT_PARTITION=$(           awk '!/^[[:blank:]]*#/ & $2 ~ /^\/boot$/ {print $2}' "${ROOT}/etc/fstab")
+    local IS_BOOT_PARTITION_MOUNTED=$(   awk                     '$2 ~ /^\/boot$/ {print $2}' "${ROOT}/proc/mounts")
+    local IS_BOOT_PARTITION_MOUNTED_RO=$(awk '$2 ~ /^\/$/ && $4 ~ /(^|,)rw($|,)/'             "${ROOT}/proc/mounts")
 
-    if [[ -n "${is_boot_partition}" ]]; then
-        if [[ -n "${is_boot_partition_mounted}" ]]; then
-            if [[ -n "${is_boot_partition_mounted_ro}" ]]; then
+    if [[ -n "${IS_BOOT_PARTITION}" ]]; then
+        if [[ -n "${IS_BOOT_PARTITION_MOUNTED}" ]]; then
+            if [[ -n "${IS_BOOT_PARTITION_MOUNTED_RO}" ]]; then
                 einfo "Boot partition already mounted to /boot with read-only permissions!"
                 einfo "Remounting boot partition to /boot with read-write permissions..."
 

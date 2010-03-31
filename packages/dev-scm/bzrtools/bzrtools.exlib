@@ -15,13 +15,14 @@ BzrTools is a Bazaar plugin providing miscellaneous useful and/or
 frivolous functionality.
 "
 
-LICENCES="GPL-2"
 HOMEPAGE="http://wiki.bazaar.canonical.com/BzrTools"
-UPSTREAM_RELEASE_NOTES="https://launchpad.net/${PN}/trunk/${PV}"
-UPSTREAM_DOCUMENTATION="${HOMEPAGE}/Documentation [[ lang = en ]]"
 REMOTE_IDS="launchpad:${PN}"
 
+UPSTREAM_RELEASE_NOTES="https://launchpad.net/${PN}/trunk/${PV}"
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/Documentation [[ lang = en ]]"
+
 SLOT="0"
+LICENCES="GPL-2"
 MYOPTIONS="optional_tests"
 DEPENDENCIES="build+run: dev-scm/bzr"
 

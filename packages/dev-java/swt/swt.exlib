@@ -1,6 +1,6 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
-# Based in part upon 'eclipse-sdk-3.5.1-r1.ebuild' from Gentoo, which is:
+# Based in part upon 'swt-3.5.2.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 #
 # --------------------( THANKS                             )--------------------
@@ -14,27 +14,6 @@
 #FIXME: Add support for a new "machine_tester.exlib" exlib, ensuring the
 #current machine has sufficient capability to make Eclipse.
 require ant java
-
-# --------------------( VERSIONING                         )--------------------
-# Eclipse uses a unique versioning scheme: "${MAJOR}_${MINOR}_${REVISION}". This
-# global gives this version, where the "F" in "FV" refers to "fetched" and the
-# "V" to "version".
-FV=$(ever replace_all _ $PV)
-
-# Eclipse archives its source to a file with basename as below, which unpacks to
-# a path of same name. This global gives the basename.
-FNV="eclipse-R${FV}-fetched-src"
-
-# Eclipse builds from source via the "eclipse-build" framework. We declare three
-# globals describing this framework paralleling the "PV", "PN", and "PNV"
-# globals from typical exheres:
-#
-# * "BV", the version of this framework needed to build this version of Eclipse.
-# * "BN", the name of this framework.
-# * "BNV", the name and version of this framework.
-BV="0_4_0"
-BN="eclipse-build"
-BNV="${BN}-R${BV}"
 
 # --------------------( CONFIGURATION                      )--------------------
 BUGS_TO="leycec@gmail.com"
@@ -62,15 +41,14 @@ UPSTREAM_DOCUMENTATION="http://help.eclipse.org/galileo/index.jsp [[ lang = en ]
 UPSTREAM_RELEASE_NOTES="http://www.eclipse.org/eclipse/development/readme_${PN}_${FV}.html"
 
 SLOT="3.5"
-LICENCES="EPL-1.0"
+LICENCES="|| ( CPL-1.0 LGPL-2.1 MPL-1.1 )"
 MYOPTIONS=""
 DEPENDENCIES="
     build:
     build+run:
-        dev-java/swt:${SLOT}[>=${PV}]
 "
 
-WORK="${WORKBASE}"/${BNV}
+#WORK="${WORKBASE}"/${BNV}
 
 # --------------------( IMPLEMENTATION                     )--------------------
 
