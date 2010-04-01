@@ -13,8 +13,8 @@
 # --------------------( DEPENDENCIES                       )--------------------
 #FIXME: Add support for a new "machine_tester.exlib" exlib, ensuring the
 #current machine has sufficient capability to make Eclipse.
-require ant java
-export_exlib_phases src_unpack src_prepare
+require ant java install_aliases multilib
+export_exlib_phases src_unpack src_prepare src_compile src_install
 
 # --------------------( CONFIGURATION                      )--------------------
 BUGS_TO="leycec@gmail.com"
@@ -41,9 +41,12 @@ UPSTREAM_DOCUMENTATION="http://www.eclipse.org/swt/docs.php [[ lang = en ]]"
 SLOT="3.5"
 LICENCES="|| ( CPL-1.0 LGPL-2.1 MPL-1.1 )"
 MYOPTIONS="
-    cairo
+    cairo gnome opengl xulrunner
     platform: amd64 x86
 "
+
+#FIXME: The soft "opengl" dependency should probably be "virtual/opengl"
+#instead. Unfortunately, that doesn't exist yet. :)
 DEPENDENCIES="
     build:
         app-arch/unzip
@@ -58,35 +61,46 @@ DEPENDENCIES="
         x11-libs/libXt
         x11-libs/libXtst
         cairo? ( x11-libs/cairo[>=1.4.14] )
+        gnome? (
+            gnome-platform/libgnome:2
+            gnome-platform/libgnomeui:2
+            gnome-platform/gnome-vfs[>=2]
+        )
+        opengl? ( x11-dri/mesa )
+        xulrunner? ( dev-libs/xulrunner[>=1.9] )
 "
-#       gnome? (
-#               =gnome-base/libgnome-2*
-#               =gnome-base/gnome-vfs-2*
-#               =gnome-base/libgnomeui-2*
-#               )
-#       opengl? (
-#           virtual/opengl
-#           virtual/glu
-#       )
- 
-# The above archive extracts to the current directory.
+
+# The above archive extracts to the current directory. (Odd, but acceptable...)
 WORK="${WORKBASE}"
 
-# The absolute path to the root of the Java source tree for SWT.
-JAVA_SRC="${WORK}"/src
+DEFAULT_SRC_PREPARE_PATCHES=(
+    "${FILES}"/make_linux_mak-fix.patch
+    "${FILES}"/build_sh-fix.patch
+)
 
-# The absolute path to the root of the Java output tree for SWT. (This is the
-# path to which Ant emits class and jar files, for installation.)
-JAVA_TRG="${WORK}"/trg
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_INSTALL_PARAMS=( jar )
 
-DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}"/make_linux_mak-fix.patch )
+#FIXME: Pass these to "build.xml" as "-D"-style parameters when invoking ant.
+# Absolute path to the root of the Java source tree for SWT.
+ANT_SRC_DIR=src
+ANT_SRC="${WORK}/${ANT_SRC_DIR}"
+
+# Absolute path to the root of the Java build tree having class files.
+ANT_BUILD_DIR=build
+ANT_BUILD="${WORK}/${ANT_BUILD_DIR}"
+
+# Absolute path to the root of the Java distribution tree having jar files.
+ANT_DIST_DIR=dist
+ANT_DIST="${WORK}/${ANT_DIST_DIR}"
+
+# Relative name of this machine's "lib/" directory.
+MULTILIB_DIR=$(get_libdir)
 
 # --------------------( IMPLEMENTATION                     )--------------------
-# void src_unpack(void)
-#
 # Extract the "src.zip" archive from the fetched compressed archive, then
 # extract the contents of that archive to ${WORK}.
-src_unpack() {
+swt_src_unpack() {
     echo ">>> Unpacking ${ARCHIVES} to ${PWD}"
     edo unzip -joq "${FETCHEDDIR}"/${ARCHIVES} "src.zip"
     unpack "./src.zip"   # note: the prefixing "./" is important!
@@ -95,15 +109,104 @@ src_unpack() {
     edo rm -rf about_files/ "src.zip"
 }
 
-src_prepare() {
+swt_src_prepare() {
+    swt_einfo "Preparing Java libraries for compilation..."
     # See comments in "files/build.xml" for details.
     edo cp "${FILES}"/build.xml "${WORK}"/build.xml
 
     # "src.zip" unpacks the Java tree into "org/". The replacement
     # "files/build.xml", however, expects this tree to be found at
     # "src/org/" per the Ant standard. We ensure this now.
-    edo mkdir ${JAVA_SRC}
-    edo mv "${WORK}"/org ${JAVA_SRC}
+    edo mkdir ${ANT_SRC}
+    edo mkdir ${ANT_BUILD}
+    edo mv "${WORK}"/org ${ANT_SRC}
 
     default
+}
+
+# SWT comes as underlying C and C++ libraries and frontfacing Java JNI
+# libraries accessing the C and C++ libraries. We build the former first.
+swt_src_compile() {
+    swt_src_compile_build_sh
+    swt_src_compile_ant
+}
+
+# Compile underlying C and C++ libraries. The "eclipse-build" framework
+# supplies a "build.sh" script, with which to automate this compilation. We
+# patch that script in "src_prepare" so as to interface with Exherbo-aware
+# exheres functions. This is preferable to redefining the contents of this
+# script in this function as a pure exheres function since that encourages
+# desynchronization of this script and this function when bumping versions.
+swt_src_compile_build_sh() {
+    # Export environment variables to be inherited by "build.sh".
+    OS="Linux"
+
+    if   option platform:amd64; then MODEL="x86_64"
+    elif option platform:x86;   then MODEL="i386"
+    fi
+
+    if option cairo;     then OPTION_CAIRO=1; fi
+    if option gnome;     then OPTION_GNOME=1; fi
+    if option opengl;    then OPTION_OPENGL=1; fi
+    if option xulrunner; then OPTION_XULRUNNER=1; fi
+
+    export OS MODEL OPTION_CAIRO OPTION_GNOME OPTION_OPENGL OPTION_XULRUNNER MULTILIB_DIR
+
+    # So say we all!
+    swt_einfo "Compiling C and C++ libraries..."
+    edo sh "${WORK}"/build.sh
+}
+
+swt_src_compile_ant() {
+    swt_einfo "Copying absent Java files..."
+    edo mkdir -p "${ANT_BUILD}"/org/eclipse/swt/internal/
+    edo cp "${ANT_SRC}"/org/eclipse/swt/internal/SWTMessages.properties \
+           "${ANT_BUILD}"/org/eclipse/swt/internal/
+    edo cp "${WORK}"/version.txt "${ANT_BUILD}"/version.txt
+
+    swt_einfo "Compiling Java libraries..."
+    ant_src_compile
+}
+
+swt_src_install() {
+    swt_einfo "Preparing Java manifest..."
+
+    # Set "SWT_ARCH" according to the architecture being built against. The
+    # values for this variable follow from the variable of same name in the
+    # "build.sh" script.
+    if   option platform:amd64; then SWT_ARCH="x86_64"
+    elif option platform:x86;   then SWT_ARCH="x86"
+    fi
+
+    edo cp "${FILES}"/MANIFEST.MF "${WORK}"/MANIFEST.MF
+    edo sed -i \
+        -e "s/SWT_ARCH/${SWT_ARCH}/" \
+        -e "s/EXHERES_PV/${PV}/" \
+        "${WORK}"/MANIFEST.MF
+
+    swt_einfo "Packaging Java libraries..."
+    ant_src_install
+
+    swt_einfo "Preparing installation images..."
+    set_install_dir /usr/share/${PN}
+    install_file "${ANT_DIST_DIR}"/${PN}.jar
+
+    #FIXME: This strikes me as a poor way to set this "LIBDIR". Is there a
+    #function to perform this?
+    # Force "install_so_libraries" to install to this "LIBDIR".
+    LIBDIR="/usr/${MULTILIB_DIR}"
+    install_so_libraries "${WORK}"/*.so
+
+    set_document_subdir html
+    install_document about.html
+}
+
+# --------------------( UTILITIES                          )--------------------
+# void swt_einfo(char *message)
+#
+# Print $message, but in a manner customized for this exheres.
+swt_einfo() {
+  einfo
+  einfo ${*}
+  einfo
 }

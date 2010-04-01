@@ -14,14 +14,6 @@
 # provides nothing except name aliases. (Perhaps that is enough!)
 
 # ....................{ LINKS                              }....................
-# void ln_hard(char *filename1, char *filename2)
-#
-# Hardlink the existing absolute "filename1" to a new absolute "filename2". This
-# is functionally equivalent to:
-#
-#   ln -f "$filename1" "$filename2"
-alias ln_hard="dohard"
-
 # void ln_soft(char *filename1, char *filename2)
 #
 # Softlink the existing absolute "filename1" to a new absolute "filename2". This
@@ -44,13 +36,16 @@ alias set_mkdir_options="diropts"
 # Make an absolute directory and all parent directories of that directory, as
 # need be. This is functionally equivalent to:
 #
-#   mkdir --parents "$pathname"
+#   mkdir --parents "${IMAGE}/$pathname"
 alias mkdir_parents="dodir"
 
 # void mkdir_with_keep_file(char *pathname)
 #
 # Make an absolute directory and all parent directories of that directory, as
-# need be, and having an empty ".keep" file as its only contents.
+# need be, and having an empty ".keep" file as its only contents. This is
+# functionally equivalent to:
+#
+#   mkdir --parents "${IMAGE}/$pathname" && touch "${IMAGE}/$pathname/.keep"
 alias mkdir_parents_with_keep_file="keepdir"
 
 # ....................{ ROOT                               }....................
@@ -63,33 +58,29 @@ alias mkdir_parents_with_keep_file="keepdir"
 alias set_top_dir="into"
 
 # ....................{ DOCUMENTS                          }....................
-# void set_document_dir(char *pathname)
+# void set_document_subdir(char *pathname)
 #
-# Set the "/usr/share/doc/"-relative documents directory. The
+# Set the "/usr/share/doc/${PNV}/"-relative documents directory. The
 # "*_usr_share_doc_dir" family of functions, below, operate on this directory
 # until the next invocation of this function.
 #
 # Note this is not an absolute pathname, but rather the name of a directory
-# immediately under "/usr/share/doc/". If this directory does not already exist,
-# this function also makes the directory.
-alias set_document_dir="docinto"
+# immediately under "/usr/share/doc/${PNV}/" where ${PNV} is the program name
+# and version for this exheres. If the directory does not already exist, this
+# function also makes the directory.
+#
+# This directory defaults to "/usr/share/doc/${PNV}/". Thus, this function need
+# not be called when installing documents to that directory.
+alias set_document_subdir="docinto"
 
 # void install_documents(char *filename1, char *filename2, ...)
 #
 # Copy absolute filenames to filenames having the same basename under the above
 # directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "/usr/share/doc/$document_dir/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/usr/share/doc/$document_dir/"
 alias install_documents="dodoc"
 alias install_document="dodoc"
-
-# void install_html_documents(char *filename1, char *filename2, ...)
-#
-# Copy absolute filenames to filenames having the same basename under the above
-# directory. This has no functional equivalent as it dynamically determines the
-# proper document directory to which each HTML file should be installed.
-alias install_html_documents="dohtml"
-alias install_html_document="dohtml"
 
 # ....................{ MANPAGES                           }....................
 # There is no "set_manpage_dir". Upstream packages already specify the package-
@@ -118,7 +109,7 @@ alias install_manpage_as="newman"
 # Copy absolute filenames to filenames having the same basename under the above
 # directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "/usr/share/info/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/usr/share/info/"
 alias install_info_files="doinfo"
 alias install_info_file="doinfo"
 
@@ -140,6 +131,7 @@ alias install_locale="domo"
 # specific library directory to which all libraries should be installed.
 #
 # Exheres must not overwrite this directory, and thus have no function to do so.
+# (If you must overwrite this directory, manually set the "LIBDIR" variable.)
 
 # void set_library_options(char *options)
 #
@@ -154,7 +146,7 @@ alias set_library_options="libopts"
 # Copy absolute filenames to filenames having the same basename under the
 # above directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "$library_dir/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/$library_dir/"
 alias install_libraries="dolib"
 alias install_library="dolib"
 
@@ -177,7 +169,7 @@ alias install_so_library="dolib.so"
 # Copy absolute "$filename1" to relative "$filename2" under the above directory.
 # This is functionally equivalent to:
 #
-#   cp "$filename1" "$library_dir/$filename2"
+#   cp "$filename1" "${IMAGE}/$library_dir/$filename2"
 alias install_library_as="newlib"
 
 # void install_a_library_as(char *filename1, char *filename2)
@@ -199,7 +191,7 @@ alias install_so_library_as="newlib.so"
 # "bin/" directory of the top directory. By default, this is "/usr/bin/". This
 # is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "$top_dir/bin/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/$top_dir/bin/"
 alias install_binaries="dobin"
 alias install_binary="dobin"
 
@@ -209,7 +201,7 @@ alias install_binary="dobin"
 # of the top directory. By default, this is "/usr/bin/". This is functionally
 # equivalent to:
 #
-#   cp "$filename1" "$top_dir/bin/$filename2"
+#   cp "$filename1" "${IMAGE}/$top_dir/bin/$filename2"
 alias install_binary_as="newbin"
 
 # void cat_binary(char *filename, char *file_contents)
@@ -229,7 +221,7 @@ alias cat_binary="herebin"
 # "sbin/" directory of the top directory. By default, this is "/usr/sbin/".
 # This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "$top_dir/sbin/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/$top_dir/sbin/"
 alias install_superuser_binaries="dosbin"
 alias install_superuser_binary="dosbin"
 
@@ -239,7 +231,7 @@ alias install_superuser_binary="dosbin"
 # directory of the top directory. By default, this is "/usr/sbin/". This is
 # functionally equivalent to:
 #
-#   cp "$filename1" "$top_dir/sbin/$filename2"
+#   cp "$filename1" "${IMAGE}/$top_dir/sbin/$filename2"
 alias install_superuser_binary_as="newsbin"
 
 # void cat_superuser_binary(char *filename, char *file_contents)
@@ -272,7 +264,7 @@ alias set_executable_options="exeopts"
 # Copy absolute filenames to filenames having the same basename under the
 # above directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "$executable_dir/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/$executable_dir/"
 alias install_executables="doexe"
 alias install_executable="doexe"
 
@@ -281,7 +273,7 @@ alias install_executable="doexe"
 # Copy absolute "$filename1" to relative "$filename2" under the above
 # directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$executable_dir/$filename2"
+#   cp "$filename1" "${IMAGE}/$executable_dir/$filename2"
 alias install_executable_as="newexe"
 
 # void cat_executable(char *filename, char *file_contents)
@@ -314,7 +306,7 @@ alias set_install_options="insopts"
 # Copy absolute filenames to filenames having the same basename under the
 # above directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "$file_dir/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/$file_dir/"
 alias install_files="doins"
 alias install_file="doins"
 
@@ -323,7 +315,7 @@ alias install_file="doins"
 # Copy absolute "$filename1" to relative "$filename2" under the above
 # directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$file_dir/$filename2"
+#   cp "$filename1" "${IMAGE}/$file_dir/$filename2"
 alias install_file_as="newins"
 
 # void cat_file(char *filename, char *file_contents)
@@ -342,7 +334,7 @@ alias cat_file="hereins"
 # Copy absolute filenames to filenames having the same basename under the
 # "/etc/conf.d/" directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "/etc/conf.d/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/etc/conf.d/"
 alias install_etc_confd_files="doconfd"
 alias install_etc_confd_file="doconfd"
 
@@ -351,7 +343,7 @@ alias install_etc_confd_file="doconfd"
 # Copy absolute filenames to filenames having the same basename under the
 # "/etc/env.d/" directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "/etc/env.d/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/etc/env.d/"
 alias install_etc_envd_files="doenvd"
 alias install_etc_envd_file="doenvd"
 
@@ -360,7 +352,7 @@ alias install_etc_envd_file="doenvd"
 # Copy absolute filenames to filenames having the same basename under the
 # "/etc/conf.d/" directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "/etc/init.d/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/etc/init.d/"
 alias install_etc_initd_files="doinitd"
 alias install_etc_initd_file="doinitd"
 
@@ -369,7 +361,7 @@ alias install_etc_initd_file="doinitd"
 # Copy absolute "$filename1" to relative "$filename2" under the
 # "/etc/conf.d/" directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "/etc/conf.d/$filename2"
+#   cp "$filename1" "${IMAGE}/etc/conf.d/$filename2"
 alias install_etc_confd_file_as="newconfd"
 
 # void install_etc_envd_file_as(char *filename1, char *filename2)
@@ -377,7 +369,7 @@ alias install_etc_confd_file_as="newconfd"
 # Copy absolute "$filename1" to relative "$filename2" under the
 # "/etc/env.d/" directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "/etc/env.d/$filename2"
+#   cp "$filename1" "${IMAGE}/etc/env.d/$filename2"
 alias install_etc_envd_file_as="newenvd"
 
 # void install_etc_initd_file_as(char *filename1, char *filename2)
@@ -385,7 +377,7 @@ alias install_etc_envd_file_as="newenvd"
 # Copy absolute "$filename1" to relative "$filename2" under the
 # "/etc/init.d/" directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "/etc/init.d/$filename2"
+#   cp "$filename1" "${IMAGE}/etc/init.d/$filename2"
 alias install_etc_initd_file_as="newinitd"
 
 # void cat_etc_confd_file(char *filename, char *file_contents)

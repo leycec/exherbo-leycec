@@ -1,0 +1,114 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Substantially changed so as to permit calling by the
+"src_compile" function of "swt.exlib".
+--- old/build.sh	2010-02-11 20:49:56.000000000 +0000
++++ new/build.sh	2010-04-01 18:51:09.727257166 +0000
+@@ -14,7 +14,7 @@
+ 
+ cd `dirname $0`
+ 
+-MAKE_TYPE=make
++MAKE_TYPE=emake
+ 
+ if [ "${JAVA_HOME}" = "" ]; then
+ 	echo "Please set JAVA_HOME to point at a JRE."
+@@ -84,7 +84,7 @@
+ 	fi
+ fi
+ 
+-if [ x`pkg-config --exists gnome-vfs-module-2.0 libgnome-2.0 libgnomeui-2.0 && echo YES` = "xYES" ]; then
++if [ -n "${OPTION_GNOME}" ]; then
+ 	echo "libgnomeui-2.0 found, compiling SWT program support using GNOME"
+ 	MAKE_GNOME=make_gnome
+ else
+@@ -92,7 +92,7 @@
+ 	echo "    *** SWT Program support for GNOME will not be compiled."
+ fi
+ 
+-if [ x`pkg-config --exists cairo && echo YES` = "xYES" ]; then
++if [ -n "${OPTION_CAIRO}" ]; then
+ 	echo "Cairo found, compiling SWT support for the cairo graphics library."
+ 	MAKE_CAIRO=make_cairo
+ else
+@@ -100,25 +100,38 @@
+ 	echo "    *** Advanced graphics support using cairo will not be compiled."
+ fi
+ 
++if [ -n "${OPTION_OPENGL}" ]; then
++	echo "OpenGL found, compiling SWT support for the OpenGL graphics library."
++	MAKE_OPENGL=make_glx
++else
++	echo "OpenGL not found:"
++	echo "    *** Advanced graphics support using OpenGL will not be compiled."
++fi
++
+ if [ -z "${MOZILLA_INCLUDES}" -a -z "${MOZILLA_LIBS}" ]; then
+-	if [ x`pkg-config --exists mozilla-xpcom && echo YES` = "xYES" ]; then
+-		MOZILLA_INCLUDES=`pkg-config --cflags mozilla-xpcom`
+-		MOZILLA_LIBS=`pkg-config --libs mozilla-xpcom`
+-		export MOZILLA_INCLUDES
+-		export MOZILLA_LIBS
+-		MAKE_MOZILLA=make_mozilla
+-	elif [ x`pkg-config --exists firefox-xpcom && echo YES` = "xYES" ]; then
+-		MOZILLA_INCLUDES=`pkg-config --cflags firefox-xpcom`
+-		MOZILLA_LIBS=`pkg-config --libs firefox-xpcom`
+-		export MOZILLA_INCLUDES
+-		export MOZILLA_LIBS
+-		MAKE_MOZILLA=make_mozilla
+-	elif [ x`pkg-config --exists libxul && echo YES` = "xYES" ]; then
++#	if [ x`pkg-config --exists mozilla-xpcom && echo YES` = "xYES" ]; then
++#		MOZILLA_INCLUDES=`pkg-config --cflags mozilla-xpcom`
++#		MOZILLA_LIBS=`pkg-config --libs mozilla-xpcom`
++#		export MOZILLA_INCLUDES
++#		export MOZILLA_LIBS
++#		MAKE_MOZILLA=make_mozilla
++#	elif [ x`pkg-config --exists firefox-xpcom && echo YES` = "xYES" ]; then
++#		MOZILLA_INCLUDES=`pkg-config --cflags firefox-xpcom`
++#		MOZILLA_LIBS=`pkg-config --libs firefox-xpcom`
++#		export MOZILLA_INCLUDES
++#		export MOZILLA_LIBS
++#		MAKE_MOZILLA=make_mozilla
++    if [ -n "${OPTION_XULRUNNER}" ]; then
+ 		XULRUNNER_INCLUDES=`pkg-config --cflags libxul`
+ 		XULRUNNER_LIBS=`pkg-config --libs libxul`
+ 		export XULRUNNER_INCLUDES
+ 		export XULRUNNER_LIBS
+-		MAKE_MOZILLA=make_xulrunner
++		MOZILLA_INCLUDES=XULRUNNER_INCLUDES
++		MOZILLA_LIBS=XULRUNNER_LIBS
++		export XULRUNNER_INCLUDES
++		export XULRUNNER_LIBS
++#		MAKE_MOZILLA=make_mozilla make_xulrunner make_xpcominit
++		MAKE_MOZILLA=make_mozilla make_xulrunner
+ 	else
+ 		echo "None of the following libraries were found:  Mozilla/XPCOM, Firefox/XPCOM, or XULRunner/XPCOM"
+ 		echo "    *** Mozilla embedding support will not be compiled."
+@@ -127,12 +140,15 @@
+ 
+ # Find AWT if available
+ if [ -z "${AWT_LIB_PATH}" ]; then
+-	if [ -d ${JAVA_HOME}/jre/lib/${AWT_ARCH} ]; then
++	if [ -f ${JAVA_HOME}/jre/lib/${AWT_ARCH}/libjawt.so ]; then
+ 		AWT_LIB_PATH=${JAVA_HOME}/jre/lib/${AWT_ARCH}
+ 		export AWT_LIB_PATH
+-	else
++	elif [ -f ${JAVA_HOME}/jre/bin/libjawt.so ]; then
+ 		AWT_LIB_PATH=${JAVA_HOME}/jre/bin
+ 		export AWT_LIB_PATH
++   else
++		AWT_LIB_PATH=${JAVA_HOME}/${MULTILIB_DIR}
++		export AWT_LIB_PATH
+ 	fi
+ fi
+ 
+@@ -150,7 +166,7 @@
+ fi
+ 
+ if [ "x${1}" = "xclean" ]; then
+-	${MAKE_TYPE} -f $MAKEFILE clean
++	${MAKE_TYPE} -f $MAKEFILE NO_STRIP=1 clean
+ else
+-	${MAKE_TYPE} -f $MAKEFILE all $MAKE_GNOME $MAKE_CAIRO $MAKE_AWT $MAKE_MOZILLA ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8} ${9}
++	${MAKE_TYPE} -f $MAKEFILE NO_STRIP=1 all $MAKE_GNOME $MAKE_CAIRO $MAKE_OPENGL $MAKE_AWT $MAKE_MOZILLA ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8} ${9}
+ fi

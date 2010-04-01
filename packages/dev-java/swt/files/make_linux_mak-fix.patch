@@ -1,9 +1,9 @@
 Authors:  Cecil Curry <leycec@gmail.com>
 Upstream: no
-Synopsis: Integrate user CFLAGS, CXXFLAGS, and LDFLAGS.
-diff -Nuar old/make_linux.mak new/make_linux.mak
+Synopsis: Integrate user CFLAGS, CXXFLAGS, and LDFLAGS; avoid building the
+optional "make_glx" and "make_gnome" targets when building "all".
 --- old/make_linux.mak	2010-02-11 20:49:54.000000000 +0000
-+++ new/make_linux.mak	2010-04-01 02:11:32.032790612 +0000
++++ new/make_linux.mak	2010-04-01 15:47:51.870789605 +0000
 @@ -50,7 +50,7 @@
  
  CDE_LIBS = -L$(CDE_HOME)/lib -R$(CDE_HOME)/lib -lXt -lX11 -lDtSvc
@@ -40,6 +40,15 @@ diff -Nuar old/make_linux.mak new/make_linux.mak
  
  ifndef NO_STRIP
  	AWT_LIBS := $(AWT_LIBS) -s
+@@ -117,7 +117,7 @@
+ 	LIBS := $(LIBS) -s
+ endif
+ 
+-all: make_swt make_atk make_gnome make_glx
++all: make_swt make_atk
+ 
+ #
+ # SWT libs
 @@ -216,7 +216,7 @@
  make_mozilla:$(MOZILLA_LIB)
  
