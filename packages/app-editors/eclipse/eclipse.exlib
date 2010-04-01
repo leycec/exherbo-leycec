@@ -39,7 +39,7 @@ BNV="${BN}-R${BV}"
 # --------------------( CONFIGURATION                      )--------------------
 BUGS_TO="leycec@gmail.com"
 
-SUMMARY="Eclipse is a multi-language integrated development environment (IDE)."
+SUMMARY="A multi-language integrated development environment (IDE)"
 DESCRIPTION="
 Eclipse is a multi-language software development environment comprising an
 integrated development environment (IDE) and extensible plug-in system. It is

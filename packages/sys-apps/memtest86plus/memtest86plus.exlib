@@ -8,12 +8,13 @@ export_exlib_phases src_compile src_configure src_prepare src_install pkg_postin
 
 BUGS_TO="leycec@gmail.com"
 
-SUMMARY="MemTest86+ stress tests random access memory (RAM)."
+SUMMARY="Stress tests random access memory (RAM) on bootup"
 DESCRIPTION="
 MemTest86+ stress tests x86 architecture-specific random access memory (RAM)
 for errors. It tries to verify that that RAM will accept and correctly retain
 arbitrary patterns of data written to it, and that there are no errors in
-memory interaction or addressing."
+memory interaction or addressing.
+"
 
 LICENCES="GPL-2"
 HOMEPAGE="http://www.memtest.org"

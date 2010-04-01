@@ -4,7 +4,7 @@
 
 BUGS_TO="eg@gaute.vetsj.com"
 
-SUMMARY="Unclutter hides the mouse cursor when not in use."
+SUMMARY="X11 utility hiding the mouse pointer when idle"
 DESCRIPTION="
 Unclutter is a program which runs permanently in the background of an X11
 session. It checks on the X11 pointer (cursor) position every few

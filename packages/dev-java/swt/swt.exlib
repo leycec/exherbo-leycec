@@ -14,41 +14,96 @@
 #FIXME: Add support for a new "machine_tester.exlib" exlib, ensuring the
 #current machine has sufficient capability to make Eclipse.
 require ant java
+export_exlib_phases src_unpack src_prepare
 
 # --------------------( CONFIGURATION                      )--------------------
 BUGS_TO="leycec@gmail.com"
 
-SUMMARY="Eclipse is a multi-language integrated development environment (IDE)."
+SUMMARY="A GTK-based graphical widget toolkit for use with the Java platform."
 DESCRIPTION="
-Eclipse is a multi-language software development environment comprising an
-integrated development environment (IDE) and extensible plug-in system. It is
-written primarily in Java and can be used to develop applications in Java and,
-by means of plugins (occasionally written in other languages), such
-languages as C, C++, COBOL, Python, Perl, PHP, et al. The IDE may be referred
-to as Eclipse ADT for Ada, Eclipse CDT for C, Eclipse JDT for Java, and
-Eclipse PDT for PHP.
+SWT is a GTK-based graphical widget toolkit for use with the Java platform. It
+was originally developed by IBM and is now maintained by the Eclipse Foundation
+in tandem with the Eclipse IDE. It is an alternative to the AWT and Swing Java
+GUI toolkits provided by Sun Microsystems as part of the J2SE Platform.
 "
 
 #FIXME: Define additional mirrors.
+DOWNLOAD_ROOT="http://download.eclipse.org/eclipse/downloads/drops/R-${PV}-201002111343"
 DOWNLOADS="
-http://download.eclipse.org/technology/linuxtools/${BN}/${FNV}.tar.bz2
-http://download.eclipse.org/technology/linuxtools/${BN}/${BNV}.tar.gz
+    platform:x86?   ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86.zip )
+    platform:amd64? ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86_64.zip )
 "
 HOMEPAGE="http://www.eclipse.org"
 REMOTE_IDS=""
 
-UPSTREAM_DOCUMENTATION="http://help.eclipse.org/galileo/index.jsp [[ lang = en ]]"
-UPSTREAM_RELEASE_NOTES="http://www.eclipse.org/eclipse/development/readme_${PN}_${FV}.html"
+UPSTREAM_DOCUMENTATION="http://www.eclipse.org/swt/docs.php [[ lang = en ]]"
 
 SLOT="3.5"
 LICENCES="|| ( CPL-1.0 LGPL-2.1 MPL-1.1 )"
-MYOPTIONS=""
+MYOPTIONS="
+    cairo
+    platform: amd64 x86
+"
 DEPENDENCIES="
     build:
+        app-arch/unzip
+        dev-util/pkg-config
+        x11-proto/inputproto
+        x11-proto/xextproto
     build+run:
+        dev-libs/atk[>=1.10.2]
+        dev-libs/glib[>=2.6]
+        x11-libs/gtk+[>=2.6.8]
+        x11-libs/libXrender
+        x11-libs/libXt
+        x11-libs/libXtst
+        cairo? ( x11-libs/cairo[>=1.4.14] )
 "
+#       gnome? (
+#               =gnome-base/libgnome-2*
+#               =gnome-base/gnome-vfs-2*
+#               =gnome-base/libgnomeui-2*
+#               )
+#       opengl? (
+#           virtual/opengl
+#           virtual/glu
+#       )
+ 
+# The above archive extracts to the current directory.
+WORK="${WORKBASE}"
 
-#WORK="${WORKBASE}"/${BNV}
+# The absolute path to the root of the Java source tree for SWT.
+JAVA_SRC="${WORK}"/src
+
+# The absolute path to the root of the Java output tree for SWT. (This is the
+# path to which Ant emits class and jar files, for installation.)
+JAVA_TRG="${WORK}"/trg
+
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}"/make_linux_mak-fix.patch )
 
 # --------------------( IMPLEMENTATION                     )--------------------
+# void src_unpack(void)
+#
+# Extract the "src.zip" archive from the fetched compressed archive, then
+# extract the contents of that archive to ${WORK}.
+src_unpack() {
+    echo ">>> Unpacking ${ARCHIVES} to ${PWD}"
+    edo unzip -joq "${FETCHEDDIR}"/${ARCHIVES} "src.zip"
+    unpack "./src.zip"   # note: the prefixing "./" is important!
 
+    # Delete the resultant "about_files/" path and original "src.zip" archive.
+    edo rm -rf about_files/ "src.zip"
+}
+
+src_prepare() {
+    # See comments in "files/build.xml" for details.
+    edo cp "${FILES}"/build.xml "${WORK}"/build.xml
+
+    # "src.zip" unpacks the Java tree into "org/". The replacement
+    # "files/build.xml", however, expects this tree to be found at
+    # "src/org/" per the Ant standard. We ensure this now.
+    edo mkdir ${JAVA_SRC}
+    edo mv "${WORK}"/org ${JAVA_SRC}
+
+    default
+}

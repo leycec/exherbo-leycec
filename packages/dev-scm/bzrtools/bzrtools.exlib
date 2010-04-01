@@ -9,10 +9,10 @@ export_exlib_phases src_test
 
 BUGS_TO="leycec@gmail.com"
 
-SUMMARY="BzrTools is a Bazaar plugin providing miscellaneous functionality"
+SUMMARY="A Bazaar plugin providing miscellaneous functionality"
 DESCRIPTION="
-BzrTools is a Bazaar plugin providing miscellaneous useful and/or
-frivolous functionality.
+BzrTools is a Bazaar plugin providing extraneous, useful, and
+(occasionally) frivolous functionality.
 "
 
 HOMEPAGE="http://wiki.bazaar.canonical.com/BzrTools"

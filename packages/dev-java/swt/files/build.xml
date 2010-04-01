@@ -1,0 +1,32 @@
+<!-- Copyright 2010 Cecil Curry <leycec@gmail.com>
+     Distributed under the terms of the GNU General Public License v2
+     Based in part upon 'dev-java/swt/files/build.xml' from Gentoo, which is:
+          Copyright 1999-2010 Gentoo Foundation
+     
+     The "build.xml" bundled with Eclipse is Eclipse-specific, and in fact both
+     assumes and requires Eclipse be already installed. This is an obvious
+     problem for a source-based distribution, since the Eclipse exheres depends
+     on the SWT exheres. (Ergo, the SWT exheres cannot itself depend on the
+     Eclipse exheres.)
+
+     To circumvent this circular dependency, the "build.xml" below entirely
+     replaces the bundled "build.xml" with a vanilla Ant project performing
+     only compilation and jarring.
+  -->
+<project name="SWT" default="jar" basedir=".">
+   <property name="src" location="."/>
+   <property name="trg" location="trg"/>
+
+   <target name="init">
+      <tstamp/>
+      <mkdir dir="${trg}"/>
+   </target>
+
+   <target name="compile" depends="init" description="Compile SWT">
+      <javac srcdir="${src}" destdir="${trg}"/>
+   </target>
+
+   <target name="jar" depends="init" description="Jar SWT">
+      <jar destfile="swt.jar" basedir="${trg}"/>
+   </target>
+</project>
