@@ -206,7 +206,9 @@ swt_src_install() {
 #
 # Print $message, but in a manner customized for this exheres. ("Nothin' to see
 # here, folks...")
+SWT_EINFO_BANNER="============================================="
 swt_einfo() {
+  einfo $SWT_EINFO_BANNER
   einfo ${*}
-  einfo ====================================
+  einfo $SWT_EINFO_BANNER
 }

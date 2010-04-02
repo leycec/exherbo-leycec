@@ -3,7 +3,7 @@ Upstream: no
 Synopsis: Substantially changed so as to permit calling by the
 "src_compile" function of "swt.exlib".
 --- old/build.sh	2010-02-11 20:49:56.000000000 +0000
-+++ new/build.sh	2010-04-01 18:51:09.727257166 +0000
++++ new/build.sh	2010-04-02 01:58:28.245990227 +0000
 @@ -14,7 +14,7 @@
  
  cd `dirname $0`
@@ -75,12 +75,12 @@ Synopsis: Substantially changed so as to permit calling by the
  		export XULRUNNER_INCLUDES
  		export XULRUNNER_LIBS
 -		MAKE_MOZILLA=make_xulrunner
-+		MOZILLA_INCLUDES=XULRUNNER_INCLUDES
-+		MOZILLA_LIBS=XULRUNNER_LIBS
-+		export XULRUNNER_INCLUDES
-+		export XULRUNNER_LIBS
-+#		MAKE_MOZILLA=make_mozilla make_xulrunner make_xpcominit
-+		MAKE_MOZILLA=make_mozilla make_xulrunner
++		MOZILLA_INCLUDES="${XULRUNNER_INCLUDES}"
++		MOZILLA_LIBS="${XULRUNNER_LIBS}"
++		export MOZILLA_INCLUDES
++		export MOZILLA_LIBS
++		MAKE_MOZILLA=make_mozilla
++		MAKE_XULRUNNER=make_xulrunner
  	else
  		echo "None of the following libraries were found:  Mozilla/XPCOM, Firefox/XPCOM, or XULRunner/XPCOM"
  		echo "    *** Mozilla embedding support will not be compiled."
@@ -96,19 +96,16 @@ Synopsis: Substantially changed so as to permit calling by the
 +	elif [ -f ${JAVA_HOME}/jre/bin/libjawt.so ]; then
  		AWT_LIB_PATH=${JAVA_HOME}/jre/bin
  		export AWT_LIB_PATH
-+   else
++	else
 +		AWT_LIB_PATH=${JAVA_HOME}/${MULTILIB_DIR}
 +		export AWT_LIB_PATH
  	fi
  fi
  
-@@ -150,7 +166,7 @@
- fi
- 
+@@ -152,5 +168,5 @@
  if [ "x${1}" = "xclean" ]; then
--	${MAKE_TYPE} -f $MAKEFILE clean
-+	${MAKE_TYPE} -f $MAKEFILE NO_STRIP=1 clean
+ 	${MAKE_TYPE} -f $MAKEFILE clean
  else
 -	${MAKE_TYPE} -f $MAKEFILE all $MAKE_GNOME $MAKE_CAIRO $MAKE_AWT $MAKE_MOZILLA ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8} ${9}
-+	${MAKE_TYPE} -f $MAKEFILE NO_STRIP=1 all $MAKE_GNOME $MAKE_CAIRO $MAKE_OPENGL $MAKE_AWT $MAKE_MOZILLA ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8} ${9}
++	${MAKE_TYPE} -f $MAKEFILE NO_STRIP=1 all $MAKE_GNOME $MAKE_CAIRO $MAKE_OPENGL $MAKE_AWT $MAKE_MOZILLA $MAKE_XULRUNNER ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8} ${9}
  fi
