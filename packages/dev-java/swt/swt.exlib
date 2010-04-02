@@ -204,9 +204,9 @@ swt_src_install() {
 # --------------------( UTILITIES                          )--------------------
 # void swt_einfo(char *message)
 #
-# Print $message, but in a manner customized for this exheres.
+# Print $message, but in a manner customized for this exheres. ("Nothin' to see
+# here, folks...")
 swt_einfo() {
-  einfo
   einfo ${*}
-  einfo
+  einfo ====================================
 }

@@ -9,15 +9,32 @@
 # --------------------( INSTALLATION                       )--------------------
 # Install this Exherbo repository as you would any other: e.g., via
 #
-#     # Configure a new Paludis repository configuration.
+#     # Add an Exherbo repository configuration.
 #     sudo cat > /etc/paludis/repositories/leycec.conf <<EOF
 #       location = ${ROOT}/var/db/paludis/repositories/leycec
 #       sync = git://github.com/leycec/exherbo-leycec.git
 #       format = exheres
 #     EOF
 #
-#     # Retrieve the contents of this repository. (Note the "x-" prefix, below!)
+#     # Get this repository. (Note the "x-" prefix, below!)
 #     paludis -s x-leycec
+#
+# If you receive errors, ensure that you've installed all repository masters
+# (i.e., dependencies) required by this repository. Currently, these are the
+# following repositories: "arbor" "java". You should already have "arbor".
+# Install the remaining repositories as you would any other: e.g., via
+#
+#     # Add an Exherbo repository configuration for "java".
+#     sudo cat > /etc/paludis/repositories/java.conf <<EOF
+#       location = ${ROOT}/var/db/paludis/repositories/java
+#       sync = git://git.exherbo.org/java.git
+#       format = exheres
+#     EOF
+#
+#     # Retrieve the contents of this repository. (Note the "x-" prefix, below!)
+#     paludis -s x-java
+# 
+# If you still receive errors, please send me a comment. (...with my apologies.)
 #
 # --------------------( COMMENTS                           )--------------------
 # Please send comments, patches, and patchy ululations as e-mail to leycec at:
