@@ -69,8 +69,8 @@ alias set_top_dir="into"
 # and version for this exheres. If the directory does not already exist, this
 # function also makes the directory.
 #
-# This directory defaults to "/usr/share/doc/${PNV}/". Thus, this function need
-# not be called when installing documents to that directory.
+# This directory defaults to the empty string, thus installing documents into
+# "/usr/share/doc/${PNV}" by default.
 alias set_document_subdir="docinto"
 
 # void install_documents(char *filename1, char *filename2, ...)
@@ -78,9 +78,17 @@ alias set_document_subdir="docinto"
 # Copy absolute filenames to filenames having the same basename under the above
 # directory. This is functionally equivalent to:
 #
-#   cp "$filename1" "$filename2" ... "${IMAGE}/usr/share/doc/$document_dir/"
+#   cp "$filename1" "$filename2" ... "${IMAGE}/usr/share/doc/${PNV}/$document_dir/"
 alias install_documents="dodoc"
 alias install_document="dodoc"
+
+# void install_document_as(char *filename1, char *filename2)
+#
+# Copy absolute "$filename1" to relative "$filename2" under the above
+# directory. This is functionally equivalent to:
+#
+#   cp "$filename1" "${IMAGE}/usr/share/doc/${PNV}/$document_subdir/$filename2"
+alias install_document_as="newdoc"
 
 # ....................{ MANPAGES                           }....................
 # There is no "set_manpage_dir". Upstream packages already specify the package-
