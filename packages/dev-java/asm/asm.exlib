@@ -3,8 +3,8 @@
 # Based in part upon 'asm-3.2.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require ant java install_aliases
-export_exlib_phases src_prepare src_install
+require antefix
+export_exlib_phases src_install
 
 BUGS_TO="leycec@gmail.com"
 
@@ -19,10 +19,8 @@ simplicity of use and performance. Because it was designed and implemented to be
 as small and as fast as possible, ASM is attractive for use in dynamic systems.
 "
 
-DOWNLOADS="http://download.forge.objectweb.org/${PN}/${PNV}.tar.gz"
 HOMEPAGE="http://asm.ow2.org"
-REMOTE_IDS=""
-
+DOWNLOADS="http://download.forge.objectweb.org/${PN}/${PNV}.tar.gz"
 UPSTREAM_DOCUMENTATION="http://asm.ow2.org/asm32/javadoc/user/index.html [[ lang = en ]]"
 
 SLOT="0"
@@ -30,58 +28,23 @@ LICENCES="BSD-3"
 MYOPTIONS=""
 DEPENDENCIES=""
 
-WORK="${WORKBASE}"/${PNV}
-
-# Ant properties to be passed to all command-line invocations of Ant. This
-# particular "build.xml" file complains with:
+# ASM's "build.xml" file complains with:
 #
 # [echo] The 'build.properties' file must be configured
 #
 # unless we pass it a "objectweb.ant.tasks.path" property having non-null
-# value. We'll do it, but we won't like it.
-ANT_PROPERTIES="-Dobjectweb.ant.tasks.path=zebrapig"
+# value. We do it. (But we don't like it.)
+ANT_PARAMS=( -Dobjectweb.ant.tasks.path=zebrapig )
 
-ANT_SRC_COMPILE_PARAMS=( $ANT_PROPERTIES compile )
-ANT_SRC_INSTALL_PARAMS=( $ANT_PROPERTIES jar )
-
-# Make the "src_prepare" phase a noop. By default, this calls "ant_src_prepare".
-# That function invokes "build.xml" with the ${ANT_SRC_PREPARE_PARAMS}
-# parameters: in this case nothing. That, in turn, eventually runs the Ant
-# "check" task within that "build.xml". This task fails since the
-# "-Dobjectweb.ant.tasks.path" parameter has not been passed to that
-# invocation of "build.xml". (This is all very silly, really.)
-asm_src_prepare() {
-    if [[ $(eclectic java-jre show) = gcj* ]]; then
-        ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
-        ewarn "this compiler works, it also introduces sydbox access violations by"
-        ewarn "attempting to open spurious DNS requests. Until this can be"
-        ewarn "corrected, please consider installing and enabling the \"icedtea6\""
-        ewarn "compiler instead with:"
-        ewarn
-        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
-        ewarn "                           && eclectic java-jre set icedtea6-\$PV"
-        ewarn
-        ewarn "where \$PV is your installed version of icedtea6 as listed by:"
-        ewarn
-        ewarn "  paludis -q icedtea6"
-        ewarn
-        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        eerror "! Proceeding with installation, but ignoring all network sandboxing !"
-        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        unset SYDBOX_NET
-    fi
-}
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_INSTALL_PARAMS=( jar )
 
 asm_src_install() {
-    einfo "Collecting jar files..."
-    ant_src_install
+    antefix_src_install
+#   die "dying...yay!"
 
     einfo "Installing jar files..."
-    set_install_dir /usr/share/${PN}
-
-    # Strip the version suffix from each jar filename.
-    for JAR_FILE in "${WORK}"/output/dist/lib/*.jar; do
-        install_file_as "${JAR_FILE}" $(basename "${JAR_FILE/%-${PV}.jar/.jar}")
-    done
+    set_install_jar_dir /usr/share/${PN}
+    install_jars "${WORK}"/output/dist/lib/*.jar
 }
 

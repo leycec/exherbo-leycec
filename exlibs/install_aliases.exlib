@@ -61,13 +61,12 @@ alias set_top_dir="into"
 # void set_document_subdir(char *pathname)
 #
 # Set the "/usr/share/doc/${PNV}/"-relative documents directory. The
-# "*_usr_share_doc_dir" family of functions, below, operate on this directory
+# "install_document*" family of functions, below, operate on this directory
 # until the next invocation of this function.
 #
 # Note this is not an absolute pathname, but rather the name of a directory
-# immediately under "/usr/share/doc/${PNV}/" where ${PNV} is the program name
-# and version for this exheres. If the directory does not already exist, this
-# function also makes the directory.
+# immediately under "/usr/share/doc/${PNV}/". If this directory does not already
+# exist, this function also makes the directory.
 #
 # This directory defaults to the empty string, thus installing documents into
 # "/usr/share/doc/${PNV}" by default.

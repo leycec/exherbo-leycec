@@ -71,7 +71,9 @@ qdox_src_compile() {
 }
 
 qdox_src_install() {
-    einfo "Producing jar file..."
+    emagicdocs
+
+    einfo "Collecting jar file..."
     edo jar -cvf ${QDOX_JAR_FILE} -C ${QDOX_BUILD_DIR} com
 
     einfo "Installing jar file..."

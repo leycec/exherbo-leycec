@@ -1,0 +1,78 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'junit-4.6.ebuild' from Gentoo, which is:
+#     Copyright 1999-2010 Gentoo Foundation
+
+#FIXME: Integrate into "dev-java/apache-ant", which currently hardcodes a JUnit
+#download. Rather ugly, but understandable.
+
+# Do not require the "sourceforge" exlib, as this exheres overrides all
+# default globals supplied by that exlib.
+require antefix install_aliases
+export_exlib_phases src_install
+
+BUGS_TO="leycec@gmail.com"
+SUMMARY="Java unit testing framework"
+DESCRIPTION="
+JUnit is a Java unit testing framework. It significantly contributed to the
+development of test-driven development, and is one of a family of unit testing
+frameworks collectively known as xUnit that originated with SUnit.
+"
+
+HOMEPAGE="http://www.${PN}.org/"
+UPSTREAM_RELEASE_NOTES="http://kentbeck.github.com/${PN}/doc/ReleaseNotes${PV}.html"
+UPSTREAM_DOCUMENTATION="http://kentbeck.github.com/${PN}/javadoc/${PV} [[ lang = en ]]"
+REMOTE_IDS="sourceforge:${PN}"
+
+# Junit also supplies a much smaller "${PNV}-src.jar" archive. Unfortunately,
+# since this archive lacks a genuine "build.xml" Ant makefile, it's fairly
+# useless. We fallback to downloading the larger zipfile.
+DOWNLOADS="mirror://sourceforge/${PN}/${PN}${PV}.zip"
+WORK="${WORKBASE}"/${PN}${PV}
+
+SLOT="0"
+LICENCES="CPL-1.0"
+MYOPTIONS="doc examples"
+DEPENDENCIES="
+    build+run:
+        dev-java/hamcrest[>=1.2]
+"
+
+ANT_SRC_PREPARE_SYMLINK_DIR=lib
+ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest )
+
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_INSTALL_PARAMS=( jar )
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.html doc/ReleaseNotes${PV}.txt )
+
+# JUnit creates various jar files, of which we ignore all except the
+# "${PN}-dep-${PV}.jar" jar file having no external dependencies.
+ANT_SRC_INSTALL_JARS=( ${PN}-dep-${PV}.jar )
+
+junit_src_install() {
+    antefix_src_install
+
+    # Restructure the JUnit documentation tree so as to place all HTML
+    # documentation under a new "/usr/share/doc/${PN}/html/" path.
+    if option doc; then
+        JUNIT_DOCUMENT_DIR="${WORK}"/doc/
+        JUNIT_JAVADOC_DIR="${WORK}"/javadoc/
+
+        # First, remove all non-HTML documents.
+        edo rm ${JUNIT_DOCUMENT_DIR}/*.{sh,txt}
+
+        # Next, install all HTML documents.
+        set_document_subdir html
+        install_documents ${JUNIT_DOCUMENT_DIR}/*
+        set_document_subdir html/javadoc
+        install_documents ${JUNIT_JAVADOC_DIR}/*
+    fi
+
+    if option examples; then
+        einfo "Installing examples..."
+        set_document_subdir examples
+        install_documents "${WORK}"/org/junit/samples/*
+    fi
+}
+

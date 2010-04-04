@@ -3,8 +3,8 @@
 # Based in part upon 'hamcrest-1.1.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require ant java install_aliases googlecode [ suffix=tgz ]
-export_exlib_phases src_unpack src_install
+require antefix install_aliases googlecode [ suffix=tgz ]
+export_exlib_phases src_prepare
 
 BUGS_TO="leycec@gmail.com"
 
@@ -36,50 +36,26 @@ WORK="${WORKBASE}"/${PNV}
 #
 # unless we pass it a "objectweb.ant.tasks.path" property having non-null
 # value. We'll do it, but we won't like it.
-ANT_PROPERTIES="-Dversion=${PV}"
+ANT_PARAMS="-Dversion=${PV}"
 
-ANT_SRC_COMPILE_PARAMS=( $ANT_PROPERTIES jarjar-1 )
-ANT_SRC_INSTALL_PARAMS=( $ANT_PROPERTIES jar )
+ANT_SRC_PREPARE_SYMLINK_DIR=lib/generator
+ANT_SRC_PREPARE_SYMLINK_JARS=( jarjar qdox )
 
-# Make the "src_prepare" phase a noop. By default, this calls "ant_src_prepare".
-# That function invokes "build.xml" with the ${ANT_SRC_PREPARE_PARAMS}
-# parameters: in this case nothing. That, in turn, eventually runs the Ant
-# "check" task within that "build.xml". This task fails since the
-# "-Dobjectweb.ant.tasks.path" parameter has not been passed to that
-# invocation of "build.xml". (This is all very silly, really.)
-#asm_src_prepare() {
-#    if [[ $(eclectic java-jre show) = gcj* ]]; then
-#        ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
-#        ewarn "this compiler works, it also introduces sydbox access violations by"
-#        ewarn "attempting to open spurious DNS requests. Until this can be"
-#        ewarn "corrected, please consider installing and enabling the \"icedtea6\""
-#        ewarn "compiler instead with:"
-#        ewarn
-#        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV && \\"
-#        ewarn "                              eclectic java-jre set icedtea6-\$PV"
-#        ewarn
-#        ewarn "where \$PV is your installed version of icedtea6 as listed with:"
-#        ewarn
-#        ewarn "  paludis -q icedtea6"
-#        ewarn
-#        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-#        eerror "! Proceeding with installation, but ignoring all network sandboxing !"
-#        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-#        unset SYDBOX_NET
-#    fi
-#   edo sed -e 's:source="1.3" target="1.2":source="1.4" target="1.4":' \
-#           -i "${WORK}"/build.xml
-#}
+ANT_SRC_COMPILE_PARAMS=( jarjar-1 )
+ANT_SRC_INSTALL_PARAMS=( jar )
 
-hamcrest_src_install() {
-    einfo "Collecting jar files..."
-    ant_src_install
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.txt CHANGES.txt )
+ANT_SRC_INSTALL_JARS=( build/${PN}.jar )
 
-    einfo "Installing jar files..."
-    set_install_dir /usr/share/${PN}
+hamcrest_src_prepare() {
+    antefix_src_prepare
 
-    for JAR_FILE in "${WORK}"/output/dist/lib/*.jar; do
-        install_file_as "${JAR_FILE}" $(basename ${JAR_FILE/-${PV}})
+    # Hamcrest's "build.xml" file references version-specific jar files. Patch
+    # the file, eliminating these references; and link in the jar files. Note,
+    # the 'D' in "DPN" stands for dependency.
+    einfo "Preparing build.xml and external dependencies..."
+    for DPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
+      edo sed -e "s:${DPN}-\([0-9].\)*.jar::" -i 
     done
 }
 

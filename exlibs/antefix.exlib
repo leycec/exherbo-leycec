@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+#
+# --------------------( SYNOPSIS                           )--------------------
+# This exlib improves "ant.exlib" with handling for command-line properties,
+# external dependencies, and jar and javadoc installation. These improvements
+# should be backported into "ant.exlib", where deemed appropriate.
+#
+# This exlib requires "ant.exlib", and is thus backwards compatible with other
+# exlibs and exheres requiring "ant.exlib".
+#
+# --------------------( ETYMOLOGY                          )--------------------
+# Technically, an antefix is "an ornament of the cymatium of a classic cornice,
+# sometimes pierced for the escape of water." In reality, I'm not sure I know
+# what a cymatium is. Or a cornice.
+
+# ....................{ DEPENDENCIES                       }....................
+require ant java
+export_exlib_phases src_prepare src_compile src_test src_install
+
+# ....................{ GLOBALS                            }....................
+# Ant parameters to be passed to all command-line invocations of Ant. Example:
+#
+# ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
+ANT_PARAMS=( )
+
+# Absolute or relative path under "${WORK}" into which external jar files will
+# be symlinked. Though this path is typically "lib" for most exheres, you must
+# still specify this global to have symlinking performed for you.
+ANT_SRC_PREPARE_SYMLINK_DIR=""
+
+# List of absolute paths to or relative names of external jar files to be
+# symlinked into "${ANT_SRC_SYMLINK_DIR}". If filenames are not known until
+# install time, leave this array blank; then, explicitly call "symlink_jars"
+# from within your "${PN}_src_prepare" function.
+#
+# All such jars should be both build- and runtime dependencies of this exheres.
+ANT_SRC_PREPARE_SYMLINK_JARS=( )
+
+# List of absolute paths to jar files to be installed under
+# "${ROOT}/usr/share/${PN}". If filenames are not known until install time,
+# leave this array blank; then, explicitly call "install_jars" from within your
+# "${PN}_src_install" function.
+ANT_SRC_INSTALL_JARS=( )
+
+# ....................{ PHASES                             }....................
+antefix_src_prepare() {
+    # Perform patching prior to all other preparation.
+    [[ -n "${DEFAULT_SRC_PREPARE_PATCHES}" ]] && einfo "Patching files..."
+    default  # calls the original "src_prepare" function
+
+    if [[ $(eclectic java-jre show) = gcj* ]]; then
+        ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
+        ewarn "this compiler works, it also introduces sydbox access violations by"
+        ewarn "attempting to open spurious DNS requests. Until this can be"
+        ewarn "corrected, please consider installing and enabling the \"icedtea6\""
+        ewarn "compiler instead with:"
+        ewarn
+        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
+        ewarn "                           && eclectic java-jre set icedtea6-\$PV"
+        ewarn
+        ewarn "where \$PV is your installed version of icedtea6 as listed by:"
+        ewarn
+        ewarn "  paludis -q icedtea6"
+        ewarn
+        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        eerror "! Proceeding with installation, but ignoring all network sandboxing !"
+        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        unset SYDBOX_NET
+    fi
+
+    # Never invoke Ant unless you have a task with which to invoke it, since
+    # "build.xml" files often supply a default task performing all relevant
+    # tasks when passed no explicit task. (This is rarely what we want.)
+    if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
+        einfo "Preparing build..."
+        ANT_SRC_PREPARE_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_PREPARE_PARAMS[@]} )
+        ant_src_prepare
+    fi
+
+    if [[ -n "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]]; then
+        einfo "Symlinking external jar files..."
+        set_symlink_jar_dir "${ANT_SRC_PREPARE_SYMLINK_DIR}"
+        symlink_jars         ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}
+    fi
+}
+
+antefix_src_compile() {
+    if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
+        ANT_SRC_COMPILE_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_COMPILE_PARAMS[@]} )
+        ant_src_compile
+    fi
+}
+
+antefix_src_test() {
+    if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
+        ANT_SRC_TEST_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_TEST_PARAMS[@]} )
+        ant_src_test
+    fi
+}
+
+antefix_src_install() {
+    einfo "Installing documents..."
+    emagicdocs
+
+    if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
+        einfo "Collecting jar files..."
+        ANT_SRC_INSTALL_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_INSTALL_PARAMS[@]} )
+        ant_src_install
+    fi
+
+    if [[ -n "${ANT_SRC_INSTALL_JARS[@]}" ]]; then
+        einfo "Installing jar files..."
+        set_install_jar_dir /usr/share/${PN}
+        install_jars ${ANT_SRC_INSTALL_JARS}
+    fi
+}
+
+# ....................{ SYMLINKERS                         }....................
+# The following convenience functions symbolically link external Java libraries
+# into the current exhere's work directory prior to compilation of that exheres.
+
+# void set_symlink_jar_dir(char *pathname)
+#
+# Set the path of the directory into which external jar files should be
+# symbolically linked for this exheres. The "build.xml" file for this exheres
+# presumably requires these external jar files to be present in this directory
+# prior to operation. The "prepare_jar*" family of functions, below, operate on
+# this directory until the next invocation of this function.
+#
+# If absolute, no path processing is performed upon the filename aside from
+# ensuring that this path resides under "${WORK}/"; if relative, the absolute
+# path "${WORK}/" is prepended to this path.
+#
+# By convention, this is usually just "lib". Most Java libraries are different,
+# of course.
+set_symlink_jar_dir() {
+    illegal_in_global_scope
+
+    [[ ${#} -eq 1 ]] || paludis_die_or_error "one and only one argument needed"
+    ANT_SRC_PREPARE_SYMLINK_DIR="${1}"
+
+    # If we were passed an absolute path, test it.
+    if [[ ${ANT_SRC_PREPARE_SYMLINK_DIR:0:1} = / ]]; then
+        [[ "${ANT_SRC_PREPARE_SYMLINK_DIR}" = "${WORK}"* ]] ||
+            paludis_die_or_error "${ANT_SRC_PREPARE_SYMLINK_DIR} not under ${WORK}"
+    # If we were passed a relative path, canonicalize it.
+    else
+        ANT_SRC_PREPARE_SYMLINK_DIR="${WORK}/${ANT_SRC_PREPARE_SYMLINK_DIR}"
+    fi
+
+    # If the path exists, remove all jar files the archive extracted into it.
+    # This provides a convenient alternative to the rather cumbersome
+    # "${ANT_BUNDLED_LIBSDIR}" array.
+    if [[ -d "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]]; then
+        edo rm -f "${ANT_SRC_PREPARE_SYMLINK_DIR}"/*.jar
+    # Otherwise, create the path. It should already be, in general.
+    else
+        edo install -d "${ANT_SRC_PREPARE_SYMLINK_DIR}"
+    fi
+
+    # Notify the world!
+    export ANT_SRC_PREPARE_SYMLINK_DIR
+}
+
+# void symlink_jars(char *filename1, char *filename2, ...)
+#
+# Symbolically link jar filenames to relative filenames having the same basename
+# under the above directory. Input jar filenames may be either absolute or
+# relative. If absolute, no path processing is performed upon the filename; if
+# relative, the absolute path "/usr/share/$(basename $filename)/" is prepended
+# to that filename. Input jar filenames may or may not have the ".jar" suffix
+# appended, as well. Filenames that do not will simply have the ".jar" suffix
+# appended. Thus, "jarjar" becomes "/usr/share/jarjar/jarjar.jar". For each
+# such filename, this performs the equivalent of:
+#
+#   ln -s "$filename" "$symlink_jar_dir"/
+symlink_jars() {
+    illegal_in_global_scope
+
+    [[ ${#} -ge 1 ]] || paludis_die_or_error "at least one argument needed"
+    [[ -d "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]] || 
+        paludis_die_or_error "${ANT_SRC_PREPARE_SYMLINK_DIR} not found or not set"
+
+    for JAR_FILE in ${*}; do
+        JAR_BASENAME=${JAR_FILE##*/}        # filename sans path
+        JAR_ROOTNAME=${JAR_BASENAME/%.jar/}  # filename sans path and type
+
+        # If we were passed a relative path, canonicalize it. We assume all
+        # external Java libraries live in their customary directories.
+        if [[ ${JAR_FILE:0:1} != / ]]; then
+            JAR_FILE="${ROOT}/usr/share/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
+        fi
+
+        edo ln -s "${JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
+    done
+}
+
+alias symlink_jar="symlink_jars"
+
+# ....................{ INSTALLERS                         }....................
+# The following convenience functions install all Java libraries produced by
+# this exheres into local directories appropriate for this exheres.
+
+# void set_install_jar_dir(char *pathname)
+#
+# Set the absolute path of the directory into which jar files should be
+# installed for this exheres. The "install_jar*" family of functions,
+# below, operate on this directory until the next invocation of this function.
+#
+# By convention, this is usually "/usr/share/${PN}". Do not prefix this path
+# with "${IMAGE}", as that is done for you.
+alias set_install_jar_dir="insinto"
+
+# void install_jars(char *filename1, char *filename2, ...)
+#
+# Copy absolute filenames to relative filenames having the same basename sans
+# version under the above directory. By "sans version", we mean basename minus
+# "-${PV}". Jar filenames should be versionless so as to permit their usage
+# elsewhere without concern for the specific versions they represent. This
+# resembles:
+#
+#   cp "$filename1" "$filename2" ... "${IMAGE}/$install_jar_dir"
+install_jars() {
+    illegal_in_global_scope
+
+    [[ ${#} -ge 1 ]] || paludis_die_or_error "at least one argument needed"
+
+    for JAR_FILE in ${*}; do
+        #FIXME: Bug. This works at the shell but not from within the exheres
+        #environment. (It's probably my fault; I'm just can't puzzle it out.)
+        #In the meanwhile, I'll just sed it...
+        # Strip versions from filenames: e.g., convert "zebrapig-0.42.jar" to
+        # "zebrapig.jar". The pattern substitution requires the bash "extglob"
+        # shell option to be enabled, which it is under exheres-0.
+        #
+        # See "man bash" for details.
+        #newins ${JAR_FILE} $(basename "${JAR_FILE/%-+([0-9]*.)jar/.jar}")
+        newins ${JAR_FILE} $(echo "${JAR_FILE##*/}" | sed -e 's/-\([0-9]*\.\)*jar$/.jar/')
+    done
+}
+
+alias install_jar="install_jars"

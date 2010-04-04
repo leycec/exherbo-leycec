@@ -12,7 +12,7 @@
 MY_PV=${MY_PV:-$PV}
 MY_PNV=${PN}-src-${MY_PV}
 
-require ant java install_aliases googlecode [ suffix=zip ]
+require antefix install_aliases googlecode [ suffix=zip ]
 export_exlib_phases src_prepare src_install
 
 # Jar Jar Links extracts to a file having this basename. Note, this slightly
@@ -38,28 +38,26 @@ DEPENDENCIES="build+run: dev-java/asm[>=3.2]"
 
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}"/build_xml-fix.patch )
 
+ANT_SRC_PREPARE_SYMLINK_DIR=lib
+ANT_SRC_PREPARE_SYMLINK_JARS=(
+    "${ROOT}"usr/share/asm/asm.jar
+    "${ROOT}"usr/share/asm/asm-commons.jar
+)
+
 ANT_SRC_PREPARE_PARAMS=( init )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
 jarjar_src_prepare() {
-    default
-    ant_src_prepare
+    antefix_src_prepare
 
     # Remove Maven-specific sources.
     edo rm "${WORK}"/src/main/com/tonicsystems/jarjar/JarJarMojo.java
-
-    # Link in external dependencies.
-    edo ln -s "${ROOT}"/usr/share/asm/asm.jar         "${WORK}"/lib/
-    edo ln -s "${ROOT}"/usr/share/asm/asm-commons.jar "${WORK}"/lib/
 }
 
 jarjar_src_install() {
-    einfo "Collecting jar files..."
-    ant_src_install
+    antefix_src_install
 
-    einfo "Installing jar files..."
     set_install_dir /usr/share/${PN}
     install_file_as "${WORK}"/dist/${PN}-snapshot.jar ${PN}.jar
 }
-
