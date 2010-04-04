@@ -58,10 +58,10 @@ asm_src_prepare() {
         ewarn "corrected, please consider installing and enabling the \"icedtea6\""
         ewarn "compiler instead with:"
         ewarn
-        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV && \\"
-        ewarn "                              eclectic java-jre set icedtea6-\$PV"
+        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
+        ewarn "                           && eclectic java-jre set icedtea6-\$PV"
         ewarn
-        ewarn "where \$PV is your installed version of icedtea6 as listed with:"
+        ewarn "where \$PV is your installed version of icedtea6 as listed by:"
         ewarn
         ewarn "  paludis -q icedtea6"
         ewarn
@@ -70,8 +70,6 @@ asm_src_prepare() {
         eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         unset SYDBOX_NET
     fi
-#   edo sed -e 's:source="1.3" target="1.2":source="1.4" target="1.4":' \
-#           -i "${WORK}"/build.xml
 }
 
 asm_src_install() {
@@ -81,8 +79,9 @@ asm_src_install() {
     einfo "Installing jar files..."
     set_install_dir /usr/share/${PN}
 
+    # Strip the version suffix from each jar filename.
     for JAR_FILE in "${WORK}"/output/dist/lib/*.jar; do
-        install_file_as "${JAR_FILE}" $(basename ${JAR_FILE/-${PV}})
+        install_file_as "${JAR_FILE}" $(basename "${JAR_FILE/%-${PV}.jar/.jar}")
     done
 }
 
