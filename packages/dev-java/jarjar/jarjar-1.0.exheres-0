@@ -1,0 +1,11 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# Jar Jar Links suffixes tarballs of the "1.0" branch with a unique "rc*"
+# identifier. We specify the most recent "rc*" identifier, here.
+MY_PV=${PV}rc8
+
+require jarjar
+
+PLATFORMS="~amd64 ~x86"
+

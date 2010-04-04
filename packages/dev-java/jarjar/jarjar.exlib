@@ -1,0 +1,65 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'jarjar-0.9.ebuild' from Gentoo, which is:
+#     Copyright 1999-2010 Gentoo Foundation
+
+#FIXME leycec: Add a new "ant_tasks: jarjar" dependency to the
+# "dev-java/apache-ant" exheres, for integrating with Ant.
+
+# Jar Jar Links downloads to a file having this basename. (Set this prior to
+# including the "googlcode" exlib so as to ensure that exlib establishes the
+# proper string for the ${DOWNLOADS} global.)
+MY_PV=${MY_PV:-$PV}
+MY_PNV=${PN}-src-${MY_PV}
+
+require ant java install_aliases googlecode [ suffix=zip ]
+export_exlib_phases src_prepare src_install
+
+# Jar Jar Links extracts to a file having this basename. Note, this slightly
+# differs from the download filename above.
+MY_PNV=${PN}-${MY_PV}
+WORK="${WORKBASE}"/${MY_PNV}
+
+BUGS_TO="leycec@gmail.com"
+SUMMARY="Java utility for repackaging Java libraries"
+DESCRIPTION="
+Jar Jar Links is a Java utility for repackaging Java libraries to be
+embedded into your Java library. This is useful for shipping a single jar file
+having no external dependencies and for avoiding issues introduced by shipping
+multiple jar files depending on specific versions of other libraries.
+"
+
+UPSTREAM_DOCUMENTATION="http://code.google.com/p/${PN}/w/list [[ lang = en ]]"
+
+SLOT="0"
+LICENCES="BSD-3"
+MYOPTIONS=""
+DEPENDENCIES="build+run: dev-java/asm[>=3.2]"
+
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}"/build_xml-fix.patch )
+
+ANT_SRC_PREPARE_PARAMS=( init )
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_INSTALL_PARAMS=( jar )
+
+jarjar_src_prepare() {
+    default
+    ant_src_prepare
+
+    # Remove Maven-specific sources.
+    edo rm "${WORK}"/src/main/com/tonicsystems/jarjar/JarJarMojo.java
+
+    # Link in external dependencies.
+    edo ln -s "${ROOT}"usr/share/asm/asm.jar         "${WORK}"/lib/
+    edo ln -s "${ROOT}"usr/share/asm/asm-commons.jar "${WORK}"/lib/
+}
+
+jarjar_src_install() {
+    einfo "Collecting jar files..."
+    ant_src_install
+
+    einfo "Installing jar files..."
+    set_install_dir /usr/share/${PN}
+    install_file_as "${WORK}"/dist/${PN}-snapshot.jar ${PN}.jar
+}
+
