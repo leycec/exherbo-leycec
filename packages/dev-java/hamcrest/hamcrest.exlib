@@ -1,0 +1,85 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'hamcrest-1.1.ebuild' from Gentoo, which is:
+#     Copyright 1999-2010 Gentoo Foundation
+
+require ant java install_aliases googlecode [ suffix=tgz ]
+export_exlib_phases src_unpack src_install
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="A framework for creating declarative matchers."
+DESCRIPTION="
+Hamcrest is a language-agnostic framework for creating matchers, allowing match
+rules to be defined declaratively. These matchers have uses in unit testing
+frameworks such as JUnit and jMock. (This is the Hamcrest Java port.)
+"
+
+UPSTREAM_DOCUMENTATION="http://code.google.com/p/${PN}/w/list [[ lang = en ]]"
+
+SLOT="0"
+LICENCES="BSD-3"
+MYOPTIONS=""
+DEPENDENCIES="
+    build+run:
+        dev-java/jarjar[>=0.6]
+        dev-java/qdox[>=1.6.3]
+        dev-java/xml-commons-external[>=1.3.4]
+"
+
+WORK="${WORKBASE}"/${PNV}
+
+# Ant properties to be passed to all command-line invocations of Ant. This
+# particular "build.xml" file complains with:
+#
+# [echo] The 'build.properties' file must be configured
+#
+# unless we pass it a "objectweb.ant.tasks.path" property having non-null
+# value. We'll do it, but we won't like it.
+ANT_PROPERTIES="-Dversion=${PV}"
+
+ANT_SRC_COMPILE_PARAMS=( $ANT_PROPERTIES jarjar-1 )
+ANT_SRC_INSTALL_PARAMS=( $ANT_PROPERTIES jar )
+
+# Make the "src_prepare" phase a noop. By default, this calls "ant_src_prepare".
+# That function invokes "build.xml" with the ${ANT_SRC_PREPARE_PARAMS}
+# parameters: in this case nothing. That, in turn, eventually runs the Ant
+# "check" task within that "build.xml". This task fails since the
+# "-Dobjectweb.ant.tasks.path" parameter has not been passed to that
+# invocation of "build.xml". (This is all very silly, really.)
+#asm_src_prepare() {
+#    if [[ $(eclectic java-jre show) = gcj* ]]; then
+#        ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
+#        ewarn "this compiler works, it also introduces sydbox access violations by"
+#        ewarn "attempting to open spurious DNS requests. Until this can be"
+#        ewarn "corrected, please consider installing and enabling the \"icedtea6\""
+#        ewarn "compiler instead with:"
+#        ewarn
+#        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV && \\"
+#        ewarn "                              eclectic java-jre set icedtea6-\$PV"
+#        ewarn
+#        ewarn "where \$PV is your installed version of icedtea6 as listed with:"
+#        ewarn
+#        ewarn "  paludis -q icedtea6"
+#        ewarn
+#        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+#        eerror "! Proceeding with installation, but ignoring all network sandboxing !"
+#        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+#        unset SYDBOX_NET
+#    fi
+#   edo sed -e 's:source="1.3" target="1.2":source="1.4" target="1.4":' \
+#           -i "${WORK}"/build.xml
+#}
+
+hamcrest_src_install() {
+    einfo "Collecting jar files..."
+    ant_src_install
+
+    einfo "Installing jar files..."
+    set_install_dir /usr/share/${PN}
+
+    for JAR_FILE in "${WORK}"/output/dist/lib/*.jar; do
+        install_file_as "${JAR_FILE}" $(basename ${JAR_FILE/-${PV}})
+    done
+}
+

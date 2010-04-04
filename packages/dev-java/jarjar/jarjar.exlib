@@ -50,8 +50,8 @@ jarjar_src_prepare() {
     edo rm "${WORK}"/src/main/com/tonicsystems/jarjar/JarJarMojo.java
 
     # Link in external dependencies.
-    edo ln -s "${ROOT}"usr/share/asm/asm.jar         "${WORK}"/lib/
-    edo ln -s "${ROOT}"usr/share/asm/asm-commons.jar "${WORK}"/lib/
+    edo ln -s "${ROOT}"/usr/share/asm/asm.jar         "${WORK}"/lib/
+    edo ln -s "${ROOT}"/usr/share/asm/asm-commons.jar "${WORK}"/lib/
 }
 
 jarjar_src_install() {
