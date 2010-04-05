@@ -42,8 +42,8 @@ ANT_SRC_PREPARE_SYMLINK_DIR=lib
 ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest )
 
 ANT_SRC_COMPILE_PARAMS=( compile )
-ANT_SRC_INSTALL_PARAMS=( jar )
 
+ANT_SRC_INSTALL_PARAMS=( jar )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.html doc/ReleaseNotes${PV}.txt )
 
 # JUnit creates various jar files, of which we ignore all except the

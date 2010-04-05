@@ -19,43 +19,70 @@ UPSTREAM_DOCUMENTATION="http://code.google.com/p/${PN}/w/list [[ lang = en ]]"
 
 SLOT="0"
 LICENCES="BSD-3"
-MYOPTIONS=""
+MYOPTIONS="debug"
 DEPENDENCIES="
     build+run:
         dev-java/jarjar[>=0.6]
         dev-java/qdox[>=1.6.3]
-        dev-java/xml-commons-external[>=1.3.4]
 "
+#       dev-java/xml-commons-external[>=1.3.4]
 
 WORK="${WORKBASE}"/${PNV}
 
-# Ant properties to be passed to all command-line invocations of Ant. This
-# particular "build.xml" file complains with:
-#
-# [echo] The 'build.properties' file must be configured
-#
-# unless we pass it a "objectweb.ant.tasks.path" property having non-null
-# value. We'll do it, but we won't like it.
+# Notify Ant of the current Hamcrest version to ensure it names files properly.
 ANT_PARAMS="-Dversion=${PV}"
 
+# Hamcrest does not explicitly require ASM. JarJar, however, does; as we package
+# jar files without external dependencies, we package JarJar without its ASM
+# dependency and therefore supply it here.
 ANT_SRC_PREPARE_SYMLINK_DIR=lib/generator
-ANT_SRC_PREPARE_SYMLINK_JARS=( jarjar qdox )
+ANT_SRC_PREPARE_SYMLINK_JARS=( jarjar qdox
+    "${ROOT}"usr/share/asm/asm.jar
+    "${ROOT}"usr/share/asm/asm-commons.jar
+)
 
-ANT_SRC_COMPILE_PARAMS=( jarjar-1 )
-ANT_SRC_INSTALL_PARAMS=( jar )
-
+# The "library" task in Hamcrest's "build.xml" compiles generator, core, and
+# library class files and concocts three jar files archiving these files as
+# follows:
+#
+# * "hamcrest-generator-${PV}.jar". This is, as the name suggests, the Hamcrest
+#   jar file responsible for generating the other two Hamcrest jar files. Since
+#   it has no other utility, we do not install it to the local system.
+# * "hamcrest-core-${PV}.jar". This is, as the name suggests, the core Hamcrest
+#   jar file. Most other exheres requiring Hamcrest require this jar file. Thus,
+#   we install it.
+# * "hamcrest-library-${PV}.jar". The name is not helpful; this is a Hamcrest
+#   jar file having supplementary Hamcrest matchers. Most other exheres
+#   requiring Hamcrest do not require this jar file. Nonetheless, we install it.
+ANT_SRC_COMPILE_PARAMS=( library )
+ANT_SRC_INSTALL_JARS=( build/${PN}-core-${PV}.jar build/${PN}-library-${PV}.jar )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.txt CHANGES.txt )
-ANT_SRC_INSTALL_JARS=( build/${PN}.jar )
 
 hamcrest_src_prepare() {
+    # We cannot call the "option" function in global scope, above. Therefore,
+    # we call it at the earliest available time.
+    ANT_PARAMS+=" -Ddebug="$(option debug && echo true || echo false)
+
     antefix_src_prepare
+
+    einfo "Patching build.xml..."
 
     # Hamcrest's "build.xml" file references version-specific jar files. Patch
     # the file, eliminating these references; and link in the jar files. Note,
     # the 'D' in "DPN" stands for dependency.
-    einfo "Preparing build.xml and external dependencies..."
     for DPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
-      edo sed -e "s:${DPN}-\([0-9].\)*.jar::" -i 
+        if [[ "${DPN:0:1}" != / ]]; then  # ignore absolute path dependencies
+            edo sed \
+                -e "s:${DPN}${ANT_SED_DEVERSIONATOR}:${DPN}.jar:" \
+                -i "${WORK}"/build.xml
+        fi
     done
+
+    # Hamcrest's "build.xml" file explicitly requires "jarjar.jar" but not
+    # "asm.jar" or "asm-commons.jar", which "jarjar.jar" requires. Patch this
+    # after having patched the above version issues.
+    edo sed \
+        -e 's:jarjar\.jar":jarjar.jar; lib/generator/asm.jar; lib/generator/asm-commons.jar":' \
+        -i "${WORK}"/build.xml
 }
 

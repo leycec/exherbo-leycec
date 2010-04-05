@@ -5,7 +5,7 @@
 # --------------------( SYNOPSIS                           )--------------------
 # This exlib improves "ant.exlib" with handling for command-line properties,
 # external dependencies, and jar and javadoc installation. These improvements
-# should be backported into "ant.exlib", where deemed appropriate.
+# should be backported into "ant.exlib" where deemed appropriate.
 #
 # This exlib requires "ant.exlib", and is thus backwards compatible with other
 # exlibs and exheres requiring "ant.exlib".
@@ -15,38 +15,73 @@
 # sometimes pierced for the escape of water." In reality, I'm not sure I know
 # what a cymatium is. Or a cornice.
 
-# ....................{ DEPENDENCIES                       }....................
+# ....................{ EXHERES                            }....................
 require ant java
-export_exlib_phases src_prepare src_compile src_test src_install
+export_exlib_phases src_unpack src_prepare src_compile src_test src_install
+
+# If true, recursively delete all jar files from "${WORK}" immediately after
+# unpacking source archives. Such jar files are bundled with source archives by
+# their distributors so as to reduce dependency headaches. For us, bundled jar
+# files only aggravate headaches. Cut them away.
+#
+# If false, do not. By default, we do.
+myexparam -b clean_jar_files=true
 
 # ....................{ GLOBALS                            }....................
 # Ant parameters to be passed to all command-line invocations of Ant. Example:
-#
-# ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
+#     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
 ANT_PARAMS=( )
 
 # Absolute or relative path under "${WORK}" into which external jar files will
 # be symlinked. Though this path is typically "lib" for most exheres, you must
-# still specify this global to have symlinking performed for you.
+# still specify this global to have symlinking performed for you. Example:
+#     ANT_SRC_PREPARE_SYMLINK_DIR="lib"
 ANT_SRC_PREPARE_SYMLINK_DIR=""
 
 # List of absolute paths to or relative names of external jar files to be
-# symlinked into "${ANT_SRC_SYMLINK_DIR}". If filenames are not known until
-# install time, leave this array blank; then, explicitly call "symlink_jars"
-# from within your "${PN}_src_prepare" function.
+# symlinked into "${ANT_SRC_SYMLINK_DIR}". All such jars should at least be
+# buildtime dependencies of this exheres. Example mixing both absolute paths to
+# and relative names of external jar files:
+#     ANT_SRC_PREPARE_SYMLINK_JARS=( jarjar qdox "${ROOT}"usr/share/asm/asm.jar )
 #
-# All such jars should be both build- and runtime dependencies of this exheres.
+# If filenames are not known until install time, leave this array blank and
+# call "symlink_jars" within your "${PN}_src_prepare" function.
 ANT_SRC_PREPARE_SYMLINK_JARS=( )
 
 # List of absolute paths to jar files to be installed under
-# "${ROOT}/usr/share/${PN}". If filenames are not known until install time,
-# leave this array blank; then, explicitly call "install_jars" from within your
-# "${PN}_src_install" function.
+# "${ROOT}/usr/share/${PN}". Versions will be automatically removed from
+# filenames, on your behalf. (Hurra!) Example:
+#     ANT_SRC_PREPARE_INSTALL_JARS=( "${WORK}"/dist/${PNV}.jar )
+#
+# If filenames are not known until install time, leave this array blank and
+# call "install_jars" within your "${PN}_src_install" function.
 ANT_SRC_INSTALL_JARS=( )
 
+# Sed pattern matching the version suffix commonly appended to jar filenames.
+# The pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
+# unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). Note that, due
+# to simplicity, the pattern may ocassionally match more than you want!
+ANT_SED_DEVERSIONATOR='-[0-9].*\.jar'
+
 # ....................{ PHASES                             }....................
+antefix_src_unpack() {
+    default  # calls the original "src_unpack" function
+}
+
 antefix_src_prepare() {
-    # Perform patching prior to all other preparation.
+    # The "ant_src_prepare" function recursively destroys the contents of
+    # all paths in "${ANT_BUNDLED_LIBSDIR}". Obviously, we must not destroy the
+    # "${WORK}" path. However, some Java libraries (e.g., Hamcrest) come with
+    # jar files pre-bundled in the "${WORK}" path. We thus homebrew this boolean
+    # to recursively remove jar files rather than all files and paths.
+    #
+    # Disable this by requiring this exlib with:
+    #     require antefix [ clean_jar_files=false ]
+    if exparam -b clean_jar_files; then
+        einfo "Removing jar files..."
+        edo rm -f "${WORK}"/**/*.jar
+    fi
+
     [[ -n "${DEFAULT_SRC_PREPARE_PATCHES}" ]] && einfo "Patching files..."
     default  # calls the original "src_prepare" function
 
@@ -80,7 +115,7 @@ antefix_src_prepare() {
     fi
 
     if [[ -n "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]]; then
-        einfo "Symlinking external jar files..."
+        einfo "Linking external jar files..."
         set_symlink_jar_dir "${ANT_SRC_PREPARE_SYMLINK_DIR}"
         symlink_jars         ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}
     fi
@@ -111,9 +146,9 @@ antefix_src_install() {
     fi
 
     if [[ -n "${ANT_SRC_INSTALL_JARS[@]}" ]]; then
-        einfo "Installing jar files..."
+        einfo "Installing jar files... ${ANT_SRC_INSTALL_JARS[@]}"
         set_install_jar_dir /usr/share/${PN}
-        install_jars ${ANT_SRC_INSTALL_JARS}
+        install_jars ${ANT_SRC_INSTALL_JARS[@]}
     fi
 }
 
@@ -190,7 +225,7 @@ symlink_jars() {
         # If we were passed a relative path, canonicalize it. We assume all
         # external Java libraries live in their customary directories.
         if [[ ${JAR_FILE:0:1} != / ]]; then
-            JAR_FILE="${ROOT}/usr/share/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
+            JAR_FILE="${ROOT}usr/share/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
         fi
 
         edo ln -s "${JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
@@ -237,7 +272,8 @@ install_jars() {
         #
         # See "man bash" for details.
         #newins ${JAR_FILE} $(basename "${JAR_FILE/%-+([0-9]*.)jar/.jar}")
-        newins ${JAR_FILE} $(echo "${JAR_FILE##*/}" | sed -e 's/-\([0-9]*\.\)*jar$/.jar/')
+        newins ${JAR_FILE} \
+            $(echo "${JAR_FILE##*/}" | sed -e "s:${ANT_SED_DEVERSIONATOR}$:.jar:")
     done
 }
 
