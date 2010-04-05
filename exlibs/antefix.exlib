@@ -299,3 +299,4 @@ install_jars() {
 }
 
 alias install_jar="install_jars"
+alias install_jar_as="newins"

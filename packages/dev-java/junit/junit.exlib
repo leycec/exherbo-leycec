@@ -58,9 +58,8 @@ DEFAULT_SRC_PREPARE_PATCHES=(
 ANT_SRC_PREPARE_SYMLINK_DIR=lib
 ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest-core )
 
-#   -Ddist=${JUNIT_DIST_DIR}
 ANT_PARAMS=(
-    -Ddist=dist
+    -Ddist=${JUNIT_DIST_DIR}
     -Dhamcrestlib=${ANT_SRC_PREPARE_SYMLINK_DIR}/hamcrest-core.jar
 )
 
@@ -68,15 +67,10 @@ ANT_SRC_COMPILE_PARAMS=( build )
 ANT_SRC_INSTALL_PARAMS=( jars )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.html doc/ReleaseNotes${PV}.txt )
 
-# JUnit creates various jar files, of which we ignore all except the
-# "${PN}-dep-${PV}.jar" jar file having no external dependencies.
-ANT_SRC_INSTALL_JARS=( ${JUNIT_DIST_DIR}/${PN}-dep-${PV}.jar )
-
 junit_src_unpack() {
     antefix_src_unpack
 
-    # Unpack this jar file having JUnit source code prior to calling
-    # "antefix_src_prepare", since that function deletes all jar files.
+    # JUnit ships its source in an embedded jarfile. Odd, but very well.
     einfo "Unpacking ${PNV}-src.jar..."
     edo mkdir -p  ${JUNIT_SRC_DIR}
     edo unzip -qd ${JUNIT_SRC_DIR} "${WORK}"/${PNV}-src.jar
@@ -97,6 +91,11 @@ junit_src_prepare() {
 
 junit_src_install() {
     antefix_src_install
+
+    # JUnit creates various jar files, of which we ignore all except the
+    # "${PN}-dep-${PV}.jar" jar file having no external dependencies.
+    set_install_jar_dir /usr/share/${PN}
+    install_jar_as ${JUNIT_DIST_DIR}/${PN}-dep-${PV}.jar ${PN}.jar
 
     # Restructure the JUnit documentation tree so as to place all HTML
     # documentation under a new "/usr/share/doc/${PN}/html/" path.
