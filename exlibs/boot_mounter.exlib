@@ -1,4 +1,3 @@
-#!/usr/bin/env bash
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 # Based in part upon 'boot_mounter.eclass', which is
