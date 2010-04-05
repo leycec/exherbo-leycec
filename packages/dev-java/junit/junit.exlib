@@ -8,7 +8,7 @@
 
 # Do not require the "sourceforge" exlib, as this exheres overrides all
 # default globals supplied by that exlib.
-require antefix install_aliases
+require antefix
 export_exlib_phases src_unpack src_prepare src_install
 
 BUGS_TO="leycec@gmail.com"
@@ -36,8 +36,8 @@ SLOT="0"
 LICENCES="CPL-1.0"
 MYOPTIONS="doc examples"
 DEPENDENCIES="
-    build+run:
-        dev-java/hamcrest[>=1.2]
+    build+run: app-arch/unzip
+    build+run: dev-java/hamcrest[>=1.2]
 "
 
 # Absolute path to the root of the JUnit source tree.
@@ -107,16 +107,16 @@ junit_src_install() {
         edo rm ${JUNIT_DOCUMENT_DIR}/*.{sh,txt}
 
         # Next, install all HTML documents.
-        set_document_subdir html
-        install_documents ${JUNIT_DOCUMENT_DIR}/*
-        set_document_subdir html/javadoc
-        install_documents ${JUNIT_JAVADOC_DIR}/*
+        docinto html
+        dodoc ${JUNIT_DOCUMENT_DIR}/*
+        docinto html/javadoc
+        dodoc ${JUNIT_JAVADOC_DIR}/*
     fi
 
     if option examples; then
         einfo "Installing examples..."
-        set_document_subdir examples
-        install_documents "${WORK}"/org/junit/samples/*
+        docinto examples
+        dodoc "${WORK}"/org/junit/samples/*
     fi
 }
 

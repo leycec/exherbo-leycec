@@ -13,7 +13,7 @@
 # --------------------( DEPENDENCIES                       )--------------------
 #FIXME: Add support for a new "machine_tester.exlib" exlib, ensuring the
 #current machine has sufficient capability to make Eclipse.
-require antefix install_aliases multilib
+require antefix multilib
 export_exlib_phases src_unpack src_prepare src_compile src_install
 
 # --------------------( CONFIGURATION                      )--------------------
@@ -193,10 +193,10 @@ swt_src_install() {
 
     #FIXME: This strikes me as a poor way to set this "LIBDIR". Is there a
     #function to perform this?
-    # Force "install_so_libraries" to install to this "LIBDIR".
+    # Force "dolib.so" to install to this "LIBDIR".
     swt_einfo "Installing C and C++ libraries..."
     LIBDIR="/usr/${MULTILIB_DIR}"
-    install_so_libraries "${WORK}"/*.so
+    dolib.so "${WORK}"/*.so
 }
 
 # --------------------( UTILITIES                          )--------------------

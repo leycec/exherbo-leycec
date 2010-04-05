@@ -13,7 +13,7 @@
 # --------------------( DEPENDENCIES                       )--------------------
 #FIXME: Add support for a new "machine_tester.exlib" exlib, ensuring the
 #current machine has sufficient capability to make Eclipse.
-require ant java install_aliases
+require antefix
 
 # --------------------( VERSIONING                         )--------------------
 # Eclipse uses a unique versioning scheme: "${MAJOR}_${MINOR}_${REVISION}". This

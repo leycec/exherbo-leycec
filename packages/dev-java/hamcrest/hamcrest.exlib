@@ -3,7 +3,7 @@
 # Based in part upon 'hamcrest-1.1.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix install_aliases googlecode [ suffix=tgz ]
+require antefix googlecode [ suffix=tgz ]
 export_exlib_phases src_prepare
 
 BUGS_TO="leycec@gmail.com"

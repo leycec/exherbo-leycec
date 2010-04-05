@@ -3,7 +3,7 @@
 # Based in part upon 'memtest86+-4.00.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require boot_mounter install_aliases multilib
+require boot_mounter multilib
 export_exlib_phases src_compile src_configure src_prepare src_install pkg_postinst
 
 BUGS_TO="leycec@gmail.com"
@@ -52,8 +52,8 @@ memtest86plus_src_configure() {
 memtest86plus_src_install() {
     default
 
-    set_install_dir "${ROOT}/boot/memtest86plus"
-    install_file memtest.bin
+    insinto "${ROOT}/boot/memtest86plus"
+    doins memtest.bin
 }
 
 memtest86plus_pkg_postinst() {

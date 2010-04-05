@@ -12,7 +12,7 @@
 MY_PV=${MY_PV:-$PV}
 MY_PNV=${PN}-src-${MY_PV}
 
-require antefix install_aliases googlecode [ suffix=zip ]
+require antefix googlecode [ suffix=zip ]
 export_exlib_phases src_prepare src_install
 
 # Jar Jar Links extracts to a file having this basename. Note, this slightly
@@ -55,6 +55,7 @@ jarjar_src_prepare() {
 jarjar_src_install() {
     antefix_src_install
 
-    set_install_dir /usr/share/${PN}
-    install_file_as "${WORK}"/dist/${PN}-snapshot.jar ${PN}.jar
+    set_install_jar_dir /usr/share/${PN}
+    install_jar_as "${WORK}"/dist/${PN}-snapshot.jar ${PN}.jar
 }
+
