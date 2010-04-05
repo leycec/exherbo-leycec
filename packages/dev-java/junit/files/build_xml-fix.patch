@@ -1,0 +1,35 @@
+diff -Nuar old/build.xml new/build.xml
+--- old/build.xml	2010-04-05 05:15:47.493678591 +0000
++++ new/build.xml	2010-04-05 06:40:26.688010825 +0000
+@@ -73,8 +73,6 @@
+ 	
+ 	<target name="build" depends="versiontag">
+ 		<junit_compilation srcdir="${src}" destdir="${bin}" classpath="${hamcrestlib}"/>
+-		<unjar src="${hamcrestlib}" dest="${bin}" />
+-		<junit_compilation srcdir="${testsrc}" destdir="${testbin}" classpath="${hamcrestlib};${bin}"/>
+ 	</target>
+ 
+ 	<target name="jars" depends="build">
+@@ -115,20 +113,19 @@
+ 		</exec>
+ 	</target>
+ 	
+-	<target name="javadoc" depends="unjar.hamcrest">
++	<target name="javadoc">
+ 		<javadoc destdir="${javadocdir}"
+ 		         author="false"
+ 		         version="false"
+ 		         use="false"
+ 		         windowtitle="JUnit API"
+-		         stylesheetfile="stylesheet.css"
++                 classpath="${hamcrestlib}"
+ 		>
+ 			<excludepackage name="junit.*" />
+ 			<excludepackage name="org.junit.internal.*" />
+ 			<excludepackage name="org.junit.experimental.theories.internal.*" />
+ 			
+ 			<sourcepath location="${src}" />
+-			<sourcepath location="${hamcrestsrc}" />
+ 			<link href="http://java.sun.com/javase/6/docs/api/" />
+ 		</javadoc>
+ 	</target>

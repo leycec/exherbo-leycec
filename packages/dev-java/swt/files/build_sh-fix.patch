@@ -1,7 +1,7 @@
 Authors:  Cecil Curry <leycec@gmail.com>
 Upstream: no
-Synopsis: Substantially changed so as to permit calling by the
-"src_compile" function of "swt.exlib".
+Synopsis: Replace pkg-config package discovery with Exherbo package discovery;
+make OpenGL an optional package; and prevent symbol stripping of binaries.
 --- old/build.sh	2010-02-11 20:49:56.000000000 +0000
 +++ new/build.sh	2010-04-02 01:58:28.245990227 +0000
 @@ -14,7 +14,7 @@

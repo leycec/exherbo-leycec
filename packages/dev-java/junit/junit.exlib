@@ -9,7 +9,7 @@
 # Do not require the "sourceforge" exlib, as this exheres overrides all
 # default globals supplied by that exlib.
 require antefix install_aliases
-export_exlib_phases src_install
+export_exlib_phases src_unpack src_prepare src_install
 
 BUGS_TO="leycec@gmail.com"
 SUMMARY="Java unit testing framework"
@@ -19,6 +19,8 @@ development of test-driven development, and is one of a family of unit testing
 frameworks collectively known as xUnit that originated with SUnit.
 "
 
+MY_PNV=${PN}${PV}
+
 HOMEPAGE="http://www.${PN}.org/"
 UPSTREAM_RELEASE_NOTES="http://kentbeck.github.com/${PN}/doc/ReleaseNotes${PV}.html"
 UPSTREAM_DOCUMENTATION="http://kentbeck.github.com/${PN}/javadoc/${PV} [[ lang = en ]]"
@@ -27,8 +29,8 @@ REMOTE_IDS="sourceforge:${PN}"
 # Junit also supplies a much smaller "${PNV}-src.jar" archive. Unfortunately,
 # since this archive lacks a genuine "build.xml" Ant makefile, it's fairly
 # useless. We fallback to downloading the larger zipfile.
-DOWNLOADS="mirror://sourceforge/${PN}/${PN}${PV}.zip"
-WORK="${WORKBASE}"/${PN}${PV}
+DOWNLOADS="mirror://sourceforge/${PN}/${MY_PNV}.zip"
+WORK="${WORKBASE}"/${MY_PNV}
 
 SLOT="0"
 LICENCES="CPL-1.0"
@@ -38,17 +40,60 @@ DEPENDENCIES="
         dev-java/hamcrest[>=1.2]
 "
 
+# Absolute path to the root of the JUnit source tree.
+JUNIT_SRC_DIR="${WORK}"/src/main/java
+
+# Absolute path to the root of the JUnit dist tree (i.e., output jarfile tree).
+JUNIT_DIST_DIR="${WORK}"/dist
+
+# Numerous patches correcting compatibility with Hamcrest 1.2 are thanks to the
+# MacPorts "port" for JUnit 4.6 at "http://trac.macports.org/changeset/52233".
+#
+# You guys are legends!
+DEFAULT_SRC_PREPARE_PATCHES=(
+    "${FILES}"/build_xml-fix.patch
+    "${FILES}"/org_junit_internal_matchers-deprecate.patch
+)
+
 ANT_SRC_PREPARE_SYMLINK_DIR=lib
-ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest )
+ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest-core )
 
-ANT_SRC_COMPILE_PARAMS=( compile )
+#   -Ddist=${JUNIT_DIST_DIR}
+ANT_PARAMS=(
+    -Ddist=dist
+    -Dhamcrestlib=${ANT_SRC_PREPARE_SYMLINK_DIR}/hamcrest-core.jar
+)
 
-ANT_SRC_INSTALL_PARAMS=( jar )
+ANT_SRC_COMPILE_PARAMS=( build )
+ANT_SRC_INSTALL_PARAMS=( jars )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.html doc/ReleaseNotes${PV}.txt )
 
 # JUnit creates various jar files, of which we ignore all except the
 # "${PN}-dep-${PV}.jar" jar file having no external dependencies.
-ANT_SRC_INSTALL_JARS=( ${PN}-dep-${PV}.jar )
+ANT_SRC_INSTALL_JARS=( ${JUNIT_DIST_DIR}/${PN}-dep-${PV}.jar )
+
+junit_src_unpack() {
+    antefix_src_unpack
+
+    # Unpack this jar file having JUnit source code prior to calling
+    # "antefix_src_prepare", since that function deletes all jar files.
+    einfo "Unpacking ${PNV}-src.jar..."
+    edo mkdir -p  ${JUNIT_SRC_DIR}
+    edo unzip -qd ${JUNIT_SRC_DIR} "${WORK}"/${PNV}-src.jar
+}
+
+junit_src_prepare() {
+    # Delete all jar files, including the above.
+    antefix_src_prepare
+
+    einfo "Removing Hamcrest..."
+    edo rm -rf "${WORK}"/temp.hamcrest.source/
+
+    # Do not use "edo rm -f "${WORK}"/**/*.class" as that tends to glob more
+    # files than can be reasonably handled by the shell.
+    einfo "Removing class files..."
+    edo find "${WORK}" -type f -iname "*.class" -delete
+}
 
 junit_src_install() {
     antefix_src_install

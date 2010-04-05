@@ -67,7 +67,7 @@ qdox_src_compile() {
         -d          ${QDOX_BUILD_DIR} \
         -classpath  ${QDOX_CLASSPATH} \
         -source 1.4 -target 1.4 \
-        **/*.java
+        ${QDOX_SRC_DIR}/**/*.java
 }
 
 qdox_src_install() {

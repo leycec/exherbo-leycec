@@ -110,7 +110,7 @@ antefix_src_prepare() {
     # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
         einfo "Preparing build..."
-        ANT_SRC_PREPARE_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_PREPARE_PARAMS[@]} )
+        ANT_SRC_PREPARE_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_PREPARE_PARAMS[@]} )
         ant_src_prepare
     fi
 
@@ -123,14 +123,14 @@ antefix_src_prepare() {
 
 antefix_src_compile() {
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
-        ANT_SRC_COMPILE_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_COMPILE_PARAMS[@]} )
+        ANT_SRC_COMPILE_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_COMPILE_PARAMS[@]} )
         ant_src_compile
     fi
 }
 
 antefix_src_test() {
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
-        ANT_SRC_TEST_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_TEST_PARAMS[@]} )
+        ANT_SRC_TEST_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_TEST_PARAMS[@]} )
         ant_src_test
     fi
 }
@@ -141,7 +141,7 @@ antefix_src_install() {
 
     if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
         einfo "Collecting jar files..."
-        ANT_SRC_INSTALL_PARAMS=( ${ANT_PARAMS} ${ANT_SRC_INSTALL_PARAMS[@]} )
+        ANT_SRC_INSTALL_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_INSTALL_PARAMS[@]} )
         ant_src_install
     fi
 
@@ -173,13 +173,13 @@ antefix_src_install() {
 set_symlink_jar_dir() {
     illegal_in_global_scope
 
-    [[ ${#} -eq 1 ]] || paludis_die_or_error "one and only one argument needed"
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one and only one argument needed"
     ANT_SRC_PREPARE_SYMLINK_DIR="${1}"
 
     # If we were passed an absolute path, test it.
     if [[ ${ANT_SRC_PREPARE_SYMLINK_DIR:0:1} = / ]]; then
         [[ "${ANT_SRC_PREPARE_SYMLINK_DIR}" = "${WORK}"* ]] ||
-            paludis_die_or_error "${ANT_SRC_PREPARE_SYMLINK_DIR} not under ${WORK}"
+            die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not under ${WORK}"
     # If we were passed a relative path, canonicalize it.
     else
         ANT_SRC_PREPARE_SYMLINK_DIR="${WORK}/${ANT_SRC_PREPARE_SYMLINK_DIR}"
@@ -211,21 +211,42 @@ set_symlink_jar_dir() {
 # such filename, this performs the equivalent of:
 #
 #   ln -s "$filename" "$symlink_jar_dir"/
+#
+# But that's not all. If relative and not found under
+# "/usr/share/$(basename $filename)/", we then look under
+# "/usr/share/$(basename ${filename%%-*})/". This is the first part of the
+# filename up to but not including the first hyphen. Thus, this:
+#   
+#   symlink_jars hamcrest-core
+#
+# tries the following paths in order:
+#
+# * "/usr/share/hamcrest-core/hamcrest-core.jar", which will not be found. 
+# * "/usr/share/hamcrest/hamcrest-core.jar", which will be found. 
+#
+# In other words, this function has enough cleverness to usually suss out the
+# absolute path to whatever you pass it. When it doesn't, simply pass the
+# absolute path!
 symlink_jars() {
     illegal_in_global_scope
 
-    [[ ${#} -ge 1 ]] || paludis_die_or_error "at least one argument needed"
+    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
     [[ -d "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]] || 
-        paludis_die_or_error "${ANT_SRC_PREPARE_SYMLINK_DIR} not found or not set"
+        die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not found or not set"
 
     for JAR_FILE in ${*}; do
         JAR_BASENAME=${JAR_FILE##*/}        # filename sans path
         JAR_ROOTNAME=${JAR_BASENAME/%.jar/}  # filename sans path and type
 
-        # If we were passed a relative path, canonicalize it. We assume all
+        # If we were passed a relative path, canonicalize it. Presume all
         # external Java libraries live in their customary directories.
         if [[ ${JAR_FILE:0:1} != / ]]; then
             JAR_FILE="${ROOT}usr/share/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
+            if [[ ! -f "${JAR_FILE}" ]]; then
+                JAR_FILE="${ROOT}usr/share/${JAR_ROOTNAME%%-*}/${JAR_ROOTNAME}.jar"
+                [[  -f "${JAR_FILE}" ]] ||
+                    die_unless_nonfatal "${JAR_ROOTNAME}.jar not found"
+            fi
         fi
 
         edo ln -s "${JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
@@ -260,7 +281,7 @@ alias set_install_jar_dir="insinto"
 install_jars() {
     illegal_in_global_scope
 
-    [[ ${#} -ge 1 ]] || paludis_die_or_error "at least one argument needed"
+    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
 
     for JAR_FILE in ${*}; do
         #FIXME: Bug. This works at the shell but not from within the exheres
