@@ -2,7 +2,7 @@
 #
 # --------------------( SYNOPSIS                           )--------------------
 # Hello, and welcome to "exherbo-leycec"! This is a third-party Exherbo
-# repository maintaining ebuilds authored by leycec (i.e., Cecil Curry). Ebuilds
+# repository maintaining exheres authored by leycec (i.e., Cecil Curry). Exheres
 # are thought to work with leycec's current machine (i.e., the AMD64-armed Dell
 # Zino), but should be treated with caution under other machines.
 #
@@ -48,10 +48,10 @@
 # --------------------( PATCHES                            )--------------------
 # Please format patches like so:
 #
-#     # First, move the existing ebuild being patched to a new revision. This
+#     # First, move the existing exheres being patched to a new revision. This
 #     # ensures that repository users will be notified of your update.
 #     #
-#     # For example, suppose the ebuild you are patching is named
+#     # For example, suppose the exheres you are patching is named
 #     # "fvwm-2.5.8.exheres-0". Then issue the following command to git:
 #     git mv fvwm-2.5.8.exheres-0 fvwm-2.5.8-r1.exheres-0
 #
