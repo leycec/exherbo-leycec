@@ -98,8 +98,6 @@ ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 ANT_SRC_INSTALL_JARS=( ${ANT_DIST}/${PN}.jar )
 
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( about.html )
-
 # --------------------( IMPLEMENTATION                     )--------------------
 # Extract the "src.zip" archive from the fetched compressed archive, then
 # extract the contents of that archive to ${WORK}.
