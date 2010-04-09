@@ -189,11 +189,7 @@ swt_src_install() {
 
     antefix_src_install
 
-    #FIXME: This strikes me as a poor way to set this "LIBDIR". Is there a
-    #function to perform this?
-    # Force "dolib.so" to install to this "LIBDIR".
     einfo "Installing C and C++ libraries..."
-    LIBDIR="/usr/${MULTILIB_DIR}"
     dolib.so "${WORK}"/*.so
 }
 
