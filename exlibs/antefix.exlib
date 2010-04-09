@@ -101,8 +101,10 @@ antefix_src_prepare() {
         eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         eerror "! Proceeding with installation, but ignoring all network sandboxing !"
         eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        unset SYDBOX_NET
+        export ANT_IS_GCJ_SELECTED=1
     fi
+
+    antefix_src_preamble
 
     # Never invoke Ant unless you have a task with which to invoke it, since
     # "build.xml" files often supply a default task performing all relevant
@@ -121,6 +123,8 @@ antefix_src_prepare() {
 }
 
 antefix_src_compile() {
+    antefix_src_preamble
+
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
         ANT_SRC_COMPILE_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_COMPILE_PARAMS[@]} )
         ant_src_compile
@@ -128,6 +132,8 @@ antefix_src_compile() {
 }
 
 antefix_src_test() {
+    antefix_src_preamble
+
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
         ANT_SRC_TEST_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_TEST_PARAMS[@]} )
         ant_src_test
@@ -135,6 +141,8 @@ antefix_src_test() {
 }
 
 antefix_src_install() {
+    antefix_src_preamble
+
     einfo "Installing documents..."
     emagicdocs
 
@@ -147,6 +155,13 @@ antefix_src_install() {
     if [[ -n "${ANT_SRC_INSTALL_JARS[@]}" ]]; then
         einfo "Installing jar files... ${ANT_SRC_INSTALL_JARS[@]}"
         install_jars ${ANT_SRC_INSTALL_JARS[@]}
+    fi
+}
+
+antefix_src_preamble() {
+    if [[ -n "${ANT_IS_GCJ_SELECTED}" ]]; then
+        ewarn "Disabling network sandboxing..."
+        sydboxcmd 'sandunbox/net'
     fi
 }
 
