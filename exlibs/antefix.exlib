@@ -16,7 +16,7 @@
 
 # ....................{ EXHERES                            }....................
 require ant java
-export_exlib_phases src_prepare src_compile src_test src_install
+export_exlib_phases pkg_setup src_prepare src_compile src_test src_install
 
 # If true, recursively delete all jar files from "${WORK}" immediately after
 # unpacking source archives. Such jar files are bundled with source archives by
@@ -26,7 +26,19 @@ export_exlib_phases src_prepare src_compile src_test src_install
 # If false, do not. By default, we do.
 myexparam -b clean_jar_files=true
 
-# ....................{ GLOBALS                            }....................
+# ....................{ CONFIGURATION                      }....................
+# Array of Java JDK prefixes. If the following expression is true for at least
+# one ${ANT_RESTRICT_JAVA_JDK_PREFIX} of this array, then installation fails
+# prior to performing any work:
+#     [[ $(eclectic java-jdk show) = "${ANT_RESTRICT_JAVA_JDK_PREFIX}"* ]]
+#
+# Common example for exheres failing under "gcj" or "gij":
+#     ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
+#
+# As of mid 2010, all Ant exheres should test compilation under "gcj". Many will
+# fail! Those that do should set this array, as above.
+ANT_RESTRICT_JAVA_JDK_PREFIXES=( )
+
 # Ant parameters to be passed to all command-line invocations of Ant. Example:
 #     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
 ANT_PARAMS=( )
@@ -37,7 +49,7 @@ ANT_PARAMS=( )
 #     ANT_SRC_PREPARE_SYMLINK_DIR="lib"
 ANT_SRC_PREPARE_SYMLINK_DIR=""
 
-# List of absolute paths to or relative names of external jar files to be
+# Array of absolute paths to or relative names of external jar files to be
 # symlinked into "${ANT_SRC_SYMLINK_DIR}". These external jar files should
 # generally be buildtime dependencies of this exheres. Example mixing both
 # absolute paths to and relative names of external jar files:
@@ -66,25 +78,45 @@ ANT_SRC_INSTALL_JARS=( )
 # to simplicity, the pattern may ocassionally match more than you want!
 ANT_JAR_VERSION_PATTERN='-[0-9].*\.jar'
 
+# ....................{ CONSTANTS                          }....................
+# This exlib sets these constants on your behalf. Read them; don't write them.
+
+# Set to the currently selected Java compiler as reported by
+# $(eclectic java-jdk show). If you're accessing this constant in an exheres,
+# you're may be doing something wrong. :)
+ANT_JAVA_JDK=$(eclectic java-jdk show)
+
+# Set, if "gcj" is the currently selected Java compiler. This additionally
+# implies "gij" is the currently selected Java interpreter.
+ANT_IS_JAVA_JDK_GCJ=
+
 # ....................{ PHASES                             }....................
-antefix_src_prepare() {
-    # The "ant_src_prepare" function recursively destroys the contents of
-    # all paths in "${ANT_BUNDLED_LIBSDIR}". Obviously, we must not destroy the
-    # "${WORK}" path. However, some Java libraries (e.g., Hamcrest) come with
-    # jar files pre-bundled in the "${WORK}" path. We thus homebrew this boolean
-    # to recursively remove jar files rather than all files and paths.
-    #
-    # Disable this by requiring this exlib with:
-    #     require antefix [ clean_jar_files=false ]
-    if exparam -b clean_jar_files; then
-        einfo "Removing jar files..."
-        edo rm -f "${WORK}"/**/*.jar
+antefix_pkg_setup() {
+    default
+
+    # Die if the currently selected Java compiler is exheres restricted.
+    if [[ -n "${ANT_RESTRICT_JAVA_JDK_PREFIXES[@]}" ]]; then
+        local ANT_RESTRICT_JAVA_JDK_PREFIX
+        for   ANT_RESTRICT_JAVA_JDK_PREFIX \
+            in ${ANT_RESTRICT_JAVA_JDK_PREFIXES}; do
+            if [[ "${ANT_JAVA_JDK}" = "${ANT_RESTRICT_JAVA_JDK_PREFIX}"* ]]; then
+                eerror "Your currently selected Java compiler is \"${ANT_JAVA_JDK}\". Unfortunately,"
+                eerror "\"${PNV}\" reports that it currently fails under this compiler. Please consider"
+                eerror "installing and enabling another Java compiler: e.g.,"
+                eerror
+                eerror "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
+                eerror "                           && eclectic java-jre set icedtea6-\$PV"
+                eerror
+                eerror "where \$PV is your installed version of icedtea6 as listed by:"
+                eerror
+                eerror "  paludis -q icedtea6"
+                die
+            fi
+        done
     fi
 
-    [[ -n "${DEFAULT_SRC_PREPARE_PATCHES}" ]] && einfo "Patching files..."
-    default  # calls the original "src_prepare" function
-
-    if [[ $(eclectic java-jre show) = gcj* ]]; then
+    # Warn if the currently selected Java compiler is GCJ.
+    if [[ "${ANT_JAVA_JDK}" = gcj* ]]; then
         ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
         ewarn "this compiler works, it also introduces sydbox access violations by"
         ewarn "attempting to open spurious DNS requests. Until this can be"
@@ -101,8 +133,26 @@ antefix_src_prepare() {
         eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         eerror "! Proceeding with installation, but ignoring all network sandboxing !"
         eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        export ANT_IS_GCJ_SELECTED=1
+        export ANT_IS_JAVA_JDK_GCJ=1
     fi
+}
+
+antefix_src_prepare() {
+    # The "ant_src_prepare" function recursively destroys the contents of
+    # all paths in "${ANT_BUNDLED_LIBSDIR}". Obviously, we must not destroy the
+    # "${WORK}" path. However, some Java libraries (e.g., Hamcrest) come with
+    # jar files pre-bundled in the "${WORK}" path. We thus homebrew this boolean
+    # to recursively remove jar files rather than all files and paths.
+    #
+    # Disable this by requiring this exlib with:
+    #     require antefix [ clean_jar_files=false ]
+    if exparam -b clean_jar_files; then
+        einfo "Removing jar files..."
+        edo rm -f "${WORK}"/**/*.jar
+    fi
+
+    [[ -n "${DEFAULT_SRC_PREPARE_PATCHES}" ]] && einfo "Patching files..."
+    default  # calls the original "src_prepare" function
 
     antefix_src_preamble
 
@@ -159,7 +209,7 @@ antefix_src_install() {
 }
 
 antefix_src_preamble() {
-    if [[ -n "${ANT_IS_GCJ_SELECTED}" ]]; then
+    if [[ -n "${ANT_IS_JAVA_JDK_GCJ}" ]]; then
         ewarn "Disabling network sandboxing..."
         sydboxcmd 'sandunbox/net'
     fi

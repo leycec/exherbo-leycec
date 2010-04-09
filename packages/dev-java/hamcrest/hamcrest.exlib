@@ -33,6 +33,9 @@ DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 ANT_BUILD_XML="${WORK}/build.xml"
 ANT_PARAMS="-Dversion=${PV}"
 
+# Hamcrest does not compile under "gcj", currently.
+ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
+
 # Hamcrest does not explicitly require ASM. JarJar, however, does; as we package
 # jar files without external dependencies, we package JarJar without its ASM
 # dependency and therefore supply it here.
