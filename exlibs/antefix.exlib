@@ -63,10 +63,6 @@ ANT_SRC_INSTALL_JARS=( )
 ANT_JAR_VERSION_PATTERN='-[0-9].*\.jar'
 
 # ....................{ PHASES                             }....................
-antefix_src_unpack() {
-    default  # calls the original "src_unpack" function
-}
-
 antefix_src_prepare() {
     # The "ant_src_prepare" function recursively destroys the contents of
     # all paths in "${ANT_BUNDLED_LIBSDIR}". Obviously, we must not destroy the

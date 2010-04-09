@@ -68,7 +68,7 @@ ANT_SRC_INSTALL_PARAMS=( jars )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.html doc/ReleaseNotes${PV}.txt )
 
 junit_src_unpack() {
-    antefix_src_unpack
+    default
 
     # JUnit ships its source in an embedded jarfile. Odd, but very well.
     einfo "Unpacking ${PNV}-src.jar..."
