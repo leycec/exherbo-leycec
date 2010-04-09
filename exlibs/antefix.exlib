@@ -16,7 +16,7 @@
 
 # ....................{ EXHERES                            }....................
 require ant java
-export_exlib_phases src_unpack src_prepare src_compile src_test src_install
+export_exlib_phases src_prepare src_compile src_test src_install
 
 # If true, recursively delete all jar files from "${WORK}" immediately after
 # unpacking source archives. Such jar files are bundled with source archives by
