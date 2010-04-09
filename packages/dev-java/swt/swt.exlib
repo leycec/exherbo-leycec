@@ -113,7 +113,7 @@ swt_src_unpack() {
 }
 
 swt_src_prepare() {
-    swt_einfo "Preparing Java libraries for compilation..."
+    einfo "Preparing Java libraries for compilation..."
 
     # See comments in "files/build.xml" for details.
     edo cp "${FILES}"/build.xml "${WORK}"/build.xml
@@ -157,24 +157,24 @@ swt_src_compile_build_sh() {
     export OS MODEL OPTION_CAIRO OPTION_GNOME OPTION_OPENGL OPTION_XULRUNNER MULTILIB_DIR
 
     # So say we all!
-    swt_einfo "Compiling C and C++ libraries..."
+    einfo "Compiling C and C++ libraries..."
     edo sh "${WORK}"/build.sh
 }
 
 # Compile underlying Java libraries.
 swt_src_compile_ant() {
-    swt_einfo "Copying absent Java files..."
+    einfo "Copying absent Java files..."
     edo mkdir -p "${ANT_BUILD}"/org/eclipse/swt/internal/
     edo cp "${ANT_SRC}"/org/eclipse/swt/internal/SWTMessages.properties \
            "${ANT_BUILD}"/org/eclipse/swt/internal/
     edo cp "${WORK}"/version.txt "${ANT_BUILD}"/version.txt
 
-    swt_einfo "Compiling Java libraries..."
+    einfo "Compiling Java libraries..."
     antefix_src_compile
 }
 
 swt_src_install() {
-    swt_einfo "Preparing Java manifest..."
+    einfo "Preparing Java manifest..."
 
     # Set "SWT_ARCH" according to the architecture being built against. The
     # values for this variable follow from the variable of same name in the
@@ -194,19 +194,8 @@ swt_src_install() {
     #FIXME: This strikes me as a poor way to set this "LIBDIR". Is there a
     #function to perform this?
     # Force "dolib.so" to install to this "LIBDIR".
-    swt_einfo "Installing C and C++ libraries..."
+    einfo "Installing C and C++ libraries..."
     LIBDIR="/usr/${MULTILIB_DIR}"
     dolib.so "${WORK}"/*.so
 }
 
-# --------------------( UTILITIES                          )--------------------
-# void swt_einfo(char *message)
-#
-# Print $message, but in a manner customized for this exheres. ("Nothin' to see
-# here, folks...")
-SWT_EINFO_BANNER="============================================="
-swt_einfo() {
-  einfo $SWT_EINFO_BANNER
-  einfo ${*}
-  einfo $SWT_EINFO_BANNER
-}
