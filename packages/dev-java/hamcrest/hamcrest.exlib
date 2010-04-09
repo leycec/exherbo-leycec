@@ -54,7 +54,7 @@ ANT_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons jarjar qdox )
 #   requiring Hamcrest do not require this jar file. Nonetheless, we install it.
 ANT_SRC_COMPILE_PARAMS=( library )
 ANT_SRC_INSTALL_JARS=( build/${PN}-core-${PV}.jar build/${PN}-library-${PV}.jar )
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.txt CHANGES.txt )
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( CHANGES.txt )
 
 hamcrest_src_prepare() {
     # We cannot call the "option" function in global scope, above. Therefore,

@@ -65,7 +65,7 @@ ANT_PARAMS=(
 
 ANT_SRC_COMPILE_PARAMS=( build )
 ANT_SRC_INSTALL_PARAMS=( jars )
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( README.html doc/ReleaseNotes${PV}.txt )
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( doc/ReleaseNotes${PV}.txt )
 
 junit_src_unpack() {
     default
