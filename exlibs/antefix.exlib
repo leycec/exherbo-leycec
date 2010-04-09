@@ -269,17 +269,14 @@ install_jars() {
 
     insinto "${ANT_SRC_INSTALL_JARS_DIR}"
     for JAR_FILE in ${*}; do
-        #FIXME: Bug. This works at the shell but not from within the exheres
-        #environment. (It's probably my fault; I'm just can't puzzle it out.)
-        #In the meanwhile, I'll just sed it...
         # Strip versions from filenames: e.g., convert "zebrapig-0.42.jar" to
         # "zebrapig.jar". The pattern substitution requires the bash "extglob"
-        # shell option to be enabled, which it is under exheres-0.
+        # shell option be enabled, which it is under exheres-0.
         #
         # See "man bash" for details.
-        #newins ${JAR_FILE} $(basename "${JAR_FILE/%-+([[:digit:].]).jar/.jar}")
         newins ${JAR_FILE} \
-            $(echo "${JAR_FILE##*/}" | sed -e "s:${ANT_JAR_VERSION_PATTERN}$:.jar:")
+            $(basename "${JAR_FILE/%-+([[:digit:].])*(rc+([[:digit:].])).jar/.jar}")
+        #   $(echo "${JAR_FILE##*/}" | sed -e "s:${ANT_JAR_VERSION_PATTERN}$:.jar:")
     done
 }
 
