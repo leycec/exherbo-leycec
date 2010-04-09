@@ -4,7 +4,7 @@
 #     Copyright 1999-2010 Gentoo Foundation
 
 require boot_mounter multilib
-export_exlib_phases src_compile src_configure src_prepare src_install pkg_postinst
+export_exlib_phases src_prepare src_configure src_compile src_install pkg_postinst
 
 BUGS_TO="leycec@gmail.com"
 
@@ -32,6 +32,12 @@ memtest86plus_src_prepare() {
     expatch ${FILES}/00-fix_Makefile.patch
 }
 
+memtest86plus_src_configure() {
+    einfo "Forcing 32-bit compilation..."
+    ABI=32
+    default
+}
+
 memtest86plus_src_compile() {
     if option platform:amd64; then
         ewarn "MemTest86+ compiles troublesomely under AMD64 architectures due to the current"
@@ -43,38 +49,31 @@ memtest86plus_src_compile() {
     default
 }
 
-memtest86plus_src_configure() {
-    einfo "Forcing 32-bit compilation..."
-    ABI=32
-    default
-}
-
 memtest86plus_src_install() {
     default
-
     insinto "${ROOT}/boot/memtest86plus"
     doins memtest.bin
 }
 
 memtest86plus_pkg_postinst() {
-    einfo "MemTest86+ has been installed to /boot/memtest86plus/, but has not"
-    einfo "yet been integrated into your current bootloader. To do so, please"
-    einfo "manually edit your bootloader configuration: e.g.,"
-    einfo
-    einfo "* For GRUB 2, add the following lines to \"/boot/grub/grub.conf\""
-    einfo "  with '?' replaced by the numbers for your boot partition:"
-    einfo "  title=Memtest86+"
-    einfo "  root (hd?,?)"
-    einfo "  kernel /boot/memtest86plus/memtest.bin"
-    einfo
-    einfo "* For GRUB 1, add the following lines to \"/boot/grub/menu.lst\""
-    einfo "  with '?' replaced by the numbers for your boot partition:"
-    einfo "  title=Memtest86+"
-    einfo "  root (hd?,?)"
-    einfo "  kernel /boot/memtest86plus/memtest.bin"
-    einfo
-    einfo "* For LILO, add the following lines to \"/etc/lilo.conf\":"
-    einfo "  image = /boot/memtest86plus/memtest"
-    einfo "  label = Memtest86+"
+    elog "MemTest86+ has been installed to /boot/memtest86plus/, but has not"
+    elog "yet been integrated into your current bootloader. To do so, please"
+    elog "manually edit your bootloader configuration: e.g.,"
+    elog
+    elog "* For GRUB 2, add the following lines to \"/boot/grub/grub.conf\""
+    elog "  with '?' replaced by the numbers for your boot partition:"
+    elog "  title=Memtest86+"
+    elog "  root (hd?,?)"
+    elog "  kernel /boot/memtest86plus/memtest.bin"
+    elog
+    elog "* For GRUB 1, add the following lines to \"/boot/grub/menu.lst\""
+    elog "  with '?' replaced by the numbers for your boot partition:"
+    elog "  title=Memtest86+"
+    elog "  root (hd?,?)"
+    elog "  kernel /boot/memtest86plus/memtest.bin"
+    elog
+    elog "* For LILO, add the following lines to \"/etc/lilo.conf\":"
+    elog "  image = /boot/memtest86plus/memtest"
+    elog "  label = Memtest86+"
 }
 
