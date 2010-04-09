@@ -5,7 +5,7 @@
 
 require launchpad [ branch=trunk ] distutils [ python_dep=2.5 ]
 
-export_exlib_phases src_test
+export_exlib_phases src_test_expensive
 
 BUGS_TO="leycec@gmail.com"
 
@@ -23,7 +23,7 @@ UPSTREAM_DOCUMENTATION="${HOMEPAGE}/Documentation [[ lang = en ]]"
 
 SLOT="0"
 LICENCES="GPL-2"
-MYOPTIONS="optional_tests"
+MYOPTIONS=""
 DEPENDENCIES="build+run: dev-scm/bzr"
 
 WORK="${WORKBASE}"/${PN}
@@ -47,13 +47,7 @@ WORK="${WORKBASE}"/${PN}
 #     bzrlib.errors.BzrCommandError: unknown command "diff"
 #
 # Can anyone comment?
-bzrtools_src_test() {
-    if ! option optional_tests; then
-        ewarn "Please enable \"optional_tests\" for this exheres if you would like to run tests."
-        ewarn "These tests are currently likely to fail and are thus disabled by default."
-        return
-    fi
-
+bzrtools_src_test_expensive() {
     BUILD_LIB="${WORK}/build/lib"
     BUILD_BZRLIB="${BUILD_LIB}/bzrlib"
 
