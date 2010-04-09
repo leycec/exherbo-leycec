@@ -71,7 +71,7 @@ hamcrest_src_prepare() {
     for DPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
         if [[ "${DPN:0:1}" != / ]]; then  # ignore absolute path dependencies
             edo sed \
-                -e "s:${DPN}${ANT_SED_DEVERSIONATOR}:${DPN}.jar:" \
+                -e "s:${DPN}${ANT_JAR_VERSION_PATTERN}:${DPN}.jar:" \
                 -i ${ANT_BUILD_XML}
         fi
     done

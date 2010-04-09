@@ -60,7 +60,7 @@ ANT_SRC_INSTALL_JARS=( )
 # The pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
 # unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). Note that, due
 # to simplicity, the pattern may ocassionally match more than you want!
-ANT_SED_DEVERSIONATOR='-[0-9].*\.jar'
+ANT_JAR_VERSION_PATTERN='-[0-9].*\.jar'
 
 # ....................{ PHASES                             }....................
 antefix_src_unpack() {
@@ -252,8 +252,6 @@ symlink_jars() {
     done
 }
 
-alias symlink_jar="symlink_jars"
-
 # ....................{ INSTALLERS                         }....................
 # The following convenience functions install all Java libraries produced by
 # this exheres into local directories appropriate for this exheres.
@@ -266,7 +264,9 @@ alias symlink_jar="symlink_jars"
 #
 # By convention, this is usually "/usr/share/${PN}". Do not prefix this path
 # with "${IMAGE}", as that is done for you.
-alias set_install_jar_dir="insinto"
+set_install_jar_dir() {
+    insinto ${*}
+}
 
 # void install_jars(char *filename1, char *filename2, ...)
 #
@@ -293,9 +293,29 @@ install_jars() {
         # See "man bash" for details.
         #newins ${JAR_FILE} $(basename "${JAR_FILE/%-+([0-9]*.)jar/.jar}")
         newins ${JAR_FILE} \
-            $(echo "${JAR_FILE##*/}" | sed -e "s:${ANT_SED_DEVERSIONATOR}$:.jar:")
+            $(echo "${JAR_FILE##*/}" | sed -e "s:${ANT_JAR_VERSION_PATTERN}$:.jar:")
     done
 }
 
-alias install_jar="install_jars"
-alias install_jar_as="newins"
+# void install_jar_as(char *filename1, char *filename2)
+#
+# Copy absolute "$filename1" to relative "$filename2" under the above directory.
+# This is functionally equivalent to:
+#
+#   cp "$filename1" "${IMAGE}/$install_jar_dir/$filename2"
+install_jar_as() {
+    illegal_in_global_scope
+
+    [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
+
+    JAR_FILE_IN="${1}"
+    JAR_FILE_OUT="${2}"
+
+    # Escape the first character of the version pattern to prevent grep from
+    # interpreting the character as a dash option.
+    if echo "${JAR_FILE_OUT}" | grep -q "\\${ANT_JAR_VERSION_PATTERN}"; then
+      ewarn "${JAR_FILE_OUT} contains a version specifier"
+    fi
+
+    newins "${JAR_FILE_IN}" "${JAR_FILE_OUT}"
+}
