@@ -27,10 +27,10 @@ DEPENDENCIES="
 "
 
 WORK="${WORKBASE}"/${PNV}
-DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}"/build_xml-fix.patch )
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 
 # Notify Ant of the current Hamcrest version to ensure it names files properly.
-ANT_BUILD_XML="${WORK}"/build.xml
+ANT_BUILD_XML="${WORK}/build.xml"
 ANT_PARAMS="-Dversion=${PV}"
 
 # Hamcrest does not explicitly require ASM. JarJar, however, does; as we package
@@ -53,7 +53,7 @@ ANT_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons jarjar qdox )
 #   jar file having supplementary Hamcrest matchers. Most other exheres
 #   requiring Hamcrest do not require this jar file. Nonetheless, we install it.
 ANT_SRC_COMPILE_PARAMS=( library )
-ANT_SRC_INSTALL_JARS=( build/${PN}-core-${PV}.jar build/${PN}-library-${PV}.jar )
+ANT_SRC_INSTALL_JARS=( "build/${PN}-core-${PV}.jar" "build/${PN}-library-${PV}.jar" )
 
 hamcrest_src_prepare() {
     # We cannot call the "option" function in global scope, above. Therefore,
@@ -71,7 +71,7 @@ hamcrest_src_prepare() {
         if [[ "${DPN:0:1}" != / ]]; then  # ignore absolute path dependencies
             edo sed \
                 -e "s:${DPN}${ANT_JAR_VERSION_PATTERN}:${DPN}.jar:" \
-                -i ${ANT_BUILD_XML}
+                -i "${ANT_BUILD_XML}"
         fi
     done
 
@@ -80,6 +80,6 @@ hamcrest_src_prepare() {
     # after having patched the above version issues.
     edo sed \
         -e 's:jarjar\.jar":jarjar.jar; lib/generator/asm.jar; lib/generator/asm-commons.jar":' \
-        -i ${ANT_BUILD_XML}
+        -i "${ANT_BUILD_XML}"
 }
 

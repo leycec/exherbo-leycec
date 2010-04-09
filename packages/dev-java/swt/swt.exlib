@@ -90,38 +90,38 @@ ANT_DIST="${WORK}/${ANT_DIST_DIR}"
 MULTILIB_DIR=$(get_libdir)
 
 DEFAULT_SRC_PREPARE_PATCHES=(
-    "${FILES}"/make_linux_mak-fix.patch
-    "${FILES}"/build_sh-fix.patch
+    "${FILES}/make_linux_mak-fix.patch"
+    "${FILES}/build_sh-fix.patch"
 )
 
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
-ANT_SRC_INSTALL_JARS=( ${ANT_DIST}/${PN}.jar )
+ANT_SRC_INSTALL_JARS=( "${ANT_DIST}/${PN}.jar" )
 
 # --------------------( IMPLEMENTATION                     )--------------------
 # Extract the "src.zip" archive from the fetched compressed archive, then
 # extract the contents of that archive to ${WORK}.
 swt_src_unpack() {
     echo ">>> Unpacking ${ARCHIVES} to ${PWD}"
-    edo unzip -joq "${FETCHEDDIR}"/${ARCHIVES} "src.zip"
+    edo unzip -joq "${FETCHEDDIR}/${ARCHIVES}" "src.zip"
     unpack "./src.zip"   # note: the prefixing "./" is important!
 
     # Delete the resultant "about_files/" path and original "src.zip" archive.
-    edo rm -rf about_files/ "src.zip"
+    edo rm -rf "about_files/" "src.zip"
 }
 
 swt_src_prepare() {
     einfo "Preparing Java libraries for compilation..."
 
     # See comments in "files/build.xml" for details.
-    edo cp "${FILES}"/build.xml "${WORK}"/build.xml
+    edo cp "${FILES}/build.xml" "${WORK}/build.xml"
 
     # "src.zip" unpacks the Java tree into "org/". The replacement
     # "files/build.xml", however, expects this tree to be found at
     # "src/org/" per the Ant standard. We ensure this now.
-    edo mkdir ${ANT_SRC}
-    edo mkdir ${ANT_BUILD}
-    edo mv "${WORK}"/org ${ANT_SRC}
+    edo mkdir "${ANT_SRC}"
+    edo mkdir "${ANT_BUILD}"
+    edo mv "${WORK}/org" "${ANT_SRC}"
 
     antefix_src_prepare
 }
@@ -156,16 +156,16 @@ swt_src_compile_build_sh() {
 
     # So say we all!
     einfo "Compiling C and C++ libraries..."
-    edo sh "${WORK}"/build.sh
+    edo sh "${WORK}/build.sh"
 }
 
 # Compile underlying Java libraries.
 swt_src_compile_ant() {
     einfo "Copying absent Java files..."
-    edo mkdir -p "${ANT_BUILD}"/org/eclipse/swt/internal/
-    edo cp "${ANT_SRC}"/org/eclipse/swt/internal/SWTMessages.properties \
-           "${ANT_BUILD}"/org/eclipse/swt/internal/
-    edo cp "${WORK}"/version.txt "${ANT_BUILD}"/version.txt
+    edo mkdir -p "${ANT_BUILD}/org/eclipse/swt/internal/"
+    edo cp "${ANT_SRC}/org/eclipse/swt/internal/SWTMessages.properties" \
+           "${ANT_BUILD}/org/eclipse/swt/internal/"
+    edo cp "${WORK}/version.txt" "${ANT_BUILD}/version.txt"
 
     einfo "Compiling Java libraries..."
     antefix_src_compile
@@ -181,11 +181,11 @@ swt_src_install() {
     elif option platform:x86;   then SWT_ARCH="x86"
     fi
 
-    edo cp "${FILES}"/MANIFEST.MF "${WORK}"/MANIFEST.MF
+    edo cp "${FILES}/MANIFEST.MF" "${WORK}/MANIFEST.MF"
     edo sed -i \
         -e "s/SWT_ARCH/${SWT_ARCH}/" \
         -e "s/EXHERES_PV/${PV}/" \
-        "${WORK}"/MANIFEST.MF
+        "${WORK}/MANIFEST.MF"
 
     antefix_src_install
 

@@ -36,7 +36,7 @@ LICENCES="BSD-3"
 MYOPTIONS=""
 DEPENDENCIES="build+run: dev-java/asm[>=3.2]"
 
-DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}"/build_xml-fix.patch )
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 
 ANT_SRC_PREPARE_SYMLINK_DIR=lib
 ANT_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons )
@@ -49,13 +49,13 @@ jarjar_src_prepare() {
     antefix_src_prepare
 
     # Remove Maven-specific sources.
-    edo rm "${WORK}"/src/main/com/tonicsystems/jarjar/JarJarMojo.java
+    edo rm "${WORK}/src/main/com/tonicsystems/jarjar/JarJarMojo.java"
 }
 
 jarjar_src_install() {
     antefix_src_install
 
     set_install_jar_dir /usr/share/${PN}
-    install_jar_as "${WORK}"/dist/${PN}-snapshot.jar ${PN}.jar
+    install_jar_as "${WORK}/dist/${PN}-snapshot.jar" "${PN}.jar"
 }
 

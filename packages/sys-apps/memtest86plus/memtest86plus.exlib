@@ -29,7 +29,7 @@ WORK="${WORKBASE}/memtest86+-${PV}"
 
 memtest86plus_src_prepare() {
     default
-    expatch ${FILES}/00-fix_Makefile.patch
+    expatch "${FILES}/00-fix_Makefile.patch"
 }
 
 memtest86plus_src_configure() {
@@ -51,8 +51,8 @@ memtest86plus_src_compile() {
 
 memtest86plus_src_install() {
     default
-    insinto "${ROOT}/boot/memtest86plus"
-    doins memtest.bin
+    insinto "/boot/memtest86plus"
+    doins "memtest.bin"
 }
 
 memtest86plus_pkg_postinst() {

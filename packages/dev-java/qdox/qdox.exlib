@@ -41,41 +41,41 @@ DEPENDENCIES="
 WORK="${WORKBASE}"
 
 # QDox currently ships no makefiles. I don't know whether to hug them or cry.
-QDOX_CLASSPATH="${ROOT}"/usr/share/ant/lib/ant.jar
-QDOX_SRC_DIR="${WORK}"/src
-QDOX_BUILD_DIR="${WORK}"/build
-QDOX_DIST_DIR="${WORK}"/dist
-QDOX_JAR_FILE=${QDOX_DIST_DIR}/${PN}.jar
+QDOX_CLASSPATH="/usr/share/ant/lib/ant.jar"
+QDOX_SRC_DIR="${WORK}/src"
+QDOX_BUILD_DIR="${WORK}/build"
+QDOX_DIST_DIR="${WORK}/dist"
+QDOX_JAR_FILE="${QDOX_DIST_DIR}/${PN}.jar"
 
 qdox_src_prepare() {
     einfo "Preparing directory structure..."
-    edo mkdir -p ${QDOX_SRC_DIR} ${QDOX_BUILD_DIR} ${QDOX_DIST_DIR}
-    edo mv "${WORK}"/com ${QDOX_SRC_DIR}
+    edo mkdir -p "${QDOX_SRC_DIR}" "${QDOX_BUILD_DIR}" "${QDOX_DIST_DIR}"
+    edo mv "${WORK}/com" "${QDOX_SRC_DIR}"
 
     # Remove all JUnit-related source files for the moment. (They work; we just
     # don't have a "dev-java/junit" exheres, at the moment.)
-    edo rm -rf ${QDOX_SRC_DIR}/com/thoughtworks/qdox/junit
+    edo rm -rf "${QDOX_SRC_DIR}/com/thoughtworks/qdox/junit"
 }
 
 qdox_src_compile() {
     # Compile with JDK 1.4 to avoid spurious warnings.
     einfo "Compiling class files..."
     edo javac \
-        -sourcepath ${QDOX_SRC_DIR} \
-        -d          ${QDOX_BUILD_DIR} \
-        -classpath  ${QDOX_CLASSPATH} \
+        -sourcepath "${QDOX_SRC_DIR}" \
+        -d          "${QDOX_BUILD_DIR}" \
+        -classpath  "${QDOX_CLASSPATH}" \
         -source 1.4 -target 1.4 \
-        ${QDOX_SRC_DIR}/**/*.java
+        "${QDOX_SRC_DIR}"/**/*.java
 }
 
 qdox_src_install() {
     emagicdocs
 
     einfo "Collecting jar file..."
-    edo jar -cvf ${QDOX_JAR_FILE} -C ${QDOX_BUILD_DIR} com
+    edo jar -cvf "${QDOX_JAR_FILE}" -C "${QDOX_BUILD_DIR}" com
 
     einfo "Installing jar file..."
     insinto /usr/share/${PN}
-    doins ${QDOX_JAR_FILE}
+    doins "${QDOX_JAR_FILE}"
 }
 

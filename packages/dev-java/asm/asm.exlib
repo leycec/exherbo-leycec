@@ -41,10 +41,9 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 
 asm_src_install() {
     antefix_src_install
-#   die "dying...yay!"
 
     einfo "Installing jar files..."
     set_install_jar_dir /usr/share/${PN}
-    install_jars "${WORK}"/output/dist/lib/*.jar
+    install_jars "${WORK}/output/dist/lib"/*.jar
 }
 
