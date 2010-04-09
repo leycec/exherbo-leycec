@@ -1,3 +1,8 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Remove reference to "@{bootclasspath}", as that induces errors despite
+remaining unset; replace "jarjar" task with "jar", as the former appends
+external dependencies to "jarjar.jar".
 diff -Nuar old/build.xml new/build.xml
 --- old/build.xml	2008-09-13 01:55:40.000000000 +0000
 +++ new/build.xml	2010-04-03 19:05:57.243789182 +0000

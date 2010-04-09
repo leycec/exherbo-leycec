@@ -1,3 +1,8 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Prevent the "build" task from unjarring Hamcrest jar files, as that
+would add Hamcrest source files to output JUnit jar files; prevent the "javadoc"
+task from running the "unjar.hamcrest" task, as that would do the same.
 diff -Nuar old/build.xml new/build.xml
 --- old/build.xml	2010-04-05 05:15:47.493678591 +0000
 +++ new/build.xml	2010-04-05 06:40:26.688010825 +0000
