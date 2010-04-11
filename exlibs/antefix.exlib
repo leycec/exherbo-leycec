@@ -39,6 +39,18 @@ myexparam -b clean_jar_files=true
 # fail! Those that do should set this array, as above.
 ANT_RESTRICT_JAVA_JDK_PREFIXES=( )
 
+# Hamcrest does not compile under "gcj", currently.
+ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
+
+# Find parameters to be passed to the command-line invocation of "find" when
+# cleaning jar files from ${WORK}. Specify this to prevent cleaning of wanted,
+# specific jar files: e.g.,
+#     ANT_CLEAN_JAR_FILES_PARAMS=( -not -wholename 'bootstrap/young_lad.jar' )
+ANT_CLEAN_JAR_FILES_PARAMS=( )
+
+# Absolute or relative path under ${WORK} to the "build.xml" for this exheres.
+ANT_BUILD_XML="build.xml"
+
 # Ant parameters to be passed to all command-line invocations of Ant. Example:
 #     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
 ANT_PARAMS=( )
@@ -59,10 +71,6 @@ ANT_SRC_PREPARE_SYMLINK_DIR=""
 # call "symlink_jars" within your "${PN}_src_prepare" function.
 ANT_SRC_PREPARE_SYMLINK_JARS=( )
 
-# Absolute path to which this exheres' output jar files will be installed.
-# (Avoid changing this unless you absolutely must.)
-ANT_SRC_INSTALL_JARS_DIR="/usr/share/${PN}"
-
 # Array of absolute paths to this exheres' output jar files to be installed
 # under "${ANT_SRC_INSTALL_JARS_DIR}". Versions are automatically removed from
 # filenames on your behalf. (Yippee!) Example:
@@ -72,23 +80,51 @@ ANT_SRC_INSTALL_JARS_DIR="/usr/share/${PN}"
 # call "install_jars" within your "${PN}_src_install" function.
 ANT_SRC_INSTALL_JARS=( )
 
+# Bash pattern matching the version suffix commonly appended to jar filenames.
+# This pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
+# unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). By design,
+# this pattern may also be passed without change to "egrep" or "sed -r".
+#
+# Don't forget to append a '$' if appropriate!
+ANT_JAR_VERSION_PATTERN='-[[:digit:].]+(rc[[:digit:].]+)?\.jar'
+
+# Bash pattern matching the same from within a parameter expansion: e.g.,
+#
+#    Echoes "harhar.jar".
+#    JAR_FILE=harhar-5.62.951.jar && \
+#        echo ${JAR_FILE/${ANT_JAR_PARAMETER_VERSION_PATTERN}/.jar}
+ANT_JAR_PARAMETER_VERSION_PATTERN='%-+([[:digit:].])*(rc+([[:digit:].]))\.jar'
+
 # Sed pattern matching the version suffix commonly appended to jar filenames.
 # The pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
 # unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). Note that, due
 # to simplicity, the pattern may ocassionally match more than you want!
-ANT_JAR_VERSION_PATTERN='-[0-9].*\.jar'
+#ANT_JAR_SED_VERSION_PATTERN='-[0-9].*\.jar'
 
 # ....................{ CONSTANTS                          }....................
 # This exlib sets these constants on your behalf. Read them; don't write them.
+# 
+# Scratch that -- don't even write them. If you access these constants in an
+# exheres, you're doing something wrong. :)
 
-# Set to the currently selected Java compiler as reported by
-# $(eclectic java-jdk show). If you're accessing this constant in an exheres,
-# you're may be doing something wrong. :)
+# Set to the currently selected Java compiler as reported by...
 ANT_JAVA_JDK=$(eclectic java-jdk show)
 
 # Set, if "gcj" is the currently selected Java compiler. This additionally
 # implies "gij" is the currently selected Java interpreter.
 ANT_IS_JAVA_JDK_GCJ=
+
+# Absolute path to the parent of ${ANT_SRC_INSTALL_JARS_DIR}, below.
+#
+# Avoid changing this global unless you absolutely must, as that probably breaks
+# things elsewhere (e.g., other exheres trying to import these jar files).
+ANT_SRC_INSTALL_JARS_ROOT="/usr/share"
+
+# Absolute path to which this exheres installs output jar files.
+#
+# Avoid changing this global unless you absolutely must, as that probably breaks
+# things elsewhere (e.g., other exheres trying to import these jar files).
+ANT_SRC_INSTALL_JARS_DIR="${ANT_SRC_INSTALL_JARS_ROOT}/${PN}"
 
 # ....................{ PHASES                             }....................
 antefix_pkg_setup() {
@@ -116,7 +152,7 @@ antefix_pkg_setup() {
     fi
 
     # Warn if the currently selected Java compiler is GCJ.
-    if [[ "${ANT_JAVA_JDK}" = gcj* ]]; then
+    if [[ "${ANT_JAVA_JDK}" == gcj* ]]; then
         ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
         ewarn "this compiler works, it also introduces sydbox access violations by"
         ewarn "attempting to open spurious DNS requests. Until this can be"
@@ -142,18 +178,23 @@ antefix_src_prepare() {
     # all paths in "${ANT_BUNDLED_LIBSDIR}". Obviously, we must not destroy the
     # "${WORK}" path. However, some Java libraries (e.g., Hamcrest) come with
     # jar files pre-bundled in the "${WORK}" path. We thus homebrew this boolean
-    # to recursively remove jar files rather than all files and paths.
+    # to recursively remove jar files rather than all files and paths, prior to
+    # the "ant_src_prepare" function.
     #
     # Disable this by requiring this exlib with:
     #     require antefix [ clean_jar_files=false ]
+    #
+    # Do this here rather than in "antefix_src_unpack" so that exheres unpacking
+    # jar files embedded in downloaded archives may do so without molestation.
     if exparam -b clean_jar_files; then
+        # Do not use "edo rm -f "${WORK}"/**/*.jar" as that tends to glob more
+        # files than can be reasonably handled by the shell.
         einfo "Removing jar files..."
-        edo rm -f "${WORK}"/**/*.jar
+        edo find "${WORK}" -type f -iname '*.jar' ${ANT_CLEAN_JAR_FILES_PARAMS[@]} -delete
     fi
 
     [[ -n "${DEFAULT_SRC_PREPARE_PATCHES}" ]] && einfo "Patching files..."
     default  # calls the original "src_prepare" function
-
     antefix_src_preamble
 
     # Never invoke Ant unless you have a task with which to invoke it, since
@@ -240,8 +281,8 @@ set_symlink_jar_dir() {
     ANT_SRC_PREPARE_SYMLINK_DIR="${1}"
 
     # If we were passed an absolute path, test it.
-    if [[ ${ANT_SRC_PREPARE_SYMLINK_DIR:0:1} = / ]]; then
-        [[ "${ANT_SRC_PREPARE_SYMLINK_DIR}" = "${WORK}"* ]] ||
+    if [[ ${ANT_SRC_PREPARE_SYMLINK_DIR:0:1} == / ]]; then
+        [[ "${ANT_SRC_PREPARE_SYMLINK_DIR}" == "${WORK}"* ]] ||
             die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not under ${WORK}"
     # If we were passed a relative path, canonicalize it.
     else
@@ -297,21 +338,8 @@ symlink_jars() {
         die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not found or not set"
 
     for JAR_FILE in ${*}; do
-        JAR_BASENAME=${JAR_FILE##*/}         # filename sans path
-        JAR_ROOTNAME=${JAR_BASENAME/%.jar/}  # filename sans path and type
-
-        # If we were passed a relative path, canonicalize it. Presume all
-        # external Java libraries live in their customary directories.
-        if [[ ${JAR_FILE:0:1} != / ]]; then
-            JAR_FILE="${ROOT}usr/share/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
-            if [[ ! -f "${JAR_FILE}" ]]; then
-                JAR_FILE="${ROOT}usr/share/${JAR_ROOTNAME%%-*}/${JAR_ROOTNAME}.jar"
-                [[  -f "${JAR_FILE}" ]] ||
-                    die_unless_nonfatal "${JAR_ROOTNAME}.jar not found"
-            fi
-        fi
-
-        edo ln -s "${JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
+        edo ln -s $(get_install_jar_file "${JAR_FILE}") \
+            "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
     done
 }
 
@@ -331,6 +359,8 @@ symlink_jars() {
 install_jars() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
+    [[ "${ANT_SRC_INSTALL_JARS_DIR}" =~ ^/(usr|opt)/ ]] ||
+        die_unless_nonfatal "${ANT_SRC_INSTALL_JARS_DIR} not under /usr or /opt"
 
     insinto "${ANT_SRC_INSTALL_JARS_DIR}"
     for JAR_FILE in ${*}; do
@@ -340,8 +370,7 @@ install_jars() {
         #
         # See "man bash" for details.
         newins ${JAR_FILE} \
-            $(basename "${JAR_FILE/%-+([[:digit:].])*(rc+([[:digit:].])).jar/.jar}")
-        #   $(echo "${JAR_FILE##*/}" | sed -e "s:${ANT_JAR_VERSION_PATTERN}$:.jar:")
+            $(basename "${JAR_FILE/${ANT_JAR_PARAMETER_VERSION_PATTERN}/.jar}")
     done
 }
 
@@ -354,16 +383,101 @@ install_jars() {
 install_jar_as() {
     illegal_in_global_scope
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
+    [[ "${ANT_SRC_INSTALL_JARS_DIR}" =~ ^/(usr|opt)/ ]] ||
+        die_unless_nonfatal "${ANT_SRC_INSTALL_JARS_DIR} not under /usr or /opt"
 
     JAR_FILE_IN="${1}"
     JAR_FILE_OUT="${2}"
 
     # Escape the first character of the version pattern to prevent grep from
     # interpreting the character as a dash option.
-    if echo "${JAR_FILE_OUT}" | grep -q "\\${ANT_JAR_VERSION_PATTERN}"; then
-      ewarn "${JAR_FILE_OUT} contains a version specifier"
+    if [[ "${JAR_FILE_OUT}" =~ "${ANT_JAR_VERSION_PATTERN}$" ]]; then
+        ewarn "${JAR_FILE_OUT} contains a version specifier"
     fi
 
     insinto "${ANT_SRC_INSTALL_JARS_DIR}"
     newins "${JAR_FILE_IN}" "${JAR_FILE_OUT}"
 }
+
+# ....................{ UTILITIES                          }....................
+# char *get_install_jar_dir(char *exheres_name)
+#
+# Given an exheres name, returns the absolute path to the installed directory
+# having jar files for that exheres: e.g.,
+#
+#     # Echoes "/usr/share/turkish_dream".
+#     echo $(get_install_jar_dir "turkish_dream")
+#
+# This function ensures this path exists, and dies if it does not.
+get_install_jar_dir() {
+    local JAR_DIR=$(get_install_jar_dir_nonfatal "${1}")
+    [[ -d "${JAR_DIR}" ]] ||
+        die_unless_nonfatal "jar directory ${JAR_DIR} not found"
+    echo "${JAR_DIR}"
+}
+
+# char *get_install_jar_dir_nonfatal(char *exheres_name)
+#
+# Behaves similarly to "get_install_jar_dir" but does not ensure this path exist.
+get_install_jar_dir_nonfatal() {
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
+    [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
+    echo "${ANT_SRC_INSTALL_JARS_ROOT}/${1}"
+}
+
+# char *get_install_jar_file(char *jar_name)
+#
+# Given a jar name, returns the absolute path to the installed file for that jar
+# file: e.g.,
+#
+#     # Echoes "/usr/share/turkish_dream/turkish_dream-raki.jar".
+#     echo $(get_install_jar_file "bin/turkish_dream-raki-0.1.3.jar")
+#
+# This automatically strips version strings from passed jar filenames as well as
+# establishing the expected parent directory. As above, this function ensures
+# the file exists, and dies if it does not.
+get_install_jar_file() {
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
+    [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
+
+    local JAR_FILE="${1}"
+    local JAR_BASENAME="${JAR_FILE/##*/}"        # filename sans path
+    local JAR_ROOTNAME="${JAR_BASENAME/%.jar/}"  # filename sans path and type
+
+    # If we were passed a relative path, canonicalize it. Presume all
+    # external Java libraries live in their customary directories.
+    #
+    # Do not search "${IMAGE}"/ as well, as absolute paths into that root will
+    # be rendered meaningless following installation.
+    if [[ ${JAR_FILE:0:1} != / ]]; then
+        JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
+        if [[ ! -f "${JAR_FILE}" ]]; then
+            JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${JAR_ROOTNAME%%-*}/${JAR_ROOTNAME}.jar"
+            [[  -f "${JAR_FILE}" ]] ||
+                die_unless_nonfatal "${JAR_ROOTNAME}.jar not found"
+        fi
+    fi
+
+    echo "${JAR_FILE}"
+}
+
+# char *get_install_jar_file_nonfatal(char *jar_name)
+#
+# Behaves similarly to "get_install_jar_file" but does not ensure this file
+# exists. (This is somewhat less intelligent than that function, and should thus
+# be avoided in favor of calling "get_install_jar_file" itself.)
+get_install_jar_file_nonfatal() {
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
+    [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
+
+    local JAR_FILE="${1}"
+    local JAR_BASENAME="${JAR_FILE/##*/}"        # filename sans path
+    local JAR_ROOTNAME="${JAR_BASENAME/%.jar/}"  # filename sans path and type
+
+    if [[ ${JAR_FILE:0:1} != / ]]; then
+        JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
+    fi
+
+    echo "${JAR_FILE}"
+}
+

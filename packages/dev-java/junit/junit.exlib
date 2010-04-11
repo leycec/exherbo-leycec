@@ -6,7 +6,7 @@
 #FIXME: Integrate into "dev-java/apache-ant", which currently hardcodes a JUnit
 #download. Rather ugly, but understandable.
 
-# Do not require the "sourceforge" exlib, as this exheres overrides all
+# Do not require the "sourceforge" exlib, as this exheres overrides most
 # default globals supplied by that exlib.
 require antefix
 export_exlib_phases src_unpack src_prepare src_install
@@ -21,7 +21,7 @@ frameworks collectively known as xUnit that originated with SUnit.
 
 MY_PNV=${PN}${PV}
 
-HOMEPAGE="http://www.${PN}.org/"
+HOMEPAGE="http://www.${PN}.org"
 UPSTREAM_RELEASE_NOTES="http://kentbeck.github.com/${PN}/doc/ReleaseNotes${PV}.html"
 UPSTREAM_DOCUMENTATION="http://kentbeck.github.com/${PN}/javadoc/${PV} [[ lang = en ]]"
 REMOTE_IDS="sourceforge:${PN}"
@@ -36,7 +36,7 @@ SLOT="0"
 LICENCES="CPL-1.0"
 MYOPTIONS="doc examples"
 DEPENDENCIES="
-    build+run: app-arch/unzip
+    build:     app-arch/unzip
     build+run: dev-java/hamcrest[>=1.2]
 "
 
@@ -86,7 +86,7 @@ junit_src_prepare() {
     # Do not use "edo rm -f "${WORK}"/**/*.class" as that tends to glob more
     # files than can be reasonably handled by the shell.
     einfo "Removing class files..."
-    edo find "${WORK}" -type f -iname "*.class" -delete
+    edo find "${WORK}" -type f -iname '*.class' -delete
 }
 
 junit_src_install() {

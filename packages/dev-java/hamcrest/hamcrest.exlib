@@ -30,8 +30,7 @@ WORK="${WORKBASE}"/${PNV}
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 
 # Notify Ant of the current Hamcrest version to ensure it names files properly.
-ANT_BUILD_XML="${WORK}/build.xml"
-ANT_PARAMS="-Dversion=${PV}"
+ANT_PARAMS=( -Dversion=${PV} )
 
 # Hamcrest does not compile under "gcj", currently.
 ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
@@ -48,13 +47,14 @@ ANT_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons jarjar qdox )
 #
 # * "hamcrest-generator-${PV}.jar". This is, as the name suggests, the Hamcrest
 #   jar file responsible for generating the other two Hamcrest jar files. Since
-#   it has no other utility, we do not install it to the local system.
+#   it has no other utility, ignore it.
 # * "hamcrest-core-${PV}.jar". This is, as the name suggests, the core Hamcrest
-#   jar file. Most other exheres requiring Hamcrest require this jar file. Thus,
-#   we install it.
-# * "hamcrest-library-${PV}.jar". The name is not helpful; this is a Hamcrest
-#   jar file having supplementary Hamcrest matchers. Most other exheres
-#   requiring Hamcrest do not require this jar file. Nonetheless, we install it.
+#   jar file. All exheres requiring Hamcrest require this jar file. Install it.
+# * "hamcrest-library-${PV}.jar". Unhelpful name; this is a Hamcrest jar file
+#   having supplementary Hamcrest matchers. Most exheres requiring Hamcrest do
+#   not require this jar file. Nonetheless, install it.
+#
+# There is no "ANT_SRC_INSTALL_PARAMS" as this task both compiles and jars.
 ANT_SRC_COMPILE_PARAMS=( library )
 ANT_SRC_INSTALL_JARS=( "build/${PN}-core-${PV}.jar" "build/${PN}-library-${PV}.jar" )
 
@@ -72,7 +72,7 @@ hamcrest_src_prepare() {
     # the 'D' in "DPN" stands for dependency.
     for DPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
         if [[ "${DPN:0:1}" != / ]]; then  # ignore absolute path dependencies
-            edo sed \
+            edo sed -r \
                 -e "s:${DPN}${ANT_JAR_VERSION_PATTERN}:${DPN}.jar:" \
                 -i "${ANT_BUILD_XML}"
         fi
