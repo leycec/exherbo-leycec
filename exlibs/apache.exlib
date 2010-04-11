@@ -1,0 +1,37 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+#
+# --------------------( SYNOPSIS                           )--------------------
+# This exlib supports for Apache Foundation-hosted exheres.
+
+# ....................{ PARAMETERS                         }....................
+# See the construction of "DOWNLOADS" below.
+myexparam pn=${MY_PN:-${PN}}
+myexparam pv=${MY_PV:-${PV}}
+myexparam pnv=${MY_PNV:-$(exparam pn)-$(exparam pv)-src}
+myexparam subdir="source"
+myexparam suffix="tar.gz"
+
+# ....................{ SETTINGS                           }....................
+DOWNLOADS="mirror://apache/$(exparam pn)/$(exparam subdir)/$(exparam pnv).$(exparam suffix)"
+HOMEPAGE="http://$(exparam pn).apache.org"
+
+#FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
+#REMOTE_IDS+=" apache:$(exparam project) "
+
+# All Apache exheres share the same license. Usually.
+LICENSES="Apache-2.0"
+
+# Add buildtime dependencies appropriate for extracting this archive.
+case $(exparam suffix) in
+    tar.lzma)
+    tar.xz)
+        DEPENDENCIES+="
+    build:
+        app-arch/xz" ;;
+    zip)
+        DEPENDENCIES+="
+    build:
+        app-arch/unzip" ;;
+esac
+
