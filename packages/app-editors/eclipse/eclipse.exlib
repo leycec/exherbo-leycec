@@ -10,10 +10,11 @@
 #
 # Thanks, guys.
 
-# --------------------( DEPENDENCIES                       )--------------------
+# --------------------( EXHERES                            )--------------------
 #FIXME: Add support for a new "machine_tester.exlib" exlib, ensuring the
 #current machine has sufficient capability to make Eclipse.
 require antefix
+export_exlib_phases src_prepare
 
 # --------------------( VERSIONING                         )--------------------
 # Eclipse uses a unique versioning scheme: "${MAJOR}_${MINOR}_${REVISION}". This
@@ -68,11 +69,17 @@ DEPENDENCIES="
     build:
     build+run:
         dev-java/asm[>=3.2]
-        dev-java/hamcrest[>=1.2]
+        dev-java/lucene[>=3.0.1]
         dev-java/swt:${SLOT}[>=${PV}]
+    build+run+test:
+        dev-java/junit[>=4.8.1]
 "
 
 WORK="${WORKBASE}"/${BNV}
 
-# --------------------( IMPLEMENTATION                     )--------------------
+# --------------------( PHASES                             )--------------------
+eclipse_src_prepare() {
+    eerror "This exheres is still unfinished. Patience, young padawan."
+    die
+}
 
