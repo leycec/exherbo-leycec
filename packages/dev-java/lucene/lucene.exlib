@@ -1,0 +1,179 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'lucene-3.0.0.ebuild' from Gentoo, which is:
+#     Copyright 1999-2010 Gentoo Foundation
+
+# ....................{ EXHERES                            }....................
+require antefix apache [ subdir=java ]
+export_exlib_phases src_prepare src_compile src_install
+
+#FIXME: Obsolete...I think. Cull!
+# Version string for the "contrib/analyzers" subproject bundled within this
+# version of Java Lucene. As each version of Lucene may bundle a different
+# version of this subproject each exheres must explicitly specify the exact
+# version of this subproject their Lucene provides. 
+#myexparam  contrib_analyzers_pv=
+#exparam -v CONTRIB_ANALYZERS_PV contrib_analyzers_pv
+
+# ....................{ SETTINGS                           }....................
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="Java text search engine library emphasizing high performance"
+DESCRIPTION="
+Java Lucene is a Java text search engine library emphasizing high performance.
+It's suitable for applications requiring cross-platform portable, full-
+featured, and full-text search. 
+"
+
+MY_PV=$(ever replace_all _ ${PV})
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/${subdir}/${MY_PV}/api/all [[ lang = en ]]"
+UPSTREAM_CHANGELOG="${HOMEPAGE}/${subdir}/${MY_PV}/changes/Changes.html"
+
+SLOT="0"
+
+#FIXME: Couldn't get SUBOPTIONS to work for the life of me; I suspect it
+#requires physical modification to "arbor/profiles/options.conf". That would be
+#rather unhelpful, if true. For the meantime, just use simple options.
+#MYOPTIONS="
+#    lucene_contribs_
+#        analyzers   [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
+#"
+MYOPTIONS="
+    lucene_contribs_analyzers [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
+"
+
+# Depend on "zip" at buildtime to permit us to update manifest files in output
+# jar files with OSGI versions we produce.
+#
+# Technically, Java Lucene does not require JavaCC to build: its source tarball
+# already provides a pre-compiled parser generator to build itself against.
+# Nevertheless, this exheres explicitely requires JavaCC to build, because:
+#
+# * Sun may pre-compile Lucene's parser generator against now-deprecated
+#   versions of JavaCC. Lucene 3.0.1 shipped with a parser generator compiled
+#   against JavaCC 4.1, for example, when JavaCC's current version was 5.0.
+# * Because, given a choice between accepting pre-compiled binaries and self-
+#   compiling system-specific binaries, Exherbons choose the latter. Hu-ah!
+DEPENDENCIES="
+    build:
+        app-arch/zip
+        dev-java/javacc[>=5.0]
+    build+test:
+        dev-java/junit[>=4.6]
+"
+
+# Lucene's "build.xml" and "contrib/contrib-build.xml" both import
+# "common-build.xml", which has the guts of Lucene's build process.
+ANT_BUILD_XML="build.xml"
+ANT_COMMON_BUILD_XML="common-build.xml"
+
+# Lucene comes bundled with numerous contributed subprojects, each having
+# numerous "build.xml" files of their own. Each of these "build.xml" files
+# imports "contrib/contrib-build.xml". It's all rather... obtuse.
+ANT_CONTRIB_BUILD_XML="contrib/contrib-build.xml"
+ANT_CONTRIB_BUILD_DIR="build/contrib"
+
+# Lucene's "analyzers" subproject uses these paths. Note that we currently
+# ignore the "smartcn" jar file this subproject produces when updating
+# manifest files. We should probably update its manifest with an OSGI
+# version, as well.
+ANT_CONTRIB_ANALYZERS_BUILD_XML="contrib/analyzers/build.xml"
+ANT_CONTRIB_ANALYZERS_BUILD_DIR="${ANT_CONTRIB_BUILD_DIR}/analyzers/common"
+
+# Symlink these external jars; patch these internal files.
+ANT_SRC_PREPARE_SYMLINK_DIR="lib"
+ANT_SRC_PREPARE_SYMLINK_JARS=( junit )
+ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
+
+# Lucene requires "javacc.jar" to run the "javacc" task, which makes sense.
+# But it requires it under "/usr/share/javacc/bin/lib/", which doesn't. We
+# don't really feel like patching its "common-build.xml" file, however, so we'll
+# grudgingly accept that by setting "-Djavacc.home" to "/usr/share/javacc";
+# Lucene's "common-build.xml" will do the rest and pull the jar from there.
+#
+# Lucene often appends "-dev" to version strings, which produces jar files
+# resembling "${PN}-core-${PV}-dev.jar", which is not a recognizable
+# version suffix, which produces pain elsewhere. Work around by explicitly
+# setting the Ant "version" parameter.
+ANT_PARAMS=(
+    -Djavacc.home=$(get_install_jar_dir "javacc")
+    -Dversion=${PV}
+)
+
+# Running the "javacc" task recompiles pre-compiled parser generators via
+# JavaCC. As discussed above, this task is optional but strongly recommended.
+#
+# Running this task appears to also run the "compile-core" task. Odd. Delay
+# running this task, therefore, till in the "src_compile" phase.
+ANT_SRC_COMPILE_PARAMS=( javacc compile-core compile-demo )
+
+# Running the "test-core" task tests core functionality, but not backwards
+# compatibility. We care about the former but not the latter. (Core is enough.)
+ANT_SRC_TEST_PARAMS=( test-core )
+
+# Apache PDFBox requires both "lucene-core.jar" and "lucene-demos.jar". Most
+# other exheres require the former but not the latter. Make both, just in case.
+ANT_SRC_INSTALL_PARAMS=( jar-core jar-demo )
+ANT_SRC_INSTALL_JARS=( "build/${PN}-core-${PV}.jar" "build/${PN}-demos-${PV}.jar" )
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
+
+# ....................{ PHASES                             }....................
+lucene_src_prepare() {
+    # See "ANT_PARAMS" above for why we remove "-dev" from version strings here.
+    # Do this prior to calling the parent "src_prepare" function to ensure that
+    # function invokes Ant with a properly patched "build.xml" file.
+    einfo "Patching ${ANT_COMMON_BUILD_XML}..."
+    edo sed -e "s:${PV}-dev:${PV}:" -i "${ANT_COMMON_BUILD_XML}"
+
+    antefix_src_prepare
+}
+
+lucene_src_compile() {
+    antefix_src_compile
+
+    # Compile subprojects after compiling Lucene itself. (Important!)
+    if option lucene_contribs_analyzers; then
+        einfo "Compiling contrib/analyzers..."
+        eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" compile-core
+    fi
+}
+
+lucene_src_install() {
+    antefix_src_install
+
+    # Jar subprojects. Subproject "build.xml" files don't explicitly define a
+    # "jar-core" task; rather, their "default" task implicitly calls the
+    # "jar-core" task defined by the top-level "build.xml" file.
+    #
+    # James Gosling, I'm not happy with you.
+    if option lucene_contribs_analyzers; then
+        einfo "Collecting contrib/analyzers jar files..."
+        eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" default
+
+        #FIXME: Generalize into "antefix.exlib".
+        # Eclipse needs "lucene-analyzers" to have an OSGI manifest. Make it so!
+        # Replace the manifest auto-generated for this jar file with our own.
+        einfo "Updating contrib/analyzers jar files with OSGI manifests..."
+        local MANIFEST_FILE="META-INF/MANIFEST.MF"
+        cd "${ANT_CONTRIB_ANALYZERS_BUILD_DIR}"
+        edo mkdir -p "${MANIFEST_FILE%/*}"
+        edo cp "${FILES}/contrib_analyzers-MANIFEST.MF" "${MANIFEST_FILE}"
+        edo sed -e "s:__PV__:${PV}:" -i     "${MANIFEST_FILE}"
+        edo zip "${PN}-analyzers-${PV}.jar" "${MANIFEST_FILE}"
+        cd "${WORK}"
+    fi
+
+    # Install subproject jar files if at least one such subproject produced a
+    # jar file. (Do this recursively, to avoid explicitly listing jar files.
+    # The recursion should be safe given that we confine it to this subpath.)
+    if [[ -d "${ANT_CONTRIB_BUILD_DIR}" ]]; then
+        local CONTRIB_JAR_FILES="${ANT_CONTRIB_BUILD_DIR}"/**/*.jar
+
+        if [[ -n "${CONTRIB_JAR_FILES}" ]]; then
+            einfo "Installing contrib jar files..."
+            install_jars ${CONTRIB_JAR_FILES}
+        fi
+    fi
+}
+
