@@ -3,10 +3,10 @@
 # Based in part upon 'javacc-5.0.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
+# ....................{ EXHERES                            }....................
 require antefix
 export_exlib_phases src_prepare src_install
 
-# ....................{ PARAMETERS                         }....................
 # Numeric identifier uniquely identifying this Javacc version for download from
 # "http://java.net". For example, "javacc-5.0" downloads from:
 #
@@ -51,10 +51,6 @@ DEPENDENCIES="
 "
 
 WORK="${WORKBASE}"/${PN}
-#DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
-
-# Notify Ant of the current Hamcrest version to ensure it names files properly.
-#ANT_PARAMS="-Dversion=${PV}"
 
 # JavaCC actually bundles a compiled version of itself as a jar file so as to
 # bootstrap compile a new JavaCC parser given this bundle. This is odd, but
@@ -74,6 +70,7 @@ ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 ANT_SRC_INSTALL_JARS=( "bin/lib/${PN}.jar" )
 
+# ....................{ PHASES                             }....................
 javacc_src_prepare() {
     antefix_src_prepare
 
@@ -90,6 +87,10 @@ javacc_src_prepare() {
 javacc_src_install() {
     antefix_src_install
 
+    # Set absolute paths in a reasonably generic way. (See below.)
+    local JAVACC_JAR_FILE=$(get_install_jar_file_nonfatal "javacc.jar")
+    local JAVACC_INSTALL_DIR="${IMAGE}/$(get_install_jar_dir_nonfatal "javacc")/bin"
+
     # JavaCC provides several convenience shell scripts for running various
     # Java class files in its installed jar file as command-line executables.
     # Change the path to that jar file in these scripts to the Exherbo-specific
@@ -98,12 +99,37 @@ javacc_src_install() {
     # Don't do this in "javacc_src_prepare" as "javacc.jar" will not have been
     # installed at that point.
     einfo "Installing shell scripts..."
-    JAVACC_JAR_FILE=$(get_install_jar_file_nonfatal "javacc.jar")
-    for JAVACC_SHELL_SCRIPT in \
+    local JAVACC_SHELL_SCRIPT
+    for   JAVACC_SHELL_SCRIPT in \
         "bin/javacc" "bin/jjdoc" "bin/jjrun" "bin/jjtree"; do
         edo sed -e "s:^JAR=.*$:JAR=\"${JAVACC_JAR_FILE}\":" \
             -i "${JAVACC_SHELL_SCRIPT}"
         dobin  "${JAVACC_SHELL_SCRIPT}"
+    done
+
+    # Exherbo prefers an installation tree resembling:
+    #
+    #     /usr/share/javacc/javacc.jar
+    #     /usr/bin/javacc
+    #     /usr/bin/jjdoc
+    #     /usr/bin/jjrun
+    #     /usr/bin/jjtree
+    #
+    # However, JavaCC and other exheres requiring JavaCC expect an installation
+    # tree resembling:
+    #
+    #     /usr/share/javacc/bin/lib/javacc.jar
+    #     /usr/share/javacc/bin/javacc
+    #     /usr/share/javacc/bin/jjdoc
+    #     /usr/share/javacc/bin/jjrun
+    #     /usr/share/javacc/bin/jjtree
+    #
+    # Provide both by symlinking the former to the latter.
+    einfo "Installing canonical symlinks..."
+    edo mkdir -p                   "${JAVACC_INSTALL_DIR}/lib/"
+    edo ln -s "${JAVACC_JAR_FILE}" "${JAVACC_INSTALL_DIR}/lib/"
+    for JAVACC_SHELL_SCRIPT in "javacc" "jjdoc" "jjrun" "jjtree"; do
+        edo ln -s "/usr/bin/${JAVACC_SHELL_SCRIPT}" "${JAVACC_INSTALL_DIR}/"
     done
 }
 

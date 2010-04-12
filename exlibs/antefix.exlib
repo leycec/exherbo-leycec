@@ -71,6 +71,23 @@ ANT_SRC_PREPARE_SYMLINK_DIR=""
 # call "symlink_jars" within your "${PN}_src_prepare" function.
 ANT_SRC_PREPARE_SYMLINK_JARS=( )
 
+# Array of absolute paths to text files to be "deversion"-ated. Ant "build.xml"
+# files often hardcode references to pre-bundled jar files with names suffixed
+# by a version specifier. This is bad, as this exlib replaces all pre-bundled
+# jar files with externally symlinked jar files with names NEVER EVER suffixed
+# by a version specifier. To resolve the discrepancy, we could do one of two
+# ugly hacks:
+#
+# * Sed affected "build.xml" files, removing jar filename version specifiers OR
+# * Grep affected "build.xml" files for these version specifiers and, when
+#   symlinking in external jar files, add the version specifier for each jar
+#   filename to its symlink filename.
+#
+# The first is easier. And easier is better. So that's what we do. Example
+# deversioning two files, "build.xml" and "common-build.xml":
+#     ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_BUILD_XML}" "common-build.xml" )
+ANT_SRC_PREPARE_DEVERSION_FILES=( )
+
 # Array of absolute paths to this exheres' output jar files to be installed
 # under "${ANT_SRC_INSTALL_JARS_DIR}". Versions are automatically removed from
 # filenames on your behalf. (Yippee!) Example:
@@ -79,6 +96,34 @@ ANT_SRC_PREPARE_SYMLINK_JARS=( )
 # If filenames are not known until install time, leave this array blank and
 # call "install_jars" within your "${PN}_src_install" function.
 ANT_SRC_INSTALL_JARS=( )
+
+# ....................{ CONSTANTS                          }....................
+# This exlib sets these constants on your behalf. Read them; don't write them.
+# 
+# Scratch that -- don't even read them. If you access these constants in any
+# exheres, you're doing something wrong. :)
+
+# Absolute path to the "ant" binary.
+ANT="${ANT_HOME}/bin/ant"
+
+# Set to the currently selected Java compiler as reported by...
+ANT_JAVA_JDK=$(eclectic java-jdk show)
+
+# Set, if "gcj" is the currently selected Java compiler. This additionally
+# implies "gij" is the currently selected Java interpreter.
+ANT_IS_JAVA_JDK_GCJ=
+
+# Absolute path to the parent of ${ANT_SRC_INSTALL_JARS_DIR}, below.
+#
+# Avoid changing this global unless you absolutely must, as that probably breaks
+# things elsewhere (e.g., other exheres trying to import these jar files).
+ANT_SRC_INSTALL_JARS_ROOT="/usr/share"
+
+# Absolute path to which this exheres installs output jar files.
+#
+# Avoid changing this global unless you absolutely must, as that probably breaks
+# things elsewhere (e.g., other exheres trying to import these jar files).
+ANT_SRC_INSTALL_JARS_DIR="${ANT_SRC_INSTALL_JARS_ROOT}/${PN}"
 
 # Bash pattern matching the version suffix commonly appended to jar filenames.
 # This pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
@@ -100,31 +145,6 @@ ANT_JAR_PARAMETER_VERSION_PATTERN='%-+([[:digit:].])*(rc+([[:digit:].]))\.jar'
 # unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). Note that, due
 # to simplicity, the pattern may ocassionally match more than you want!
 #ANT_JAR_SED_VERSION_PATTERN='-[0-9].*\.jar'
-
-# ....................{ CONSTANTS                          }....................
-# This exlib sets these constants on your behalf. Read them; don't write them.
-# 
-# Scratch that -- don't even write them. If you access these constants in an
-# exheres, you're doing something wrong. :)
-
-# Set to the currently selected Java compiler as reported by...
-ANT_JAVA_JDK=$(eclectic java-jdk show)
-
-# Set, if "gcj" is the currently selected Java compiler. This additionally
-# implies "gij" is the currently selected Java interpreter.
-ANT_IS_JAVA_JDK_GCJ=
-
-# Absolute path to the parent of ${ANT_SRC_INSTALL_JARS_DIR}, below.
-#
-# Avoid changing this global unless you absolutely must, as that probably breaks
-# things elsewhere (e.g., other exheres trying to import these jar files).
-ANT_SRC_INSTALL_JARS_ROOT="/usr/share"
-
-# Absolute path to which this exheres installs output jar files.
-#
-# Avoid changing this global unless you absolutely must, as that probably breaks
-# things elsewhere (e.g., other exheres trying to import these jar files).
-ANT_SRC_INSTALL_JARS_DIR="${ANT_SRC_INSTALL_JARS_ROOT}/${PN}"
 
 # ....................{ PHASES                             }....................
 antefix_pkg_setup() {
@@ -197,11 +217,38 @@ antefix_src_prepare() {
     default  # calls the original "src_prepare" function
     antefix_src_preamble
 
+    # Deversion files after patching files above but before invoking Ant below.
+    if [[ -n "${ANT_SRC_PREPARE_DEVERSION_FILES[@]}" ]]; then
+        if [[ -n "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]]; then
+            einfo "Removing jar filename version specifiers..."
+
+            # Explicitly remove filename version specifiers only for externally
+            # symlinked jar files, where the 'E' in "EPN" stands for external.
+            #
+            # Do not remove version specifiers from other jar filenames as those
+            # filenames may not actually exist. As we can't be sure, we don't.
+            local EPN
+            local DEVERSION_FILE
+            for   DEVERSION_FILE in ${ANT_SRC_PREPARE_DEVERSION_FILES[@]}; do
+                for EPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
+                    if [[ "${EPN:0:1}" != / ]]; then  # ignore absolute paths
+                        edo sed -r \
+                            -e "s:${EPN}${ANT_JAR_VERSION_PATTERN}:${EPN}.jar:" \
+                            -i "${DEVERSION_FILE}"
+                    fi
+                done
+            done
+        else
+            ewarn "\$ANT_SRC_PREPARE_DEVERSION_FILES set but \$ANT_SRC_PREPARE_SYMLINK_DIR not set!"
+            ewarn "\$ANT_SRC_PREPARE_DEVERSION_FILES will be ignored."
+        fi
+    fi
+
     # Never invoke Ant unless you have a task with which to invoke it, since
     # "build.xml" files often supply a default task performing all relevant
     # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
-        einfo "Preparing build..."
+        einfo "Preparing source files..."
         ANT_SRC_PREPARE_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_PREPARE_PARAMS[@]} )
         ant_src_prepare
     fi
@@ -217,6 +264,7 @@ antefix_src_compile() {
     antefix_src_preamble
 
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
+        einfo "Compiling source files..."
         ANT_SRC_COMPILE_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_COMPILE_PARAMS[@]} )
         ant_src_compile
     fi
@@ -226,6 +274,7 @@ antefix_src_test() {
     antefix_src_preamble
 
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
+        einfo "Testing compiled files..."
         ANT_SRC_TEST_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_TEST_PARAMS[@]} )
         ant_src_test
     fi
@@ -399,7 +448,6 @@ install_jar_as() {
     newins "${JAR_FILE_IN}" "${JAR_FILE_OUT}"
 }
 
-# ....................{ UTILITIES                          }....................
 # char *get_install_jar_dir(char *exheres_name)
 #
 # Given an exheres name, returns the absolute path to the installed directory
@@ -481,3 +529,28 @@ get_install_jar_file_nonfatal() {
     echo "${JAR_FILE}"
 }
 
+# ....................{ EANT                               }....................
+# void eant(char *build_xml_filename, char *param1, char *param2, ...)
+#
+# Call "ant" with the passed absolute or relative path to a "build.xml" file and
+# zero or more command-line parameters to be passed to this "build.xml" file.
+# These parameters must be either: {a} Ant properties of the form "-Dkey=value"
+# (e.g., "-Djavacc.home=lib/javacc.jar") or {b} Ant tasks of the form "task"
+# (e.g., "compile").
+#
+# This function supplants the earlier "_ant_run" function and, unlike that
+# function, may be explicitly called by exheres operating on multiple
+# "build.xml" files. (Exheres not operating on multiple "build.xml" files should
+# avoid calling this function explicitly.)
+eant() {
+    illegal_in_global_scope
+    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
+
+    local ANT_BUILD_XML="${1}"
+    shift
+
+    # Always enable the "noget" property when invoking Ant. This instructs Ant
+    # to ignore any "get" tasks defined by this "build.xml" file; such tasks,
+    # if defined, attempt to remotely download external jar files.
+    edo "${ANT}" -f "${ANT_BUILD_XML}" -Dnoget=true "${@}"
+}

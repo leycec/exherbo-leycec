@@ -69,7 +69,7 @@ DEPENDENCIES="
     build:
     build+run:
         dev-java/asm[>=3.2]
-        dev-java/lucene[>=3.0.1]
+        dev-java/lucene[>=3.0.1][lucene_contrib_analyzers]
         dev-java/swt:${SLOT}[>=${PV}]
     build+run+test:
         dev-java/junit[>=4.8.1]

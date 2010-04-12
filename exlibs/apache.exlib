@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 #
 # --------------------( SYNOPSIS                           )--------------------
-# This exlib supports for Apache Foundation-hosted exheres.
+# This exlib gives sane defaults for Apache Foundation-hosted exheres.
 
 # ....................{ PARAMETERS                         }....................
 # See the construction of "DOWNLOADS" below.
@@ -19,13 +19,12 @@ HOMEPAGE="http://$(exparam pn).apache.org"
 #FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
 #REMOTE_IDS+=" apache:$(exparam project) "
 
-# All Apache exheres share the same license. Usually.
-LICENSES="Apache-2.0"
+# All Apache exheres share the same license.
+LICENCES="Apache-2.0"
 
 # Add buildtime dependencies appropriate for extracting this archive.
-case $(exparam suffix) in
-    tar.lzma)
-    tar.xz)
+case "$(exparam suffix)" in
+    tar.lzma|tar.xz)
         DEPENDENCIES+="
     build:
         app-arch/xz" ;;

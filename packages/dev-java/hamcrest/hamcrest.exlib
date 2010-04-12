@@ -26,7 +26,6 @@ DEPENDENCIES="
         dev-java/qdox[>=1.6.3]
 "
 
-WORK="${WORKBASE}"/${PNV}
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 
 # Notify Ant of the current Hamcrest version to ensure it names files properly.
@@ -40,6 +39,9 @@ ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
 # dependency and therefore supply it here.
 ANT_SRC_PREPARE_SYMLINK_DIR=lib/generator
 ANT_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons jarjar qdox )
+
+# Hamcrest's "build.xml" file references version-specific jar files. Cull!
+ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_BUILD_XML}" )
 
 # The "library" task in Hamcrest's "build.xml" compiles generator, core, and
 # library class files and concocts three jar files archiving these files as
@@ -59,28 +61,14 @@ ANT_SRC_COMPILE_PARAMS=( library )
 ANT_SRC_INSTALL_JARS=( "build/${PN}-core-${PV}.jar" "build/${PN}-library-${PV}.jar" )
 
 hamcrest_src_prepare() {
-    # We cannot call the "option" function in global scope, above. Therefore,
-    # we call it at the earliest available time.
+    # We can't call the "option" function in global scope above. Do it now!
     ANT_PARAMS+=" -Ddebug="$(option debug && echo true || echo false)
 
     antefix_src_prepare
 
-    einfo "Patching build.xml..."
-
-    # Hamcrest's "build.xml" file references version-specific jar files. Patch
-    # the file, eliminating these references; and link in the jar files. Note,
-    # the 'D' in "DPN" stands for dependency.
-    for DPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
-        if [[ "${DPN:0:1}" != / ]]; then  # ignore absolute path dependencies
-            edo sed -r \
-                -e "s:${DPN}${ANT_JAR_VERSION_PATTERN}:${DPN}.jar:" \
-                -i "${ANT_BUILD_XML}"
-        fi
-    done
-
     # Hamcrest's "build.xml" file explicitly requires "jarjar.jar" but not
     # "asm.jar" or "asm-commons.jar", which "jarjar.jar" requires. Patch this
-    # after having patched the above version issues.
+    # after having patched the above issues.
     edo sed \
         -e 's:jarjar\.jar":jarjar.jar; lib/generator/asm.jar; lib/generator/asm-commons.jar":' \
         -i "${ANT_BUILD_XML}"
