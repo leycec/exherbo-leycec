@@ -3,7 +3,6 @@
 # Based in part upon 'lucene-3.0.0.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-# ....................{ EXHERES                            }....................
 require antefix apache [ subdir=java ]
 export_exlib_phases src_prepare src_compile src_install
 
@@ -15,7 +14,6 @@ export_exlib_phases src_prepare src_compile src_install
 #myexparam  contrib_analyzers_pv=
 #exparam -v CONTRIB_ANALYZERS_PV contrib_analyzers_pv
 
-# ....................{ SETTINGS                           }....................
 BUGS_TO="leycec@gmail.com"
 
 SUMMARY="Java text search engine library emphasizing high performance"
@@ -56,7 +54,6 @@ MYOPTIONS="
 #   compiling system-specific binaries, Exherbons choose the latter. Hu-ah!
 DEPENDENCIES="
     build:
-        app-arch/zip
         dev-java/javacc[>=5.0]
     build+test:
         dev-java/junit[>=4.6]
@@ -118,7 +115,6 @@ ANT_SRC_INSTALL_JARS=( "build/${PN}-core-${PV}.jar" "build/${PN}-demos-${PV}.jar
 
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
 
-# ....................{ PHASES                             }....................
 lucene_src_prepare() {
     # See "ANT_PARAMS" above for why we remove "-dev" from version strings here.
     # Do this prior to calling the parent "src_prepare" function to ensure that
@@ -151,17 +147,12 @@ lucene_src_install() {
         einfo "Collecting contrib/analyzers jar files..."
         eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" default
 
-        #FIXME: Generalize into "antefix.exlib".
         # Eclipse needs "lucene-analyzers" to have an OSGI manifest. Make it so!
         # Replace the manifest auto-generated for this jar file with our own.
         einfo "Updating contrib/analyzers jar files with OSGI manifests..."
-        local MANIFEST_FILE="META-INF/MANIFEST.MF"
-        cd "${ANT_CONTRIB_ANALYZERS_BUILD_DIR}"
-        edo mkdir -p "${MANIFEST_FILE%/*}"
-        edo cp "${FILES}/contrib_analyzers-MANIFEST.MF" "${MANIFEST_FILE}"
-        edo sed -e "s:__PV__:${PV}:" -i     "${MANIFEST_FILE}"
-        edo zip "${PN}-analyzers-${PV}.jar" "${MANIFEST_FILE}"
-        cd "${WORK}"
+        replace_jar_manifest \
+            "${ANT_CONTRIB_ANALYZERS_BUILD_DIR}/${PN}-analyzers-${PV}.jar" \
+            "${FILES}/contrib_analyzers-MANIFEST.MF"
     fi
 
     # Install subproject jar files if at least one such subproject produced a

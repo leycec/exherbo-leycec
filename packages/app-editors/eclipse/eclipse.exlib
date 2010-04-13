@@ -70,6 +70,8 @@ DEPENDENCIES="
     build+run:
         dev-java/asm[>=3.2]
         dev-java/lucene[>=3.0.1][lucene_contrib_analyzers]
+        dev-java/sat4j-core[>=2.1.1]
+        dev-java/sat4j-pb[>=2.1.1]
         dev-java/swt:${SLOT}[>=${PV}]
     build+run+test:
         dev-java/junit[>=4.8.1]
@@ -82,4 +84,21 @@ eclipse_src_prepare() {
     eerror "This exheres is still unfinished. Patience, young padawan."
     die
 }
+
+#FIXME leycec: A promising post I pounced upon, online.
+#FYI: I've stumbled across a working solution for unbundling dependencies that does not require the use of the (sparsely supported) "external" Bundle-ClassPath references and does not require system-installed JARs to contain OSGi metadata:
+#
+#1. Run Eclipse-Build as usual.
+#2. For each dependency JAR in installation/plugins:
+#    a. Create a new directory in installation/plugins named using the basename of the plugin JAR.
+#    b. Extract plugin.properties and META-INF/MANIFEST.MF from the plugin JAR into the new directory.
+#    c. Create symlink(s) to the system-installed JAR(s) in the new directory.
+#    d. Remove all "Name" and "SHA1-Digest" entries from META-INF/MANIFEST.MF.
+#    e. Add a "Bundle-ClassPath" entry to META-INF/MANIFEST.MF listing the names of the symlink(s) created in step c.
+#    f. Add the following XML element as a child of the <artifact> element for the appropriate plugin in artifacts.xml:
+#        <repositoryProperties size='1'>
+#            <property name='artifact.folder' value='true'/>
+#        </repositoryProperties>
+#    g. Edit configuration/org.eclipse.equinox.simpleconfigurator/bundles.info to change the ".jar" suffix of the appropriate plugin to "/".
+#    h. Delete the dependency JAR from installation/plugins.
 

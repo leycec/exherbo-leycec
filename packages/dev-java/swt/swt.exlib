@@ -171,8 +171,8 @@ swt_src_install() {
 
     edo cp "${FILES}/MANIFEST.MF" "${WORK}/MANIFEST.MF"
     edo sed \
-        -e "s:SWT_ARCH:${SWT_ARCH}:" \
-        -e "s:EXHERES_PV:${PV}:" \
+        -e "s:__SWT_ARCH__:${SWT_ARCH}:" \
+        -e "s:__PV__:${PV}:" \
         -i "${WORK}/MANIFEST.MF"
 
     antefix_src_install

@@ -4,9 +4,9 @@ Bundle-Name: Standard Widget Toolkit for GTK 2.0
 Bundle-Vendor: Exherbo!
 Bundle-Localization: plugin
 Fragment-Host: org.eclipse.swt; bundle-version="[3.0.0,4.0.0)"
-Bundle-SymbolicName: org.eclipse.swt.gtk.linux.SWT_ARCH; singleton:=true
-Bundle-Version: EXHERES_PV
-Eclipse-PlatformFilter: (& (osgi.ws=gtk) (osgi.os=linux) (osgi.arch=SWT_ARCH))
+Bundle-SymbolicName: org.eclipse.swt.gtk.linux.__SWT_ARCH__; singleton:=true
+Bundle-Version: __PV__
+Eclipse-PlatformFilter: (& (osgi.ws=gtk) (osgi.os=linux) (osgi.arch=__SWT_ARCH__))
 Export-Package: org.eclipse.swt.internal.accessibility.gtk; x-internal:=true,
  org.eclipse.swt.internal.cairo; x-internal:=true,
  org.eclipse.swt.internal.cde; x-internal:=true,
