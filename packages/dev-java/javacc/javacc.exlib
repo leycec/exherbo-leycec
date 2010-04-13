@@ -57,7 +57,7 @@ WORK="${WORKBASE}"/${PN}
 # there's not much we can do.
 ANT_CLEAN_JAR_FILES_PARAMS=( -not -name 'javacc.jar' )
 
-ANT_SRC_PREPARE_SYMLINK_DIR=lib/junit
+ANT_SRC_PREPARE_SYMLINK_DIR="lib/junit"
 ANT_SRC_PREPARE_SYMLINK_JARS=( junit )
 
 # Note that, though the "compile" task compiles "*Test.java" files the "jar"

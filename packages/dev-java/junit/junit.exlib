@@ -55,7 +55,7 @@ DEFAULT_SRC_PREPARE_PATCHES=(
     "${FILES}/org_junit_internal_matchers-deprecate.patch"
 )
 
-ANT_SRC_PREPARE_SYMLINK_DIR=lib
+ANT_SRC_PREPARE_SYMLINK_DIR="lib"
 ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest-core )
 
 ANT_PARAMS=(

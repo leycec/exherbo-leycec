@@ -37,7 +37,7 @@ ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
 # Hamcrest does not explicitly require ASM. JarJar, however, does; as we package
 # jar files without external dependencies, we package JarJar without its ASM
 # dependency and therefore supply it here.
-ANT_SRC_PREPARE_SYMLINK_DIR=lib/generator
+ANT_SRC_PREPARE_SYMLINK_DIR="lib/generator"
 ANT_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons jarjar qdox )
 
 # Hamcrest's "build.xml" file references version-specific jar files. Cull!

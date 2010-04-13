@@ -394,9 +394,14 @@ symlink_jars() {
     [[ -d "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]] || 
         die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not found or not set"
 
-    for JAR_FILE in ${*}; do
-        edo ln -s $(get_install_jar_file "${JAR_FILE}") \
-            "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
+    local JAR_FILE
+    for   JAR_FILE in ${*}; do
+        # Canonicalize relative jar filenames to absolute jar filenames.
+        if [[ ${JAR_FILE:0:1} != / ]]; then
+            JAR_FILE=$(get_install_jar_file "${JAR_FILE}")
+        fi
+
+        edo ln -s "${JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
     done
 }
 
@@ -420,7 +425,9 @@ install_jars() {
         die_unless_nonfatal "${ANT_SRC_INSTALL_JARS_DIR} not under /usr or /opt"
 
     insinto "${ANT_SRC_INSTALL_JARS_DIR}"
-    for JAR_FILE in ${*}; do
+
+    local JAR_FILE
+    for   JAR_FILE in ${*}; do
         # Strip versions from filenames: e.g., convert "zebrapig-0.42.jar" to
         # "zebrapig.jar". The pattern substitution requires the bash "extglob"
         # shell option be enabled, which it is under exheres-0.
@@ -443,8 +450,8 @@ install_jar_as() {
     [[ "${ANT_SRC_INSTALL_JARS_DIR}" =~ ^/(usr|opt)/ ]] ||
         die_unless_nonfatal "${ANT_SRC_INSTALL_JARS_DIR} not under /usr or /opt"
 
-    JAR_FILE_IN="${1}"
-    JAR_FILE_OUT="${2}"
+    local JAR_FILE_IN="${1}"
+    local JAR_FILE_OUT="${2}"
 
     # Escape the first character of the version pattern to prevent grep from
     # interpreting the character as a dash option.
@@ -481,60 +488,79 @@ get_install_jar_dir_nonfatal() {
     echo "${ANT_SRC_INSTALL_JARS_ROOT}/${1}"
 }
 
-# char *get_install_jar_file(char *jar_name)
+# char *get_install_jar_file(char *jar_file)
+# --OR--
+# char *get_install_jar_file(char *exheres_name, char *jar_file)
 #
-# Given a jar name, returns the absolute path to the installed file for that jar
-# file: e.g.,
+# Given a jar file and optional exheres name, returns the absolute path to the
+# installed file for the jar file under the exheres name: e.g.,
 #
-#     # Echoes "/usr/share/turkish_dream/turkish_dream-raki.jar".
-#     echo $(get_install_jar_file "bin/turkish_dream-raki-0.1.3.jar")
+#     # Echoes "/usr/share/hamcrest/hamcrest-library.jar".
+#     echo $(get_install_jar_file "hamcrest-library")
+#     # Echoes "/usr/share/raki-saki/raki-saki-core.jar".
+#     echo $(get_install_jar_file "dist/lib/raki-saki-core.5.22.jar")
+#     # Echoes "/usr/share/raki-saki/org.turkish.dream.jar".
+#     echo $(get_install_jar_file "raki-saki" "bin/org.turkish.dream-0.1.3.jar")
 #
 # This automatically strips version strings from passed jar filenames as well as
 # establishing the expected parent directory. As above, this function ensures
 # the file exists, and dies if it does not.
 get_install_jar_file() {
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
+    [[ ${#} -eq 1 ]] ||
+    [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
 
-    local JAR_FILE="${1}"
+    local JAR_FILE EXHERES_NAME
+    if [[ ${#} -eq 1 ]]
+    then JAR_FILE="${1}"; EXHERES_NAME=
+    else JAR_FILE="${2}"; EXHERES_NAME="${1}"
+    fi
     local JAR_BASENAME="${JAR_FILE/##*/}"        # filename sans path
     local JAR_ROOTNAME="${JAR_BASENAME/%.jar/}"  # filename sans path and type
+    if [[ -z "${EXHERES_NAME}" ]]
+    then EXHERES_NAME="${JAR_ROOTNAME}"
+    fi
 
     # If we were passed a relative path, canonicalize it. Presume all
     # external Java libraries live in their customary directories.
     #
     # Do not search "${IMAGE}"/ as well, as absolute paths into that root will
-    # be rendered meaningless following installation.
-    if [[ ${JAR_FILE:0:1} != / ]]; then
-        JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
-        if [[ ! -f "${JAR_FILE}" ]]; then
-            JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${JAR_ROOTNAME%%-*}/${JAR_ROOTNAME}.jar"
-            [[  -f "${JAR_FILE}" ]] ||
-                die_unless_nonfatal "${JAR_ROOTNAME}.jar not found"
-        fi
+    # be rendered meaningless after installation.
+    JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${EXHERES_NAME}/${JAR_ROOTNAME}.jar"
+#   echo "examining ${JAR_FILE}..."
+    if [[ ! -f "${JAR_FILE}" ]]; then
+        JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${EXHERES_NAME%%-*}/${JAR_ROOTNAME}.jar"
+        [[  -f "${JAR_FILE}" ]] ||
+            die_unless_nonfatal "${JAR_ROOTNAME}.jar not found"
     fi
 
     echo "${JAR_FILE}"
 }
 
-# char *get_install_jar_file_nonfatal(char *jar_name)
+# char *get_install_jar_file_nonfatal(char *jar_file)
+# --OR--
+# char *get_install_jar_file_nonfatal(char *exheres_name, char *jar_file)
 #
 # Behaves similarly to "get_install_jar_file" but does not ensure this file
 # exists. (This is somewhat less intelligent than that function, and should thus
 # be avoided in favor of calling "get_install_jar_file" itself.)
 get_install_jar_file_nonfatal() {
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
+    [[ ${#} -eq 1 ]] ||
+    [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
 
-    local JAR_FILE="${1}"
+    local JAR_FILE EXHERES_NAME
+    if [[ ${#} -eq 1 ]]
+    then JAR_FILE="${1}"; EXHERES_NAME=
+    else JAR_FILE="${2}"; EXHERES_NAME="${1}"
+    fi
     local JAR_BASENAME="${JAR_FILE/##*/}"        # filename sans path
     local JAR_ROOTNAME="${JAR_BASENAME/%.jar/}"  # filename sans path and type
-
-    if [[ ${JAR_FILE:0:1} != / ]]; then
-        JAR_FILE="${ANT_SRC_INSTALL_JARS_ROOT}/${JAR_ROOTNAME}/${JAR_ROOTNAME}.jar"
+    if [[ -z "${EXHERES_NAME}" ]]
+    then EXHERES_NAME="${JAR_ROOTNAME}"
     fi
 
-    echo "${JAR_FILE}"
+    echo "${ANT_SRC_INSTALL_JARS_ROOT}/${EXHERES_NAME}/${JAR_ROOTNAME}.jar"
 }
 
 # ....................{ EJAR                               }....................
