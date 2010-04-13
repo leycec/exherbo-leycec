@@ -1,0 +1,10 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# SAT4J Pb (i.e., Psuedo Boolean) is an oddball SAT4J component. It uses a
+# nonstandard Ant build task name and nonstandard lib directory. So be it.
+require sat4j [ build_date=20090826 build_version=2.4 \
+    build_task=pseudo lib_dir="core/lib" ]
+
+PLATFORMS="~amd64 ~x86"
+
