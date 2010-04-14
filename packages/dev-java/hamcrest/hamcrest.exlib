@@ -19,8 +19,8 @@ UPSTREAM_DOCUMENTATION="http://code.google.com/p/${PN}/w/list [[ lang = en ]]"
 
 SLOT="0"
 LICENCES="BSD-3"
-MYOPTIONS="debug"
-DEPENDENCIES="
+MYOPTIONS+="debug"
+DEPENDENCIES+="
     build+run:
         dev-java/jarjar[>=0.6]
         dev-java/qdox[>=1.6.3]

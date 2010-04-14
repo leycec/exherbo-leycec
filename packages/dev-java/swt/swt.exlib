@@ -29,14 +29,16 @@ UPSTREAM_DOCUMENTATION="http://www.eclipse.org/swt/docs.php [[ lang = en ]]"
 
 SLOT="3.5"
 LICENCES="|| ( CPL-1.0 LGPL-2.1 MPL-1.1 )"
-MYOPTIONS="
+MYOPTIONS+="
     cairo gnome opengl xulrunner
-    platform: amd64 x86
+    platform:
+        amd64
+        x86
 "
 
 #FIXME: The soft "opengl" dependency should probably be "virtual/opengl"
 #instead. Unfortunately, that doesn't exist yet. :)
-DEPENDENCIES="
+DEPENDENCIES+="
     build:
         app-arch/unzip
         dev-util/pkg-config
@@ -64,15 +66,15 @@ WORK="${WORKBASE}"
 
 #FIXME: Pass these to "build.xml" as "-D"-style parameters when invoking ant.
 # Absolute path to the root of the Java source tree for SWT.
-ANT_SRC_DIR=src
+ANT_SRC_DIR="src"
 ANT_SRC="${WORK}/${ANT_SRC_DIR}"
 
 # Absolute path to the root of the Java build tree having class files.
-ANT_BUILD_DIR=build
+ANT_BUILD_DIR="build"
 ANT_BUILD="${WORK}/${ANT_BUILD_DIR}"
 
 # Absolute path to the root of the Java distribution tree having jar files.
-ANT_DIST_DIR=dist
+ANT_DIST_DIR="dist"
 ANT_DIST="${WORK}/${ANT_DIST_DIR}"
 
 # Relative name of this machine's "lib/" directory.

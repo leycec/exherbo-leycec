@@ -31,14 +31,16 @@ SLOT="0"
 
 #FIXME: Couldn't get SUBOPTIONS to work for the life of me; I suspect it
 #requires physical modification to "arbor/profiles/options.conf". That would be
-#rather unhelpful, if true. For the meantime, just use simple options.
+#rather unhelpful, if true. For the meantime, we could use simple options. But
+#that would require users explicitly enable:
+#    "dev-java/lucene lucene_contribs_analyzers"
+#as a dependency to building Eclipse, which is fairly lame. Thus, let's always
+#make "analyzers" despite its being a technically optional library.
 #MYOPTIONS="
-#    lucene_contribs_
+#    lucene_contribs:
 #        analyzers   [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
 #"
-MYOPTIONS="
-    lucene_contribs_analyzers [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
-"
+BUILD_CONTRIB_ANALYZERS=1
 
 # Technically, Java Lucene does not require JavaCC to build: its source tarball
 # already provides a pre-compiled parser generator to build itself against.
@@ -49,7 +51,7 @@ MYOPTIONS="
 #   against JavaCC 4.1, for example, when JavaCC's current version was 5.0.
 # * Because, given a choice between accepting pre-compiled binaries and self-
 #   compiling system-specific binaries, Exherbons choose the latter. Hu-ah!
-DEPENDENCIES="
+DEPENDENCIES+="
     build:
         dev-java/javacc[>=5.0]
     build+test:
@@ -126,7 +128,7 @@ lucene_src_compile() {
     antefix_src_compile
 
     # Compile subprojects after compiling Lucene itself. (Important!)
-    if option lucene_contribs_analyzers; then
+    if [[ -n "${BUILD_CONTRIB_ANALYZERS}" ]]; then
         einfo "Compiling contrib/analyzers..."
         eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" compile-core
     fi
@@ -140,7 +142,7 @@ lucene_src_install() {
     # "jar-core" task defined by the top-level "build.xml" file.
     #
     # James Gosling, I'm not happy with you.
-    if option lucene_contribs_analyzers; then
+    if [[ -n "${BUILD_CONTRIB_ANALYZERS}" ]]; then
         einfo "Collecting contrib/analyzers jar files..."
         eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" default
 

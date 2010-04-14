@@ -44,8 +44,7 @@ DOWNLOADS="http://bcurry.gomen.org/exherbo.org/distfiles/${PNV}src.tar.gz"
 
 SLOT="0"
 LICENCES="BSD-3"
-MYOPTIONS=""
-DEPENDENCIES="
+DEPENDENCIES+="
     build+run+test:
         dev-java/junit[>=4.8.1]
 "

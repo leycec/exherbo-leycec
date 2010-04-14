@@ -110,8 +110,7 @@ UPSTREAM_DOCUMENTATION="${HOMEPAGE}/maven$(ever range 1-2 ${PV}) [[ lang = en ]]
 
 SLOT="0"
 LICENCES="|| ( EPL-1.0 LGPL-3 )"
-MYOPTIONS=""
-DEPENDENCIES="
+DEPENDENCIES+="
     build:
         app-arch/unzip
 "

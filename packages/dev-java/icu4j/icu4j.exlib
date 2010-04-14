@@ -32,8 +32,6 @@ UPSTREAM_DOCUMENTATION="http://icu-project.org/apiref/${PN} [[ lang = en ]]"
 
 SLOT="0"
 LICENCES="ICU-1.8.1"
-MYOPTIONS=""
-DEPENDENCIES=""
 
 WORK="${WORKBASE}"
 

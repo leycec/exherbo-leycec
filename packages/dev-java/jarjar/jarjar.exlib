@@ -33,8 +33,10 @@ UPSTREAM_DOCUMENTATION="http://code.google.com/p/${PN}/w/list [[ lang = en ]]"
 
 SLOT="0"
 LICENCES="BSD-3"
-MYOPTIONS=""
-DEPENDENCIES="build+run: dev-java/asm[>=3.2]"
+DEPENDENCIES+="
+    build+run:
+        dev-java/asm[>=3.2]
+"
 
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 
