@@ -1,0 +1,39 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Use JZlib while compiling by expanding the classpath to include all
+jar files under the "lib/" directory.
+--- old/build.xml	2008-10-02 11:19:40.000000000 +0000
++++ new/build.xml	2010-04-14 13:49:14.876578834 +0000
+@@ -10,17 +10,22 @@
+   <property name="exasrc" location="examples"/>
+   <property name="build" location="build"/>
+   <property name="exabuild" location="examples"/>
++  <property name="lib"   location="lib"/>
+   <property name="dist"  location="dist"/>
+   <property name="javadoc" location="javadoc"/>
+   <property name="javac.debug" value="true"/>
+   <path id="project.cp">
+     <pathelement location="${build}"/>
++    <fileset dir="${lib}">
++      <include name="**/*.jar"/>
++    </fileset>
+   </path>
+   <target name="init">
+     <!-- Create the time stamp -->
+     <tstamp/>
+     <!-- Create the build directory structure used by compile -->
+     <mkdir dir="${build}"/>
++    <mkdir dir="${lib}"/>
+   </target>
+ 
+   <target name="compile" depends="init"
+@@ -28,7 +33,8 @@
+     <!-- Compile the java code from ${src} into ${build} -->
+     <available property="jzlib.available"
+                classname="com.jcraft.jzlib.ZStream"/>
+-    <javac srcdir="${src}" destdir="${build}" debug="${javac.debug}">
++    <javac srcdir="${src}" destdir="${build}" debug="${javac.debug}"
++       classpathref="project.cp">
+       <exclude name="com/jcraft/jsch/jcraft/Compression.java"
+                unless="jzlib.available"/>
+     </javac>
