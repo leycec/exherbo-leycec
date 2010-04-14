@@ -88,8 +88,8 @@ javacc_src_install() {
     antefix_src_install
 
     # Set absolute paths in a reasonably generic way. (See below.)
-    local JAVACC_JAR_FILE=$(get_install_jar_file_nonfatal "javacc.jar")
-    local JAVACC_INSTALL_DIR="${IMAGE}/$(get_install_jar_dir_nonfatal "javacc")/bin"
+    local JAVACC_JAR_FILE=$(which_install_jar_file_nonfatal "javacc.jar")
+    local JAVACC_INSTALL_DIR="${IMAGE}/$(which_install_jar_dir_nonfatal "javacc")/bin"
 
     # JavaCC provides several convenience shell scripts for running various
     # Java class files in its installed jar file as command-line executables.

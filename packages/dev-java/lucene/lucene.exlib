@@ -90,7 +90,7 @@ ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
 # version suffix, which produces pain elsewhere. Work around by explicitly
 # setting the Ant "version" parameter.
 ANT_PARAMS=(
-    -Djavacc.home=$(get_install_jar_dir "javacc")
+    -Djavacc.home=$(which_install_jar_dir "javacc")
     -Dversion=${PV}
 )
 

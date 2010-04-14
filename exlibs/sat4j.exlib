@@ -121,7 +121,7 @@ DEPENDENCIES="
 if [[ "${PN_SUFFIX}" != "core" ]]; then
     ANT_SRC_PREPARE_SYMLINK_DIR="${LIB_DIR}"
     ANT_SRC_PREPARE_SYMLINK_JARS=(
-        $(get_install_jar_file "sat4j-core" "${CORE_JAR_PN}") )
+        $(which_install_jar_file "sat4j-core" "${CORE_JAR_PN}") )
 
     DEPENDENCIES+="
     build+run:
