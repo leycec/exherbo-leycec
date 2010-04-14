@@ -1,7 +1,5 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
-# Based in part upon 'jzlib-1.0.7-r1.ebuild' from Gentoo, which is:
-#     Copyright 1999-2010 Gentoo Foundation
 
 # JZlib ships no "build.xml" file. Let's help them with that.
 require antefix [ create_build_xml=true ] jcraft

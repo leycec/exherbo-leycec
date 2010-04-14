@@ -23,7 +23,6 @@ DOWNLOADS="
     platform:amd64? ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86_64.zip )
 "
 HOMEPAGE="http://www.eclipse.org"
-REMOTE_IDS=""
 
 UPSTREAM_DOCUMENTATION="http://www.eclipse.org/swt/docs.php [[ lang = en ]]"
 

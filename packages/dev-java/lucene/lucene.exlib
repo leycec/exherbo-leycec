@@ -40,7 +40,7 @@ SLOT="0"
 #    lucene_contribs:
 #        analyzers   [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
 #"
-BUILD_CONTRIB_ANALYZERS=1
+IS_BUILDING_CONTRIB_ANALYZERS=1
 
 # Technically, Java Lucene does not require JavaCC to build: its source tarball
 # already provides a pre-compiled parser generator to build itself against.
@@ -128,7 +128,7 @@ lucene_src_compile() {
     antefix_src_compile
 
     # Compile subprojects after compiling Lucene itself. (Important!)
-    if [[ -n "${BUILD_CONTRIB_ANALYZERS}" ]]; then
+    if [[ -n "${IS_BUILDING_CONTRIB_ANALYZERS}" ]]; then
         einfo "Compiling contrib/analyzers..."
         eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" compile-core
     fi
@@ -142,7 +142,7 @@ lucene_src_install() {
     # "jar-core" task defined by the top-level "build.xml" file.
     #
     # James Gosling, I'm not happy with you.
-    if [[ -n "${BUILD_CONTRIB_ANALYZERS}" ]]; then
+    if [[ -n "${IS_BUILDING_CONTRIB_ANALYZERS}" ]]; then
         einfo "Collecting contrib/analyzers jar files..."
         eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" default
 
