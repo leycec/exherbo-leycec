@@ -5,7 +5,7 @@
 # This exlib gives sane defaults for Apache Foundation-hosted exheres.
 
 # ....................{ PARAMETERS                         }....................
-# See the construction of "DOWNLOADS" below.
+# See construction of "DOWNLOADS", below.
 myexparam pn=${MY_PN:-${PN}}
 myexparam pv=${MY_PV:-${PV}}
 myexparam pnv=${MY_PNV:-$(exparam pn)-$(exparam pv)-src}

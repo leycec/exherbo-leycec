@@ -40,9 +40,6 @@ MYOPTIONS="
     lucene_contribs_analyzers [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
 "
 
-# Depend on "zip" at buildtime to permit us to update manifest files in output
-# jar files with OSGI versions we produce.
-#
 # Technically, Java Lucene does not require JavaCC to build: its source tarball
 # already provides a pre-compiled parser generator to build itself against.
 # Nevertheless, this exheres explicitely requires JavaCC to build, because:

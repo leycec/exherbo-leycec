@@ -1,0 +1,53 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# ICU4J comes bundled with two supplementary jar files needed for building:
+# "icudata.jar" and "testdata.jar". They contain .res files rather than
+# .class files; these files provide internationalization resources, and must
+# not be purged! Note that they need not be installed to the local system,
+# however, as the build process automatically adds their content to the output
+# ICU4J jar file.
+require antefix [ clean_jar_files=false ]
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="Java library providing Unicode and globalization support"
+DESCRIPTION="
+ICU is a mature, widely used set of C/C++ and Java libraries providing Unicode
+and globalization support for software applications. ICU is widely portable and
+gives applications the same results on all platforms and between C/C++ and Java
+software. (This is the Java port.)
+"
+
+# ICU4J is somewhat inconsistent in version naming.
+DASHED_PV=$(ever replace_all - ${PV})
+SCORED_PV=$(ever replace_all _ ${PV})
+
+HOMEPAGE="http://site.icu-project.org/"
+DOWNLOADS="http://download.icu-project.org/files/${PN}/${PV}/${PN}-${SCORED_PV}-src.jar"
+UPSTREAM_CHANGELOG="http://source.icu-project.org/repos/icu/${PN}/tags/release-${DASHED_PV}/APIChangeReport.html"
+
+# Technically, this only applies to the most recent version of ICU4J.
+UPSTREAM_DOCUMENTATION="http://icu-project.org/apiref/${PN} [[ lang = en ]]"
+
+SLOT="0"
+LICENCES="ICU-1.8.1"
+MYOPTIONS=""
+DEPENDENCIES=""
+
+WORK="${WORKBASE}"
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "APIChangeReport.html" )
+
+# ICU4J does not compile under "gcj", currently.
+ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
+
+# Strictly speaking, it's not necessary we pass the "env.COMPUTERNAME" property;
+# it just makes build output moderately prettier.
+ANT_PARAMS=( -Denv.COMPUTERNAME=$(hostname) )
+
+ANT_SRC_COMPILE_PARAMS=( main )
+ANT_SRC_TEST_PARAMS=( check )
+ANT_SRC_INSTALL_PARAMS=( jar )
+ANT_SRC_INSTALL_JARS=( "${PN}.jar" "${PN}-charsets.jar" )
+
