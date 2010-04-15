@@ -19,6 +19,14 @@ require ant java
 export_exlib_phases pkg_setup \
     src_unpack src_prepare src_compile src_test src_install
 
+# If true, recursively delete all class files from "${WORK}" immediately after
+# unpacking source archives. Such class files are bundled in source archives by
+# their distributors so as to avoid the need for compiling. Make them suffer.
+#
+# Defaults to true.
+myexparam -b clean_class_files=true
+  exparam -b clean_class_files && ANT_CLEAN_CLASS_FILES=1
+
 # If true, recursively delete all jar files from "${WORK}" immediately after
 # unpacking source archives. Such jar files are bundled with source archives by
 # their distributors so as to reduce dependency headaches. For us, bundled jar
@@ -39,6 +47,44 @@ myexparam -b create_build_xml=false
   exparam -b create_build_xml && ANT_CREATE_BUILD_XML=1
 
 # ....................{ CONFIGURATION                      }....................
+# Absolute or relative path under ${WORK} to the "build.xml" for this exheres.
+ANT_BUILD_XML="build.xml"
+
+# Ant parameters to be passed to all command-line invocations of Ant. Example:
+#     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
+ANT_PARAMS=( )
+
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_prepare" phase.
+# This is empty by default, implying no Ant tasks will be run for preparation.
+# Example:
+#     ANT_SRC_PREPARE_PARAMS=( init )
+#
+# This and all other Ant task arrays below are empty by default, as Ant is by
+# design unable to force task names to adhere to ISO standards. In other words,
+# any "build.xml" file can name its tasks anything; and they often due. Since
+# there's no sensible way of predicting this, or programmatically safe way of
+# extracting this from exheres-specific "build.xml" files, Ant exheres must
+# manually specify these tasks.
+ANT_SRC_PREPARE_PARAMS=( )
+
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_compile" phase.
+# This is empty by default, implying no Ant tasks will be run for compilation.
+# Example:
+#     ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_COMPILE_PARAMS=( )
+
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_test" phase.
+# This is empty by default, implying no Ant tasks will be run for testing.
+# Example:
+#     ANT_SRC_TEST_PARAMS=( test )
+ANT_SRC_TEST_PARAMS=( )
+
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_install" phase.
+# This is empty by default, implying no Ant tasks will be run for installation.
+# Example:
+#     ANT_SRC_INSTALL_PARAMS=( jar )
+ANT_SRC_INSTALL_PARAMS=( )
+
 # Array of Java JDK prefixes. If the following expression is true for at least
 # one ${ANT_RESTRICT_JAVA_JDK_PREFIX} of this array, then installation fails
 # prior to performing any work:
@@ -59,13 +105,6 @@ ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
 # specific jar files: e.g.,
 #     ANT_CLEAN_JAR_FILES_PARAMS=( -not -wholename 'bootstrap/young_lad.jar' )
 ANT_CLEAN_JAR_FILES_PARAMS=( )
-
-# Absolute or relative path under ${WORK} to the "build.xml" for this exheres.
-ANT_BUILD_XML="build.xml"
-
-# Ant parameters to be passed to all command-line invocations of Ant. Example:
-#     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
-ANT_PARAMS=( )
 
 # Absolute or relative path under "${WORK}" into which external jar files will
 # be symlinked. Though this path is typically "lib" for most exheres, you must
@@ -315,14 +354,16 @@ antefix_src_unpack() {
     #
     # Disable this by requiring this exlib with:
     #     require antefix [ clean_jar_files=false ]
-    #
-    # Do this here rather than in "antefix_src_unpack" so that exheres unpacking
-    # jar files embedded in downloaded archives may do so without molestation.
     if [[ "${ANT_CLEAN_JAR_FILES}" ]]; then
-        # Do not use "edo rm -f "${WORK}"/**/*.jar" as that tends to glob more
-        # files than can be reasonably handled by the shell.
         einfo "Removing jar files..."
-        edo find "${WORK}" -type f -iname '*.jar' ${ANT_CLEAN_JAR_FILES_PARAMS[@]} -delete
+        clean_jar_files
+    fi
+
+    # Disable this by requiring this exlib with:
+    #     require antefix [ clean_class_files=false ]
+    if [[ "${ANT_CLEAN_CLASS_FILES}" ]]; then
+        einfo "Removing class files..."
+        clean_class_files
     fi
 }
 
@@ -406,6 +447,24 @@ antefix_src_preamble() {
         ewarn "Disabling network sandboxing..."
         sydboxcmd 'sandunbox/net'
     fi
+}
+
+# ....................{ CLEANERS                           }....................
+# void clean_jar_files(void)
+#
+# Recursively remove all jar files under ${WORK}. (Fairly destructive!)
+clean_jar_files() {
+    # Do not use "edo rm -f "${WORK}"/**/*.jar" as that tends to glob more
+    # files than can be reasonably handled by the shell.
+    edo find "${WORK}" -type f -iname '*.jar' \
+        ${ANT_CLEAN_JAR_FILES_PARAMS[@]} -delete
+}
+
+# void clean_class_files(void)
+#
+# Recursively remove all class files under ${WORK}. (Danger, Exherbon.)
+clean_class_files() {
+    edo find "${WORK}" -type f -iname '*.class' -delete
 }
 
 # ....................{ DEVERSIONERS                       }....................
@@ -764,6 +823,7 @@ create_build_xml() {
 
     <target name="init">
         <tstamp/>
+        <mkdir dir="\${lib}"/>
         <mkdir dir="\${build}"/>
         <mkdir dir="\${dist}"/>
         <mkdir dir="\${javadoc}"/>

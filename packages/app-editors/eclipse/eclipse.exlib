@@ -64,17 +64,21 @@ UPSTREAM_RELEASE_NOTES="http://www.eclipse.org/eclipse/development/readme_${PN}_
 
 SLOT="3.5"
 LICENCES="EPL-1.0"
-MYOPTIONS=""
-DEPENDENCIES="
-    build:
+MYOPTIONS+=""
+
+# Eclipse comes bundled with both the 3.x.x. and 4.x.x series of JUnit.
+# Therefore, so do we.
+DEPENDENCIES+="
     build+run:
         dev-java/asm[>=3.2]
-        dev-java/lucene[>=3.0.1][lucene_contrib_analyzers]
+        dev-java/jsch[>=0.1.42]
+        dev-java/junit:3[>=3.8.2]
+        dev-java/junit:4[>=4.8.1]
+        dev-java/lucene[>=3.0.1]
         dev-java/sat4j-core[>=2.1.1]
         dev-java/sat4j-pb[>=2.1.1]
         dev-java/swt:${SLOT}[>=${PV}]
-    build+run+test:
-        dev-java/junit[>=4.8.1]
+        dev-java/tomcat:6[>=6.0.26]
 "
 
 WORK="${WORKBASE}"/${BNV}

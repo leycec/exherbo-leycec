@@ -3,7 +3,8 @@
 # Based in part upon 'lucene-3.0.0.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix apache [ subdir=java ]
+# Pass "pnv" to apache to prevent its prefixing ${PNV} with "apache-".
+require antefix apache [ subdir="java" pnv="${PNV}-src" ]
 export_exlib_phases src_prepare src_compile src_install
 
 #FIXME: Obsolete...I think. Cull!
@@ -23,7 +24,7 @@ It's suitable for applications requiring cross-platform portable, full-
 featured, and full-text search. 
 "
 
-MY_PV=$(ever replace_all _ ${PV})
+MY_PV=$(ever replace_all _)
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/${subdir}/${MY_PV}/api/all [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${HOMEPAGE}/${subdir}/${MY_PV}/changes/Changes.html"
 
@@ -35,7 +36,7 @@ SLOT="0"
 #that would require users explicitly enable:
 #    "dev-java/lucene lucene_contribs_analyzers"
 #as a dependency to building Eclipse, which is fairly lame. Thus, let's always
-#make "analyzers" despite its being a technically optional library.
+#make "analyzers" despite it being a *technically* optional library.
 #MYOPTIONS="
 #    lucene_contribs:
 #        analyzers   [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
@@ -110,7 +111,10 @@ ANT_SRC_TEST_PARAMS=( test-core )
 # Apache PDFBox requires both "lucene-core.jar" and "lucene-demos.jar". Most
 # other exheres require the former but not the latter. Make both, just in case.
 ANT_SRC_INSTALL_PARAMS=( jar-core jar-demo )
-ANT_SRC_INSTALL_JARS=( "build/${PN}-core-${PV}.jar" "build/${PN}-demos-${PV}.jar" )
+ANT_SRC_INSTALL_JARS=(
+    "build/${PN}-core-${PV}.jar"
+    "build/${PN}-demos-${PV}.jar"
+)
 
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
 

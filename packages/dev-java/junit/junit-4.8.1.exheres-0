@@ -3,5 +3,9 @@
 
 require junit
 
+# The 4.x.x series of JUnit is backwards incompatible with the 3.x.x. series.
+# Why do we still maintain the 3.x.x series? Because a few high-profile exheres
+# (e.g., Eclipse) need both.
+SLOT="4"
 PLATFORMS="~amd64 ~x86"
 

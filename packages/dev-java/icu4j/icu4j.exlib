@@ -20,8 +20,8 @@ software. (This is the Java port.)
 "
 
 # ICU4J is somewhat inconsistent in version naming.
-DASHED_PV=$(ever replace_all - ${PV})
-SCORED_PV=$(ever replace_all _ ${PV})
+DASHED_PV=$(ever replace_all -)
+SCORED_PV=$(ever replace_all _)
 
 HOMEPAGE="http://site.icu-project.org/"
 DOWNLOADS="http://download.icu-project.org/files/${PN}/${PV}/${PN}-${SCORED_PV}-src.jar"

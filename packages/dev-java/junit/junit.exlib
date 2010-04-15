@@ -6,10 +6,13 @@
 #FIXME: Integrate into "dev-java/apache-ant", which currently hardcodes a JUnit
 #download. Rather ugly, but understandable.
 
+# JUnit ships its source in an embedded jar file. Thus, do not clean jar files.
+#
 # Do not require the "sourceforge" exlib, as this exheres overrides most
 # default globals supplied by that exlib.
-require antefix
-export_exlib_phases src_unpack src_prepare src_install
+require antefix [ clean_jar_files=false ]
+
+export_exlib_phases src_unpack src_install
 
 BUGS_TO="leycec@gmail.com"
 SUMMARY="Java unit testing framework"
@@ -19,8 +22,6 @@ development of test-driven development, and is one of a family of unit testing
 frameworks collectively known as xUnit that originated with SUnit.
 "
 
-MY_PNV=${PN}${PV}
-
 HOMEPAGE="http://www.${PN}.org"
 UPSTREAM_RELEASE_NOTES="http://kentbeck.github.com/${PN}/doc/ReleaseNotes${PV}.html"
 UPSTREAM_DOCUMENTATION="http://kentbeck.github.com/${PN}/javadoc/${PV} [[ lang = en ]]"
@@ -29,10 +30,10 @@ REMOTE_IDS="sourceforge:${PN}"
 # Junit also supplies a much smaller "${PNV}-src.jar" archive. Unfortunately,
 # since this archive lacks a genuine "build.xml" Ant makefile, it's fairly
 # useless. We fallback to downloading the larger zipfile.
+MY_PNV="${PN}${PV}"
 DOWNLOADS="mirror://sourceforge/${PN}/${MY_PNV}.zip"
 WORK="${WORKBASE}"/${MY_PNV}
 
-SLOT="0"
 LICENCES="CPL-1.0"
 MYOPTIONS+="doc examples"
 DEPENDENCIES+="
@@ -72,23 +73,16 @@ DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "doc/ReleaseNotes${PV}.txt" )
 junit_src_unpack() {
     antefix_src_unpack
 
-    # JUnit ships its source in an embedded jarfile.
     einfo "Unpacking ${PNV}-src.jar..."
     edo mkdir -p  "${JUNIT_SRC_DIR}"
     edo unzip -qd "${JUNIT_SRC_DIR}" "${WORK}"/${PNV}-src.jar
-}
 
-junit_src_prepare() {
     # Delete all jar files, including the above.
-    antefix_src_prepare
+    einfo "Removing jar files..."
+    clean_jar_files
 
-    einfo "Removing Hamcrest..."
+    einfo "Removing extraneous source files..."
     edo rm -rf "${WORK}/temp.hamcrest.source/"
-
-    # Do not use "edo rm -f "${WORK}"/**/*.class" as that tends to glob more
-    # files than can be reasonably handled by the shell.
-    einfo "Removing class files..."
-    edo find "${WORK}" -type f -iname '*.class' -delete
 }
 
 junit_src_install() {
