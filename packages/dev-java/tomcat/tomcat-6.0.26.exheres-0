@@ -1,0 +1,14 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+require tomcat
+
+# Each major version of Apache Tomcat supports a different minor version of the
+# 2.x series of the Java Servlet API. We don't particularly care which version,
+# however; it's simply important we bump slots when bumping major versions
+# supporting backwards-incompatible Java Servlet APIs. For details, see:
+#
+# http://tomcat.apache.org/whichversion.html
+SLOT="6"
+PLATFORMS="~amd64 ~x86"
+

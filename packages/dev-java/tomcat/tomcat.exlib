@@ -1,0 +1,81 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+require antefix apache [ subdir="tomcat-$(ever range 1)/v${PV}/src" ]
+export_exlib_phases src_prepare src_install
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="API core for Tomcat, Apache's Java Servlet and JSP container"
+DESCRIPTION="
+Apache Tomcat (or Jakarta Tomcat or simply Tomcat) is an Apache-hosted servlet
+container. It implements the Java Servlet and the JavaServer Pages (JSP)
+specifications from Sun Microsystems, and optionally provides a \"pure Java\"
+HTTP web server environment for Java code to run. Tomcat should not be confused
+with the Apache web server, which is a C implementation of an HTTP web server;
+these two web servers are not bundled together. Apache Tomcat includes tools for
+configuration and management, but can also be configured by editing XML
+configuration files. (This is the API core for Tomcat, and does not in and of
+itself provide an executable Tomcat web server. It is therefore typically
+bundled within an executable environment like Eclipse or the Tomcat web server.)
+"
+
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/${PN}-$(ever range 1-2)-doc [[ lang = en ]]"
+UPSTREAM_CHANGELOG="${UPSTREAM_DOCUMENTATION}/changelog.html"
+
+MYOPTIONS+="debug"
+WORK="${WORKBASE}/${APACHE_PNV}"
+
+# Tomcat's "build.xml" is fairly buggy. Its "compile" task does not depend on
+# its "build-prepare" task for example; thus, we explicitly run the latter.
+# More disconcertingly, it explicitly depends on external jar files like
+# Eclipse's JDT. But Eclipse itself depends on the Tomcat jar files. Thus, this
+# introduces a catch-22. Patch her up, Sulu.
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
+
+ANT_SRC_PREPARE_PARAMS=( build-prepare )
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_INSTALL_PARAMS=( package )
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "RUNNING.txt" "STATUS.txt" )
+
+tomcat_src_prepare() {
+    # Tomcat ships with crufty source files:
+    #
+    # * The "java/org/apache/jasper" tree, which depends on Eclipse's JDT.
+    # * The "java/org/apache/catalina" tree, which depends on Jasper.
+    # * The "java/org/apache/naming" tree, which depends on Catalina.
+    # * The "java/org/apache/jk" tree, which depends on Catalina.
+    # * The "java/org/apache/coyote" tree, which depends on Coyote JK.
+    #
+    # It's a wonder anything's left.
+    einfo "Removing extraneous source files..."
+    edo rm -rf "java/org/apache"/{catalina,coyote,jasper,jk,naming}
+
+    # Tomcat ships "build.properties.default" which it requires we manually 
+    # copy to this "build.properties" and change as follows:
+    #
+    # * Do not append "-dev" to the build version.
+    # * Enable debugging if and only if the "debug" exheres option is enabled.
+    #
+    # Note the property file also defines a suspicous "base.path" property.
+    # Happily, none of the Ant tasks this exheres calls read this property.
+    #
+    # Do this prior to calling the parent "src_prepare" as that invokes Ant.
+    einfo "Patching build.properties..."
+    edo mv "build.properties.default" "build.properties"
+    edo sed \
+        -e "s:^\(version\.suffix=\).*$:\1:" \
+        -e "s:^\(compile\.debug=\).*$:\1$(option debug && echo true || echo false):" \
+        -i "build.properties"
+
+    antefix_src_prepare
+}
+
+tomcat_src_install() {
+    antefix_src_install
+
+    einfo "Installing jar files..."
+    install_jars "output/build/lib"/*.jar
+}
+
