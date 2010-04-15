@@ -5,16 +5,47 @@
 # This exlib gives sane defaults for Apache Foundation-hosted exheres.
 
 # ....................{ PARAMETERS                         }....................
-# See construction of "DOWNLOADS", below.
-myexparam pn=${MY_PN:-${PN}}
-myexparam pv=${MY_PV:-${PV}}
-myexparam pnv=${MY_PNV:-$(exparam pn)-$(exparam pv)-src}
-myexparam subdir="source"
-myexparam suffix="tar.gz"
+# Globalize and export passed exlib parameters for both convenience and access
+# from calling exheres.
 
-# ....................{ SETTINGS                           }....................
-DOWNLOADS="mirror://apache/$(exparam pn)/$(exparam subdir)/$(exparam pnv).$(exparam suffix)"
-HOMEPAGE="http://$(exparam pn).apache.org"
+# Subdirectory under "mirror://apache/${PN}/" from which source tarballs for
+# this exheres are fetched. This may be a single directory or, as is the case
+# for complex exheres, several directories: e.g., as "tomcat-6.0.26.exheres-0"
+# has its source tarballs at
+# "mirror://apache/tomcat/tomcat-6/v6.0.26/src/apache-tomcat-6.0.26-src.tar.gz",
+# it requires this exlib like so:
+#
+#    require apache [ subdir="tomcat-${SLOT}/v${PV}/src" ]
+#
+# This is not an optional parameter. You must pass it. (Unless, of course, you
+# don't want the exlib to manage download URLs for you.)
+myexparam subdir=
+APACHE_SUBDIR=$(exparam subdir)
+
+# Cut the prefixing "apache-" from exheres names.
+myexparam pn=${MY_PN:-${PN}}
+APACHE_PN=$(exparam pn)
+APACHE_PN=${APACHE_PN#apache-}
+
+# Apache-specific exheres version.
+myexparam pv=${MY_PV:-${PV}}
+APACHE_PV=$(exparam pv)
+
+# Source tarball filename sans suffix. Note that, by default, this is
+# "apache-${PNV}-src". Explicitly set this for nonconformant exheres.
+myexparam pnv=${MY_PNV:-apache-${APACHE_PN}-${APACHE_PV}-src}
+APACHE_PNV=$(exparam pnv)
+
+# Source tarball filename suffix.
+myexparam suffix="tar.gz"
+APACHE_SUFFIX=$(exparam suffix)
+
+# Export the above.
+export APACHE_SUBDIR APACHE_PN APACHE_PV APACHE_PNV APACHE_SUFFIX
+
+# ....................{ EXHERES GLOBALS                    }....................
+HOMEPAGE="http://${APACHE_PN}.apache.org"
+DOWNLOADS="mirror://apache/${APACHE_PN}/${APACHE_SUBDIR}/${APACHE_PNV}.${APACHE_SUFFIX}"
 
 #FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
 #REMOTE_IDS+=" apache:$(exparam project) "
@@ -23,7 +54,7 @@ HOMEPAGE="http://$(exparam pn).apache.org"
 LICENCES="Apache-2.0"
 
 # Add buildtime dependencies appropriate for extracting this archive.
-case "$(exparam suffix)" in
+case "${APACHE_SUFFIX}" in
     tar.lzma|tar.xz)
         DEPENDENCIES+="
     build:
@@ -33,4 +64,3 @@ case "$(exparam suffix)" in
     build:
         app-arch/unzip" ;;
 esac
-
