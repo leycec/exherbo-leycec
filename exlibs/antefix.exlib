@@ -589,7 +589,7 @@ symlink_jars() {
     for   JAR_FILE in ${*}; do
         # Canonicalize relative jar filenames to absolute jar filenames.
         if [[ ${JAR_FILE:0:1} != / ]]; then
-            JAR_FILE=$(which_install_jar_file "${JAR_FILE}")
+            JAR_FILE=$(which_installed_jar_file "${JAR_FILE}")
         fi
 
         edo ln -s "${JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
@@ -654,49 +654,49 @@ install_jar_as() {
     newins "${JAR_FILE_IN}" "${JAR_FILE_OUT}"
 }
 
-# char *which_install_jar_dir(char *exheres_name)
+# char *which_installed_jar_dir(char *exheres_name)
 #
 # Given an exheres name, returns the absolute path to the installed directory
 # having jar files for that exheres: e.g.,
 #
 #     # Echoes "/usr/share/turkish_dream".
-#     echo $(which_install_jar_dir "turkish_dream")
+#     echo $(which_installed_jar_dir "turkish_dream")
 #
 # This function ensures this path exists, and dies if it does not.
-which_install_jar_dir() {
-    local JAR_DIR=$(which_install_jar_dir_nonfatal "${1}")
+which_installed_jar_dir() {
+    local JAR_DIR=$(which_installed_jar_dir_nonfatal "${1}")
     [[ -d "${JAR_DIR}" ]] ||
         die_unless_nonfatal "jar directory ${JAR_DIR} not found"
     echo "${JAR_DIR}"
 }
 
-# char *which_install_jar_dir_nonfatal(char *exheres_name)
+# char *which_installed_jar_dir_nonfatal(char *exheres_name)
 #
-# Behaves similarly to "which_install_jar_dir" but does not ensure this path exist.
-which_install_jar_dir_nonfatal() {
+# Behaves similarly to "which_installed_jar_dir" but does not ensure this path exist.
+which_installed_jar_dir_nonfatal() {
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
     echo "${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${1}"
 }
 
-# char *which_install_jar_file(char *jar_file)
+# char *which_installed_jar_file(char *jar_file)
 # --OR--
-# char *which_install_jar_file(char *exheres_name, char *jar_file)
+# char *which_installed_jar_file(char *exheres_name, char *jar_file)
 #
 # Given a jar file and optional exheres name, returns the absolute path to the
 # installed file for the jar file under the exheres name: e.g.,
 #
 #     # Echoes "/usr/share/hamcrest/hamcrest-library.jar".
-#     echo $(which_install_jar_file "hamcrest-library")
+#     echo $(which_installed_jar_file "hamcrest-library")
 #     # Echoes "/usr/share/raki-saki/raki-saki-core.jar".
-#     echo $(which_install_jar_file "dist/lib/raki-saki-core.5.22.jar")
+#     echo $(which_installed_jar_file "dist/lib/raki-saki-core.5.22.jar")
 #     # Echoes "/usr/share/raki-saki/org.turkish.dream.jar".
-#     echo $(which_install_jar_file "raki-saki" "bin/org.turkish.dream-0.1.3.jar")
+#     echo $(which_installed_jar_file "raki-saki" "bin/org.turkish.dream-0.1.3.jar")
 #
 # This automatically strips version strings from passed jar filenames as well as
 # establishing the expected parent directory. As above, this function ensures
 # the file exists, and dies if it does not.
-which_install_jar_file() {
+which_installed_jar_file() {
     [[ ${#} -eq 1 ]] ||
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
@@ -727,14 +727,14 @@ which_install_jar_file() {
     echo "${JAR_FILE}"
 }
 
-# char *which_install_jar_file_nonfatal(char *jar_file)
+# char *which_installed_jar_file_nonfatal(char *jar_file)
 # --OR--
-# char *which_install_jar_file_nonfatal(char *exheres_name, char *jar_file)
+# char *which_installed_jar_file_nonfatal(char *exheres_name, char *jar_file)
 #
-# Behaves similarly to "which_install_jar_file" but does not ensure this file
+# Behaves similarly to "which_installed_jar_file" but does not ensure this file
 # exists. (This is somewhat less intelligent than that function, and should thus
-# be avoided in favor of calling "which_install_jar_file" itself.)
-which_install_jar_file_nonfatal() {
+# be avoided in favor of calling "which_installed_jar_file" itself.)
+which_installed_jar_file_nonfatal() {
     [[ ${#} -eq 1 ]] ||
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"

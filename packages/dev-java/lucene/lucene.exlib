@@ -3,17 +3,8 @@
 # Based in part upon 'lucene-3.0.0.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-# Pass "pnv" to apache to prevent its prefixing ${PNV} with "apache-".
-require antefix apache [ subdir="java" pnv="${PNV}-src" ]
+require antefix apache [ subdir="java" ]
 export_exlib_phases src_prepare src_compile src_install
-
-#FIXME: Obsolete...I think. Cull!
-# Version string for the "contrib/analyzers" subproject bundled within this
-# version of Java Lucene. As each version of Lucene may bundle a different
-# version of this subproject each exheres must explicitly specify the exact
-# version of this subproject their Lucene provides. 
-#myexparam  contrib_analyzers_pv=
-#exparam -v CONTRIB_ANALYZERS_PV contrib_analyzers_pv
 
 BUGS_TO="leycec@gmail.com"
 
@@ -56,7 +47,7 @@ DEPENDENCIES+="
     build:
         dev-java/javacc[>=5.0]
     build+test:
-        dev-java/junit[>=4.6]
+        dev-java/junit:4
 "
 
 # Lucene's "build.xml" and "contrib/contrib-build.xml" both import
@@ -93,7 +84,7 @@ ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
 # version suffix, which produces pain elsewhere. Work around by explicitly
 # setting the Ant "version" parameter.
 ANT_PARAMS=(
-    -Djavacc.home=$(which_install_jar_dir "javacc")
+    -Djavacc.home=$(which_installed_jar_dir "javacc")
     -Dversion=${PV}
 )
 

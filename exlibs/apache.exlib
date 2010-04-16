@@ -4,7 +4,7 @@
 # --------------------( SYNOPSIS                           )--------------------
 # This exlib gives sane defaults for Apache Foundation-hosted exheres.
 
-# ....................{ PARAMETERS                         }....................
+# ....................{ EXLIB                              }....................
 # Globalize and export passed exlib parameters for both convenience and access
 # from calling exheres.
 
@@ -15,7 +15,7 @@
 # "mirror://apache/tomcat/tomcat-6/v6.0.26/src/apache-tomcat-6.0.26-src.tar.gz",
 # it requires this exlib like so:
 #
-#    require apache [ subdir="tomcat-${SLOT}/v${PV}/src" ]
+#    require apache [ subdir="tomcat-${SLOT}/v${PV}/src" pnv="apache-${PNV}"]
 #
 # This is not an optional parameter. You must pass it. (Unless, of course, you
 # don't want the exlib to manage download URLs for you.)
@@ -32,8 +32,8 @@ myexparam pv=${MY_PV:-${PV}}
 APACHE_PV=$(exparam pv)
 
 # Source tarball filename sans suffix. Note that, by default, this is
-# "apache-${PNV}-src". Explicitly set this for nonconformant exheres.
-myexparam pnv=${MY_PNV:-apache-${APACHE_PN}-${APACHE_PV}-src}
+# "${PNV}-src". Explicitly set this for unconformant exheres. See example above.
+myexparam pnv=${MY_PNV:-${APACHE_PN}-${APACHE_PV}-src}
 APACHE_PNV=$(exparam pnv)
 
 # Source tarball filename suffix.
