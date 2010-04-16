@@ -1,0 +1,72 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+#
+# --------------------( SYNOPSIS                           )--------------------
+# This exlib gives sane defaults for "http://commons.apache.org"-hosted exheres.
+# The Apache Commons is a "collection of open source reusable Java components
+# from the Apache/Jakarta community."
+
+# ....................{ EXLIB                              }....................
+# This exlib does not require the "apache" exlib. It probably could, but why add
+# additional dependencies when this exlib is already concise enough? Note that
+# this exlib's parameter defaults are almost always fine, unlike the "apache"
+# exlib's parameter defaults, which often need overriding. (This is probably due
+# to more stringent standards in the Apache Commons community.)
+#
+# Globalize and export passed exlib parameters for both convenience and access
+# from calling exheres.
+
+# Subdirectory under "mirror://apache/commons/${PN}" from which source tarballs
+# this exheres are fetched. For Apache Commons exheres, the default "source"
+# is almost always fine.
+myexparam subdir=source
+APACHE_COMMONS_SUBDIR=$(exparam subdir)
+
+# Cut the prefixing "commons-" from exheres names.
+myexparam pn=${MY_PN:-${PN}}
+APACHE_COMMONS_PN=$(exparam pn)
+APACHE_COMMONS_PN=${APACHE_COMMONS_PN#commons-}
+
+# Apache Commons-specific exheres version.
+myexparam pv=${MY_PV:-${PV}}
+APACHE_COMMONS_PV=$(exparam pv)
+
+# Source tarball filename sans suffix. Prefix the "commons-" back. :)
+myexparam pnv=${MY_PNV:-commons-${APACHE_COMMONS_PN}-${APACHE_COMMONS_PV}-src}
+APACHE_COMMONS_PNV=$(exparam pnv)
+
+# Source tarball filename suffix.
+myexparam suffix="tar.gz"
+APACHE_COMMONS_SUFFIX=$(exparam suffix)
+
+# Export the above.
+export APACHE_COMMONS_SUBDIR \
+    APACHE_COMMONS_PN APACHE_COMMONS_PV APACHE_COMMONS_PNV \
+    APACHE_COMMONS_SUFFIX
+
+# ....................{ EXHERES GLOBALS                    }....................
+HOMEPAGE="http://commons.apache.org/${APACHE_COMMONS_PN}"
+DOWNLOADS="mirror://apache/commons/${APACHE_COMMONS_PN}/${APACHE_COMMONS_SUBDIR}/${APACHE_COMMONS_PNV}.${APACHE_COMMONS_SUFFIX}"
+
+#FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
+#REMOTE_IDS+=" apache:$(exparam project) "
+
+# All Apache Commons exheres share the same license.
+LICENCES="Apache-2.0"
+
+# Add buildtime dependencies appropriate for extracting this archive.
+case "${APACHE_COMMONS_SUFFIX}" in
+    tar.lzma|tar.xz)
+        DEPENDENCIES+="
+    build:
+        app-arch/xz" ;;
+    zip)
+        DEPENDENCIES+="
+    build:
+        app-arch/unzip" ;;
+esac
+
+# Most Apache Commons exheres extract to the same directory.
+WORK="${WORKBASE}/${APACHE_COMMONS_PNV}"
+
+
