@@ -501,7 +501,7 @@ antefix_deversion_files() {
         #
         # This should be safe... should.
         edo sed -r \
-            -e 's:-\$\{(DSTAMP|TSTAMP|TODAY)\}\.jar:.jar:' \
+            -e 's~-\$\{(DSTAMP|TSTAMP|TODAY)\}\.jar~.jar~' \
             -i "${ANT_DEVERSION_FILE}"
 
         # Explicitly remove filename version specifiers only for externally
@@ -513,7 +513,7 @@ antefix_deversion_files() {
             for EPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
                 if [[ "${EPN:0:1}" != / ]]; then  # ignore absolute paths
                     edo sed -r \
-                        -e "s:${EPN}${ANT_JAR_VERSION_PATTERN}:${EPN}.jar:" \
+                        -e "s~${EPN}${ANT_JAR_VERSION_PATTERN}~${EPN}.jar~" \
                         -i "${ANT_DEVERSION_FILE}"
                 fi
             done
