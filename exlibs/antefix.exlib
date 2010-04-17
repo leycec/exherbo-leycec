@@ -185,7 +185,12 @@ ANT_SRC_INSTALL_JARS_IMAGE_ROOT="/usr/share"
 #
 # Avoid changing this global unless you absolutely must, as that probably breaks
 # things elsewhere (e.g., other exheres trying to import these jar files).
-ANT_SRC_INSTALL_JARS_IMAGE_DIR="${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${PN}"
+#
+# This defaults to the empty string; if still the empty string during the
+# "pkg_setup" phase, then that phase resets this to a proper default. We wait
+# until that phase as the proper default depends on exheres globals (e.g.,
+# ${SLOT}) that will only be set after the exheres requires this exlib.
+ANT_SRC_INSTALL_JARS_IMAGE_DIR=
 
 # Bash pattern matching the version suffix commonly appended to jar filenames.
 # This pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
@@ -263,6 +268,7 @@ fi
 # ....................{ PHASES                             }....................
 antefix_pkg_setup() {
     default
+    einfo "Setting up exheres defaults..."
 
     # Die if the currently selected Java compiler is exheres restricted.
     if [[ -n "${ANT_RESTRICT_JAVA_JDK_PREFIXES[@]}" ]]; then
@@ -304,6 +310,17 @@ antefix_pkg_setup() {
         eerror "! Proceeding with installation, but ignoring all network sandboxing !"
         eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         export ANT_IS_JAVA_JDK_GCJ=1
+    fi
+
+    # Establish the system directory to which we install output jar files.
+    if [[ -z "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}" ]]; then
+        # Output jar files for slotted exheres must be installed to a slotted
+        # subdirectory of this directory. (Exheres for which [[ ${SLOT} -eq 0 ]]
+        # are unslotted exheres; all other exheres are slotted.)
+        if [[ -z "${SLOT}" ]] || [[ "${SLOT}" -eq 0 ]]
+        then ANT_SRC_INSTALL_JARS_IMAGE_DIR=$(which_installed_jar_dir_nonfatal "${PN}")
+        else ANT_SRC_INSTALL_JARS_IMAGE_DIR=$(which_installed_jar_dir_nonfatal "${PN}:${SLOT}")
+        fi
     fi
 
     # Establish whether we want javadoc installed or not via the "doc" option.
@@ -551,48 +568,84 @@ set_symlink_jar_dir() {
     export ANT_SRC_PREPARE_SYMLINK_DIR
 }
 
-# void symlink_jars(char *filename1, char *filename2, ...)
+# void symlink_jars(char *jar_spec1, char *jar_spec2, ...)
 #
-# Symbolically link jar filenames to relative filenames having the same basename
-# under the above directory. Input jar filenames may be either absolute or
-# relative. If absolute, no path processing is performed upon the filename; if
-# relative, the absolute path "/usr/share/$(basename $filename)/" is prepended
-# to that filename. Input jar filenames may or may not have the ".jar" suffix
-# appended, as well. Filenames that do not will simply have the ".jar" suffix
-# appended. Thus, "jarjar" becomes "/usr/share/jarjar/jarjar.jar". For each
-# such filename, this performs the equivalent of:
+# Symbolically link jar specificiers to relative filenames having same basename
+# under the above directory, where "jar specificiers" are strings specifying
+# external jar files already installed to the local system by another exheres
+# on which this exheres depends. These strings are usually, but not always,
+# absolute or relative paths:
 #
-#   ln -s "$filename" "$symlink_jar_dir"/
+# * If an absolute path, that path is symlinked as is without modification.
+# * If a string having no whitespace, this string signifies both the exheres
+#   name (and optional slot) and jar filename. The slot, if present, is
+#   demarcated via a colon. (See below.) Then, the absolute path
+#   "/usr/share/${exheres_name}/${slot}" is prepended to the string, the type
+#   ".jar" is appended to the string, and the final path symlinked. Example:
 #
-# But that's not all. If relative and not found under
-# "/usr/share/$(basename $filename)/", we then look under
-# "/usr/share/$(basename ${filename%%-*})/". This is the first part of the
-# filename up to but not including the first hyphen. Thus, this:
-#   
-#   symlink_jars hamcrest-core
+#    # Symbolically links "/usr/share/ecocide/ecocide.jar" into "lib/".
+#    symlink_jars("ecocide")
 #
-# tries the following paths in order:
+#    # Symbolically links "/usr/share/ecocide/4/ecocide.jar" into "lib/".
+#    symlink_jars("ecocide:4")
 #
-# * "/usr/share/hamcrest-core/hamcrest-core.jar", which will not be found. 
-# * "/usr/share/hamcrest/hamcrest-core.jar", which will be found. 
+#   If the resultant absolute path is not found, this also tries
+#   "/usr/share/$(basename ${jar_spec%%-*})/". This is the first part of the
+#   passed jar specifier up to but not including the first hyphen. Example:
 #
-# In other words, this function has enough cleverness to usually suss out the
-# absolute path to whatever you pass it. When it doesn't, simply pass the
-# absolute path!
+#    # Tries "/usr/share/moa-core/moa-core.jar", which is not found. Then
+#    # tries "/usr/share/moa/moa-core.jar", which is found. Finally,
+#    # symbolically links "/usr/share/moa/moa-core.jar" into "lib/".
+#    symlink_jars("moa-core")
+#
+# * If a string having whitespace, the string is first split on the first
+#   whitespace in that string. The first half of the string signifies the
+#   exheres name (and optional slot), while the second half signifies the
+#   jar filename as above. The slot, if present, is demarcated from the
+#   exheres name via a colon. (See below.) Then, the absolute path
+#   "/usr/share/${exheres_name}/${slot}" is prepended to the string, the type
+#   ".jar" is appended to the string, and the final path symlinked. Example:
+#
+#    # Symbolically links "/usr/share/ecocide/1080.jar" into "lib/".
+#    symlink_jars("ecocide" "1080")
+#
+#    # Symbolically links "/usr/share/ecocide/1.2/1080.jar" into "lib/".
+#    symlink_jars("ecocide:1.2" "1080")
+#
+# This function is usually clever enough to suss out the absolute path to
+# whatever you pass it. When it doesn't, simply pass the absolute path.
 symlink_jars() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
     [[ -d "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]] ||
         die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not found or not set"
 
-    local JAR_FILE
-    for   JAR_FILE in ${*}; do
-        # Canonicalize relative jar filenames to absolute jar filenames.
-        if [[ ${JAR_FILE:0:1} != / ]]; then
-            JAR_FILE=$(which_installed_jar_file "${JAR_FILE}")
+    local JAR_SPEC EXHERES_NAME JAR_FILENAME
+    for   JAR_SPEC in ${*}; do
+        # If an absolute path, use as is.
+        if [[ "${JAR_SPEC:0:1}" = / ]]; then
+            INSTALLED_JAR_FILE="${JAR_SPEC}"
+        # Otherwise, get the absolute path.
+        else
+            # If split on whitespace, grep the exheres name from jar filename in
+            # the passed jar specifier via Bash regexp matching.
+            if [[ "${JAR_SPEC}" =~ ^([^[:space:]]+)[[:space:]]+(.+)$ ]]; then
+                INSTALLED_JAR_FILE=$(which_installed_jar_file_nonfatal "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")
+            # Otherwise, the jar filename is the passed jar specifier.
+            else
+                INSTALLED_JAR_FILE=$(which_installed_jar_file_nonfatal "${JAR_SPEC}" "${JAR_SPEC}")
+
+                # If not found but has a hyphen, grep the exheres name again.
+                if [[ ! -f "${INSTALLED_JAR_FILE}" ]] &&
+                   [[ "${JAR_SPEC}" =~ ^([^-]+)- ]]; then
+                   INSTALLED_JAR_FILE=$(which_installed_jar_file_nonfatal "${BASH_REMATCH[1]}" "${JAR_SPEC}")
+                fi
+            fi
         fi
 
-        edo ln -s "${JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
+        [[ -f     "${INSTALLED_JAR_FILE}" ]] ||
+            die   "${INSTALLED_JAR_FILE} not found"
+        edo ln -s "${INSTALLED_JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
     done
 }
 
@@ -643,12 +696,8 @@ install_jar_as() {
 
     local JAR_FILE_IN="${1}"
     local JAR_FILE_OUT="${2}"
-
-    # Escape the first character of the version pattern to prevent grep from
-    # interpreting the character as a dash option.
-    if [[ "${JAR_FILE_OUT}" =~ "${ANT_JAR_VERSION_PATTERN}$" ]]; then
+    [[ "${JAR_FILE_OUT}" =~ ${ANT_JAR_VERSION_PATTERN}$ ]] &&
         ewarn "${JAR_FILE_OUT} contains a version specifier"
-    fi
 
     insinto "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}"
     newins "${JAR_FILE_IN}" "${JAR_FILE_OUT}"
@@ -656,35 +705,44 @@ install_jar_as() {
 
 # char *which_installed_jar_dir(char *exheres_name)
 #
-# Given an exheres name, returns the absolute path to the installed directory
-# having jar files for that exheres: e.g.,
+# Given an exheres name and optional slot, returns the absolute path to the
+# installed directory having jar files for that exheres: e.g.,
 #
 #     # Echoes "/usr/share/turkish_dream".
 #     echo $(which_installed_jar_dir "turkish_dream")
+#     # Echoes "/usr/share/british_moors/2.5".
+#     echo $(which_installed_jar_dir "british_moors:2.5")
 #
-# This function ensures this path exists, and dies if it does not.
+# Append the exheres slot to the exheres name as in "DEPENDENCIES": e.g.,
+# "${PN}:${SLOT}". A slot need not be specified, of course. See examples.
+#
+# For safety, this function dies when the path does not exist.
 which_installed_jar_dir() {
-    local JAR_DIR=$(which_installed_jar_dir_nonfatal "${1}")
-    [[ -d "${JAR_DIR}" ]] ||
-        die_unless_nonfatal "jar directory ${JAR_DIR} not found"
-    echo "${JAR_DIR}"
+    local    JAR_DIR=$(which_installed_jar_dir_nonfatal ${*})
+    [[ -d "${JAR_DIR}" ]] || die_unless_nonfatal "${JAR_DIR} not found"
+    echo  "${JAR_DIR}"
 }
 
 # char *which_installed_jar_dir_nonfatal(char *exheres_name)
 #
-# Behaves similarly to "which_installed_jar_dir" but does not ensure this path exist.
+# Identical to "which_installed_jar_dir" but does not ensure the path exists.
 which_installed_jar_dir_nonfatal() {
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
-    echo "${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${1}"
+
+    # Bash regex matching trailing slot number.
+    if [[ "${1}" =~ ^(.+):([^:]+)$ ]]
+    then echo "${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+    else echo "${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${1}"
+    fi
 }
 
 # char *which_installed_jar_file(char *jar_file)
 # --OR--
 # char *which_installed_jar_file(char *exheres_name, char *jar_file)
 #
-# Given a jar file and optional exheres name, returns the absolute path to the
-# installed file for the jar file under the exheres name: e.g.,
+# Given a jar file and optional exheres name and slot, returns the absolute path
+# to that jar file as installed on the local system: e.g.,
 #
 #     # Echoes "/usr/share/hamcrest/hamcrest-library.jar".
 #     echo $(which_installed_jar_file "hamcrest-library")
@@ -692,65 +750,47 @@ which_installed_jar_dir_nonfatal() {
 #     echo $(which_installed_jar_file "dist/lib/raki-saki-core.5.22.jar")
 #     # Echoes "/usr/share/raki-saki/org.turkish.dream.jar".
 #     echo $(which_installed_jar_file "raki-saki" "bin/org.turkish.dream-0.1.3.jar")
+#     # Echoes "/usr/share/raki-saki/8/org.turkish.dream.jar".
+#     echo $(which_installed_jar_file "raki-saki:8" "bin/org.turkish.dream-0.1.3.jar")
+#
+# Append the exheres slot to the exheres name as in "DEPENDENCIES": e.g.,
+# "${PN}:${SLOT}". A slot need not be specified, of course. See examples.
 #
 # This automatically strips version strings from passed jar filenames as well as
-# establishing the expected parent directory. As above, this function ensures
-# the file exists, and dies if it does not.
+# establishing the expected parent directory. As above, for safety, this
+# function dies when the file does not exist.
 which_installed_jar_file() {
-    [[ ${#} -eq 1 ]] ||
-    [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
-    [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
-
-    local JAR_FILE EXHERES_NAME
-    if [[ ${#} -eq 1 ]]
-    then JAR_FILE="${1}"; EXHERES_NAME=
-    else JAR_FILE="${2}"; EXHERES_NAME="${1}"
-    fi
-    local JAR_BASENAME="${JAR_FILE/##*/}"        # filename sans path
-    local JAR_ROOTNAME="${JAR_BASENAME/%.jar/}"  # filename sans path and type
-    if [[ -z "${EXHERES_NAME}" ]]
-    then EXHERES_NAME="${JAR_ROOTNAME}"
-    fi
-
-    # If we were passed a relative path, canonicalize it. Presume all
-    # external Java libraries live in their customary directories.
-    #
-    # Do not search "${IMAGE}"/ as well, as absolute paths into that root will
-    # be rendered meaningless after installation.
-    JAR_FILE="${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${EXHERES_NAME}/${JAR_ROOTNAME}.jar"
-    if [[ ! -f "${JAR_FILE}" ]]; then
-        JAR_FILE="${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${EXHERES_NAME%%-*}/${JAR_ROOTNAME}.jar"
-        [[  -f "${JAR_FILE}" ]] ||
-            die_unless_nonfatal "${JAR_ROOTNAME}.jar not found"
-    fi
-
-    echo "${JAR_FILE}"
+    local    JAR_FILE=$(which_installed_jar_file_nonfatal ${*})
+    [[ -f "${JAR_FILE}" ]] || die_unless_nonfatal "${JAR_FILE} not found"
+    echo  "${JAR_FILE}"
 }
 
 # char *which_installed_jar_file_nonfatal(char *jar_file)
 # --OR--
 # char *which_installed_jar_file_nonfatal(char *exheres_name, char *jar_file)
 #
-# Behaves similarly to "which_installed_jar_file" but does not ensure this file
-# exists. (This is somewhat less intelligent than that function, and should thus
-# be avoided in favor of calling "which_installed_jar_file" itself.)
+# Identical to "which_installed_jar_file" but does not ensure the file exists.
 which_installed_jar_file_nonfatal() {
+    illegal_in_global_scope
     [[ ${#} -eq 1 ]] ||
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
 
-    local JAR_FILE EXHERES_NAME
-    if [[ ${#} -eq 1 ]]
-    then JAR_FILE="${1}"; EXHERES_NAME=
-    else JAR_FILE="${2}"; EXHERES_NAME="${1}"
+    local JAR_FILENAME EXHERES_NAME
+
+    if   [[ ${#} -eq 1 ]]
+    then JAR_FILENAME="${1}"
+    else JAR_FILENAME="${2}"; EXHERES_NAME="${1}"
     fi
-    local JAR_BASENAME="${JAR_FILE/##*/}"        # filename sans path
+
+    local JAR_BASENAME="${JAR_FILENAME/##*/}"    # filename sans path
     local JAR_ROOTNAME="${JAR_BASENAME/%.jar/}"  # filename sans path and type
+
     if [[ -z "${EXHERES_NAME}" ]]
     then EXHERES_NAME="${JAR_ROOTNAME}"
     fi
 
-    echo "${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${EXHERES_NAME}/${JAR_ROOTNAME}.jar"
+    echo $(which_installed_jar_dir_nonfatal "${EXHERES_NAME}")"/${JAR_ROOTNAME}.jar"
 }
 
 # ....................{ BUILD.XML                          }....................

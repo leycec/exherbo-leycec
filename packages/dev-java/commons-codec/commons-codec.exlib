@@ -46,7 +46,7 @@ source.home=src/java
 test.home=src/test
 build.home=build
 dist.home=${COMMONS_CODEC_DIST_DIR}
-junit.jar=$(which_installed_jar_file junit)
+junit.jar=$(which_installed_jar_file "junit:4")
 final.name=${PN}
 EOF
 

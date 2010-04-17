@@ -70,7 +70,7 @@ ANT_CONTRIB_ANALYZERS_BUILD_DIR="${ANT_CONTRIB_BUILD_DIR}/analyzers/common"
 
 # Symlink these external jars; patch these internal files.
 ANT_SRC_PREPARE_SYMLINK_DIR="lib"
-ANT_SRC_PREPARE_SYMLINK_JARS=( junit )
+ANT_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
 ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
 
 # Lucene requires "javacc.jar" to run the "javacc" task, which makes sense.
