@@ -1,0 +1,25 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Force building against JDK 1.4 to squelch enumeration errors.
+--- old/build.xml	2003-06-06 22:35:28.000000000 +0000
++++ new/build.xml	2010-04-17 13:20:30.653836656 +0000
+@@ -172,7 +172,8 @@
+            destdir="${build.home}/classes"
+              debug="${compile.debug}"
+        deprecation="${compile.deprecation}"
+-          optimize="${compile.optimize}">
++          optimize="${compile.optimize}"
++            source="1.4" target="1.4">
+       <classpath refid="compile.classpath"/>
+     </javac>
+     <copy    todir="${build.home}/classes" filtering="on">
+@@ -187,7 +188,8 @@
+            destdir="${build.home}/tests"
+              debug="${compile.debug}"
+        deprecation="${compile.deprecation}"
+-          optimize="${compile.optimize}">
++          optimize="${compile.optimize}"
++            source="1.4" target="1.4">
+       <classpath refid="test.classpath"/>
+     </javac>
+     <copy    todir="${build.home}/tests" filtering="on">

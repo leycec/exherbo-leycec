@@ -1,0 +1,70 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'commons-el-1.0.ebuild' from Gentoo, which is:
+#     Copyright 1999-2008 Gentoo Foundation
+
+require antefix apache-commons
+export_exlib_phases src_prepare
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="JSP 2.0 Expression Language interpreter"
+DESCRIPTION="
+Commons El is Apache's JSP 2.0 Expression Language interpreter. Version 1.0 of
+the JSP Standard Tag Library (JSTL) introduced the concept of an Expression
+Language (EL), providing page authors with an easy way to access and manipulate
+application data without using scriptlets.
+"
+
+# Alas, this documentation is specific to the newest exheres. Of course, as
+# there hasn't been a new exheres in over 6 years, this probably isn't a
+# problem.
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/api [[ lang = en ]]"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/RELEASE-NOTES.txt"
+
+# Commons El depends on the Tomcat 5.5 slot. It's rather old... but it works.
+MYOPTIONS+="debug"
+DEPENDENCIES+="
+    build+run:
+        dev-java/tomcat:5.5
+    build+test:
+        dev-java/junit:4
+"
+
+# Commons El refuses to build under JDK >= 1.5. Patch that.
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
+
+# Common El's "static" task is the "compile" task's only dependency, and
+# prepares the build for compilation... Everything else makes sense.
+ANT_SRC_PREPARE_PARAMS=( static )
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_INSTALL_PARAMS=( jar )
+ANT_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "PROPOSAL.html" )
+
+commons-el_src_prepare() {
+    # We can't call the "option" function in global scope above. Do it now!
+    ANT_PARAMS+=" -Dcompile.debug="$(option debug && echo true || echo false)
+
+    # Commons El ships a not very helpful "build.properties.sample" file.
+    # Murder that file and create our own "build.properties". Note these
+    # properties enable "*.build.notrequired"; without this, Commons El's
+    # "build.xml" oddly attempts to rebuild the Tomcat 5.5 API by hand. (Bad.)
+    einfo "Creating build.properties..."
+    edo rm "build.properties.sample"   # just to be safe!
+    edo cat <<EOF > "build.properties" 
+api.home=$(which_installed_jar_dir "tomcat:5.5")
+junit.home=$(which_installed_jar_dir "junit:4")
+servletapi.build.notrequired = true
+jspapi.build.notrequired = true
+EOF
+
+    # Commons El ships a clearly broken "build.xml" referencing a non-existant
+    # "../LICENSE" file. Astonishingly, this causes the "jar" task to fail.
+    edo sed -e "s:../LICENSE:LICENSE.txt:" -i "build.xml"
+
+    # Do the above prior to calling this "src_prepare", as this invokes Ant.
+    antefix_src_prepare
+}
+
