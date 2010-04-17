@@ -49,7 +49,7 @@ DEPENDENCIES+="
         dev-java/junit:4
 "
 
-WORK="${WORKBASE}"/${PN}
+WORK="${WORKBASE}/${PN}"
 
 # JavaCC actually bundles a compiled version of itself as a jar file so as to
 # bootstrap compile a new JavaCC parser given this bundle. This is odd, but
@@ -88,7 +88,7 @@ javacc_src_install() {
 
     # Set absolute paths in a reasonably generic way. (See below.)
     local JAVACC_JAR_FILE=$(which_installed_jar_file_nonfatal "javacc.jar")
-    local JAVACC_INSTALL_DIR="${IMAGE}/$(which_installed_jar_dir_nonfatal "javacc")/bin"
+    local JAVACC_INSTALL_DIR="${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/bin"
 
     # JavaCC provides several convenience shell scripts for running various
     # Java class files in its installed jar file as command-line executables.
@@ -125,10 +125,10 @@ javacc_src_install() {
     #
     # Provide both by symlinking the former to the latter.
     einfo "Installing canonical symlinks..."
-    edo mkdir -p                   "${JAVACC_INSTALL_DIR}/lib/"
-    edo ln -s "${JAVACC_JAR_FILE}" "${JAVACC_INSTALL_DIR}/lib/"
+    dodir                      "${JAVACC_INSTALL_DIR}/lib/"
+    dosym "${JAVACC_JAR_FILE}" "${JAVACC_INSTALL_DIR}/lib/"
     for JAVACC_SHELL_SCRIPT in "javacc" "jjdoc" "jjrun" "jjtree"; do
-        edo ln -s "/usr/bin/${JAVACC_SHELL_SCRIPT}" "${JAVACC_INSTALL_DIR}/"
+        dosym "/usr/bin/${JAVACC_SHELL_SCRIPT}" "${JAVACC_INSTALL_DIR}/"
     done
 }
 

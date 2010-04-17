@@ -24,3 +24,19 @@ ANT_SRC_INSTALL_PARAMS=( )
 
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "BENCHMARKS.txt" )
 
+src_install() {
+    tomcat_src_install
+
+    # Other exheres requiring Tomcat 5.5 expect an installation tree resembling:
+    #
+    #     /usr/share/tomcat/5/jsr152/dist/lib/jsp-api.jar
+    #     /usr/share/tomcat/5/jsr154/dist/lib/servlet-api.jar
+    # Set absolute paths in a reasonably generic way. (See below.)
+    einfo "Installing canonical symlinks..."
+    local TOMCAT_INSTALL_JSP_DIR="${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/jsr152/dist/lib/"
+    local TOMCAT_INSTALL_SERVLET_DIR="${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/jsr154/dist/lib/"
+    dodir "${TOMCAT_INSTALL_JSP_DIR}" "${TOMCAT_INSTALL_SERVLET_DIR}"
+    dosym "${TOMCAT_INSTALL_DIR}/jsp-api.jar"     "${TOMCAT_INSTALL_JSP_DIR}"/
+    dosym "${TOMCAT_INSTALL_DIR}/servlet-api.jar" "${TOMCAT_INSTALL_SERVLET_DIR}"/
+}
+

@@ -783,14 +783,17 @@ which_installed_jar_file_nonfatal() {
     else JAR_FILENAME="${2}"; EXHERES_NAME="${1}"
     fi
 
-    local JAR_BASENAME="${JAR_FILENAME/##*/}"    # filename sans path
-    local JAR_ROOTNAME="${JAR_BASENAME/%.jar/}"  # filename sans path and type
+    local JAR_BASENAME="${JAR_FILENAME##*/}"   # filename sans path
+    local JAR_ROOTNAME="${JAR_BASENAME%.jar}"  # filename sans path and type
 
     if [[ -z "${EXHERES_NAME}" ]]
     then EXHERES_NAME="${JAR_ROOTNAME}"
     fi
 
-    echo $(which_installed_jar_dir_nonfatal "${EXHERES_NAME}")"/${JAR_ROOTNAME}.jar"
+    # "JAR_ROOTNAME" could still contain a suffixing ":" slot number, however;
+    # as no jar file should, cut that if found.
+    local JAR_TRUENAME="${JAR_ROOTNAME%:*}"    # filename sans path, type, slot
+    echo $(which_installed_jar_dir_nonfatal "${EXHERES_NAME}")"/${JAR_TRUENAME}.jar"
 }
 
 # ....................{ BUILD.XML                          }....................

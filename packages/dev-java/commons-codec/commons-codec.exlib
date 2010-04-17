@@ -22,7 +22,7 @@ UPSTREAM_DOCUMENTATION="${HOMEPAGE}/api-release [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${HOMEPAGE}/changes-report.html#a${PV}"
 
 DEPENDENCIES+="
-    test:
+    build+test:
         dev-java/junit:4
 "
 
