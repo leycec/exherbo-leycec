@@ -12,9 +12,6 @@
 # this exlib's parameter defaults are almost always fine, unlike the "apache"
 # exlib's parameter defaults, which often need overriding. (This is probably due
 # to more stringent standards in the Apache Commons community.)
-#
-# Globalize and export passed exlib parameters for both convenience and access
-# from calling exheres.
 
 # Subdirectory under "mirror://apache/commons/${PN}" from which source tarballs
 # this exheres are fetched. For Apache Commons exheres, the default "source"
@@ -38,11 +35,6 @@ APACHE_COMMONS_PNV=$(exparam pnv)
 # Source tarball filename suffix.
 myexparam suffix="tar.gz"
 APACHE_COMMONS_SUFFIX=$(exparam suffix)
-
-# Export the above.
-export APACHE_COMMONS_SUBDIR \
-    APACHE_COMMONS_PN APACHE_COMMONS_PV APACHE_COMMONS_PNV \
-    APACHE_COMMONS_SUFFIX
 
 # ....................{ EXHERES GLOBALS                    }....................
 HOMEPAGE="http://commons.apache.org/${APACHE_COMMONS_PN}"
@@ -68,5 +60,4 @@ esac
 
 # Most Apache Commons exheres extract to the same directory.
 WORK="${WORKBASE}/${APACHE_COMMONS_PNV}"
-
 
