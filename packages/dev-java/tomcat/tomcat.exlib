@@ -1,10 +1,24 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Each Tomcat slot requires a unique build process. This exlib abstracts out as
+# much commonality as possible, with individual exheres implementing the detail.
 
+# ....................{ EXLIB                              }....................
 require antefix apache [ \
-    subdir="tomcat-$(ever range 1)/v${PV}/src" pnv="apache-${PNV}" ]
+    subdir="tomcat-$(ever range 1)/v${PV}/src" pnv="apache-${PNV}-src" ]
 export_exlib_phases src_prepare src_install
 
+# Absolute or relative path to this Tomcat slot's "build.xml" directory. This is
+# the path having: "build.xml", "build.properties", and 
+# "build.properties.default".
+#
+# This defaults to "${WORK}".
+myexparam ant_dir=.
+TOMCAT_ANT_DIR=$(exparam ant_dir)
+
+# ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
 
 SUMMARY="API core for Tomcat, Apache's Java Servlet and JSP container"
@@ -21,54 +35,47 @@ itself provide an executable Tomcat web server. It is therefore typically
 bundled within an executable environment like Eclipse or the Tomcat web server.)
 "
 
-UPSTREAM_DOCUMENTATION="${HOMEPAGE}/${PN}-$(ever range 1-2)-doc [[ lang = en ]]"
-UPSTREAM_CHANGELOG="${UPSTREAM_DOCUMENTATION}/changelog.html"
+# Note: "DOCUMENTATION_ROOT" cannot be prefixed with "UPSTREAM_" as our
+# resolvers hate that at the moment.
+DOCUMENTATION_ROOT="${HOMEPAGE}/${PN}-$(ever range 1-2)-doc"
+UPSTREAM_DOCUMENTATION="${DOCUMENTATION_ROOT} [[ lang = en ]]"
+UPSTREAM_CHANGELOG="${DOCUMENTATION_ROOT}/changelog.html"
 
+# All Tomcat slots provide these common options.
 MYOPTIONS+="debug"
+
+# All Tomcat slots extract to this path.
 WORK="${WORKBASE}/${APACHE_PNV}"
 
-# Tomcat's "build.xml" is fairly buggy. Its "compile" task does not depend on
-# its "build-prepare" task for example; thus, we explicitly run the latter.
-# More disconcertingly, it explicitly depends on external jar files like
-# Eclipse's JDT. But Eclipse itself depends on the Tomcat jar files. Thus, this
-# introduces a catch-22. Patch her up, Sulu.
-DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
+# Some Tomcat slots require a different "build.xml" file.
+ANT_BUILD_XML="${TOMCAT_ANT_DIR}/build.xml"
 
-ANT_SRC_PREPARE_PARAMS=( build-prepare )
-ANT_SRC_COMPILE_PARAMS=( compile )
-ANT_SRC_INSTALL_PARAMS=( package )
+# All Tomcat slots output jar files under this path.
+TOMCAT_DIST_ROOT_DIR=${WORK}/output/build
 
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "RUNNING.txt" "STATUS.txt" )
+# Some Tomcat 5.5 bundle documentation in another path.
+if [[ "${TOMCAT_ANT_DIR}" != . ]]; then
+    DEFAULT_SRC_INSTALL_EXTRA_SUBDIRS+="${TOMCAT_ANT_DIR}"
+fi
 
 tomcat_src_prepare() {
-    # Tomcat ships with crufty source files:
-    #
-    # * The "java/org/apache/jasper" tree, which depends on Eclipse's JDT.
-    # * The "java/org/apache/catalina" tree, which depends on Jasper.
-    # * The "java/org/apache/naming" tree, which depends on Catalina.
-    # * The "java/org/apache/jk" tree, which depends on Catalina.
-    # * The "java/org/apache/coyote" tree, which depends on Coyote JK.
-    #
-    # It's a wonder anything's left.
-    einfo "Removing extraneous source files..."
-    edo rm -rf "java/org/apache"/{catalina,coyote,jasper,jk,naming}
-
     # Tomcat ships "build.properties.default" which it requires we manually 
     # copy to this "build.properties" and change as follows:
     #
-    # * Do not append "-dev" to the build version.
+    # * Set the "base.path" to an absolute output path under "${WORK}",
+    #   otherwise the build process tries writing to "/usr/share/java". (Baad.)
     # * Enable debugging if and only if the "debug" exheres option is enabled.
-    #
-    # Note the property file also defines a suspicous "base.path" property.
-    # Happily, none of the Ant tasks this exheres calls read this property.
+    # * Do not append "-dev" to the build version.
     #
     # Do this prior to calling the parent "src_prepare" as that invokes Ant.
     einfo "Patching build.properties..."
-    edo mv "build.properties.default" "build.properties"
+    edo mv "${TOMCAT_ANT_DIR}/build.properties.default" \
+           "${TOMCAT_ANT_DIR}/build.properties"
     edo sed \
-        -e "s:^\(version\.suffix=\).*$:\1:" \
+        -e "s:^\(base\.path=\).*$:\1${TOMCAT_DIST_ROOT_DIR}:" \
         -e "s:^\(compile\.debug=\).*$:\1$(option debug && echo true || echo false):" \
-        -i "build.properties"
+        -e "s:^\(version\.suffix=\).*$:\1:" \
+        -i "${TOMCAT_ANT_DIR}/build.properties"
 
     antefix_src_prepare
 }
@@ -77,6 +84,6 @@ tomcat_src_install() {
     antefix_src_install
 
     einfo "Installing jar files..."
-    install_jars "output/build/lib"/*.jar
+    install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
 }
 

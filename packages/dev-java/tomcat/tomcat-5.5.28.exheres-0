@@ -1,0 +1,26 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# Tomcat 5.5 ships a variety of "build.xml" files. The "${WORK}/build.xml"
+# file delegates to "${WORK}/build/build.xml" with additional logic for
+# retrieving online updates. That's bad. Thus, the latter is what we want.
+require tomcat [ ant_dir="build" ]
+
+# See the newest exheres for SLOT commentary. We maintain older Tomcat slots as
+# several older Java exheres require them (for leveraging older Servlet APIs).
+SLOT="5.5"
+PLATFORMS="~amd64 ~x86"
+
+ANT_SRC_PREPARE_PARAMS=( init )
+
+# Tomcat's "build.xml" defines a "build" task building subcomponents for which
+# we do not have the requisite dependencies. Don't run that. It also defines
+# tasks building precisely the subcomponents we need. Run those instead.
+ANT_SRC_COMPILE_PARAMS=( build-servletapi build-jspapi )
+
+# The above tasks actually do too much: they compile, build javadoc, and build
+# jar files. Most of these things are needed, anyway. So we're done.
+ANT_SRC_INSTALL_PARAMS=( )
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "BENCHMARKS.txt" )
+
