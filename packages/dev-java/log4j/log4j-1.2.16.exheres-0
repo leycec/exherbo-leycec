@@ -5,3 +5,6 @@ require log4j
 
 PLATFORMS="~amd64 ~x86"
 
+# Log4j's 1.2.xx series is incompatible with the new 2.x.xx series.
+SLOT="1.2"
+

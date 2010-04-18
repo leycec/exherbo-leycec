@@ -500,9 +500,8 @@ antefix_deversion_files() {
         # used in jar filenames, mostly produce badly named jar files.
         #
         # This should be safe... should.
-        edo sed -r \
-            -e 's~-\$\{(DSTAMP|TSTAMP|TODAY)\}\.jar~.jar~' \
-            -i "${ANT_DEVERSION_FILE}"
+        edo sed -i "${ANT_DEVERSION_FILE}" \
+            -r -e 's~-\$\{(DSTAMP|TSTAMP|TODAY)\}\.jar~.jar~'
 
         # Explicitly remove filename version specifiers only for externally
         # symlinked jar files, where the 'E' in "EPN" stands for external.
@@ -512,9 +511,8 @@ antefix_deversion_files() {
         if [[ -n "${ANT_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
             for EPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
                 if [[ "${EPN:0:1}" != / ]]; then  # ignore absolute paths
-                    edo sed -r \
-                        -e "s~${EPN}${ANT_JAR_VERSION_PATTERN}~${EPN}.jar~" \
-                        -i "${ANT_DEVERSION_FILE}"
+                    edo sed -i "${ANT_DEVERSION_FILE}" \
+                        -r -e "s~${EPN}${ANT_JAR_VERSION_PATTERN}~${EPN}.jar~"
                 fi
             done
         fi
@@ -896,7 +894,7 @@ EOF
 #
 # Replace "META-INF/MANIFEST.MF" in the passed jar filename with the passed
 # manifest filename. Also, substitute placeholder variables with their current
-# Bash values as performed by the "patch_jar_manifest" function.
+# Bash values as performed by the "rectify_jar_manifest" function.
 #
 # Exheres usually call this function from "${PN}_src_install", often overriding
 # exheres globals with jar file-specific locals: e.g.,
@@ -914,7 +912,7 @@ replace_jar_manifest() {
     # Copy the source to target manifest file, and patch placeholders.
     edo mkdir -p              "${TEMP}/META-INF"
     edo cp "${MANIFEST_FILE}" "${TEMP}/META-INF/MANIFEST.MF"
-    patch_jar_manifest        "${TEMP}/META-INF/MANIFEST.MF"
+    rectify_jar_manifest      "${TEMP}/META-INF/MANIFEST.MF"
 
     # Move the jar file to the temporary path having the target manifest,
     # temporarily renaming it for convenience.
@@ -935,7 +933,7 @@ replace_jar_manifest() {
     edo mv "${TEMP}/jar.jar" "${JAR_FILE}"
 }
 
-# void patch_jar_manifest(char *manifest_filename)
+# void rectify_jar_manifest(char *manifest_filename)
 #
 # Patch contents of the passed manifest filename or "META-INF/MANIFEST.MF" from
 # the current directory, if no manifest filename is passed. In particular,
@@ -955,13 +953,13 @@ replace_jar_manifest() {
 #
 #     local PV=3.0.2                   # ...hides the global ${PV}
 #     local BUNDLE_NAME="SAT4J Core"   # ...hides the global ${BUNDLE_NAME}
-#     patch_jar_manifest "${WORK}/build/META-INF/MANIFEST.MF"
+#     rectify_jar_manifest "${WORK}/build/META-INF/MANIFEST.MF"
 #
 # !!!!!IMPORTANT!!!!! strings substituted into placeholder variables must not
 # contain backtick characters '`', as the sed expressions performing these
 # substitutions use that character to delimit themselves. Since this would be a
 # strange character for a string to contain, this is generally "safe."
-patch_jar_manifest() {
+rectify_jar_manifest() {
     illegal_in_global_scope
     [[ ${#} -le 1 ]] || die_unless_nonfatal "zero or one arguments needed"
 

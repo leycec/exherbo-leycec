@@ -12,6 +12,7 @@
 # this exlib's parameter defaults are almost always fine, unlike the "apache"
 # exlib's parameter defaults, which often need overriding. (This is probably due
 # to more stringent standards in the Apache Commons community.)
+export_exlib_phases src_prepare src_install
 
 # Subdirectory under "mirror://apache/commons/${PN}" from which source tarballs
 # this exheres are fetched. For Apache Commons exheres, the default "source"
@@ -46,6 +47,9 @@ DOWNLOADS="mirror://apache/commons/${APACHE_COMMONS_PN}/${APACHE_COMMONS_SUBDIR}
 # All Apache Commons exheres share the same license.
 LICENCES="Apache-2.0"
 
+# All Apache Commons exheres support these common options.
+MYOPTIONS+="debug"
+
 # Add buildtime dependencies appropriate for extracting this archive.
 case "${APACHE_COMMONS_SUFFIX}" in
     tar.lzma|tar.xz)
@@ -60,4 +64,39 @@ esac
 
 # Most Apache Commons exheres extract to the same directory.
 WORK="${WORKBASE}/${APACHE_COMMONS_PNV}"
+
+# Absolute or relative path to the directory to which this exheres produces
+# output jar files. The default is typically fine, as we force this directory
+# by passing it as an Ant property.
+APACHE_COMMONS_DIST_DIR="dist"
+
+apache-commons_src_prepare() {
+    # We can't call the "option" function in global scope above. Do it now!
+    ANT_PARAMS+=" -Dcompile.debug="$(option debug && echo true || echo false)
+
+    # The "build.xml" file for most Apache Commons exheres accepts this
+    # property, permitting us to force the output jar file directory.
+    ANT_PARAMS+=" -Ddist.home=${APACHE_COMMONS_DIST_DIR}"
+
+    # Most Apache Commons exheres ship a "build.properties.sample" file that,
+    # while helpful when writing exheres, has no utility when actually building
+    # exheres. It's definitely dangerous to leave lying around: if found by
+    # "build.xml", the bad defaults this file defines might conflict with those
+    # this exheres defines.
+    if [[ -f "build.properties.sample" ]]; then
+        einfo "Cleaning build.properties.sample..."
+        edo rm "build.properties.sample"
+    fi
+
+    antefix_src_prepare
+}
+
+apache-commons_src_install() {
+    antefix_src_install
+
+    # We're guaranteed that all output jar files were placed in this directory.
+    # It is fairly safe to assume all such files must be installed.
+    einfo "Installing jar files..."
+    install_jars "${APACHE_COMMONS_DIST_DIR}"/**/*.jar
+}
 

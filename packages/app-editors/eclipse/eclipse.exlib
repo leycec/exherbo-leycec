@@ -72,6 +72,8 @@ DEPENDENCIES+="
     build+run:
         dev-java/asm[>=3.2]
         dev-java/commons-codec[>=1.4]
+        dev-java/commons-el[>=1.0]
+        dev-java/commons-logging[>=1.1.1]
         dev-java/jsch[>=0.1.42]
         dev-java/junit:3[>=3.8.2]
         dev-java/junit:4[>=4.8.1]

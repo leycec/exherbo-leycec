@@ -23,7 +23,6 @@ UPSTREAM_DOCUMENTATION="${HOMEPAGE}/api [[ lang = en ]]"
 UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/RELEASE-NOTES.txt"
 
 # Commons El depends on the Tomcat 5.5 slot. It's rather old... but it works.
-MYOPTIONS+="debug"
 DEPENDENCIES+="
     build+run:
         dev-java/tomcat:5.5
@@ -39,20 +38,15 @@ DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 ANT_SRC_PREPARE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
-ANT_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
 
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "PROPOSAL.html" )
 
 commons-el_src_prepare() {
-    # We can't call the "option" function in global scope above. Do it now!
-    ANT_PARAMS+=" -Dcompile.debug="$(option debug && echo true || echo false)
-
     # Commons El ships a not very helpful "build.properties.sample" file.
     # Murder that file and create our own "build.properties". Note these
     # properties enable "*.build.notrequired"; without this, Commons El's
     # "build.xml" oddly attempts to rebuild the Tomcat 5.5 API by hand. (Bad.)
     einfo "Creating build.properties..."
-    edo rm "build.properties.sample"   # just to be safe!
     edo cat <<EOF > "build.properties" 
 api.home=$(which_installed_jar_dir "tomcat:5.5")
 junit.home=$(which_installed_jar_dir "junit:4")
@@ -65,6 +59,6 @@ EOF
     edo sed -e "s:../LICENSE:LICENSE.txt:" -i "build.xml"
 
     # Do the above prior to calling this "src_prepare", as this invokes Ant.
-    antefix_src_prepare
+    apache-commons_src_prepare
 }
 

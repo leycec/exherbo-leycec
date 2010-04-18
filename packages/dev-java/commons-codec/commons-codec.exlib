@@ -32,25 +32,19 @@ ANT_SRC_PREPARE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
-# Commons Codec outputs jar files to this directory under ${WORK}.
-COMMONS_CODEC_DIST_DIR="dist"
-ANT_SRC_INSTALL_JARS=( "${COMMONS_CODEC_DIST_DIR}/${PN}.jar" )
-
 commons-codec_src_prepare() {
     # Commons Codec ships a not very helpful "build.properties.sample" file.
     # Brush off that file and create our own "build.properties" file by hand.
     einfo "Creating build.properties..."
-    edo rm "build.properties.sample"   # just to be safe!
     edo cat <<EOF > "build.properties" 
 source.home=src/java
 test.home=src/test
 build.home=build
-dist.home=${COMMONS_CODEC_DIST_DIR}
 junit.jar=$(which_installed_jar_file "junit:4")
 final.name=${PN}
 EOF
 
     # Do the above prior to calling this "src_prepare", as this invokes Ant.
-    antefix_src_prepare
+    apache-commons_src_prepare
 }
 
