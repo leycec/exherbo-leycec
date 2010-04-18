@@ -7,7 +7,7 @@
 
 # ....................{ EXLIB                              }....................
 require antefix apache [ \
-    subdir="tomcat-$(ever range 1)/v${PV}/src" pnv="apache-${PNV}-src" ]
+    download_subdir="tomcat-$(ever range 1)/v${PV}/src" pnv="apache-${PNV}-src" ]
 export_exlib_phases src_prepare src_install
 
 # Absolute or relative path to this Tomcat slot's "build.xml" directory. This is
@@ -37,15 +37,12 @@ bundled within an executable environment like Eclipse or the Tomcat web server.)
 
 # Note: "DOCUMENTATION_ROOT" cannot be prefixed with "UPSTREAM_" as our
 # resolvers hate that at the moment.
-DOCUMENTATION_ROOT="${HOMEPAGE}/${PN}-$(ever range 1-2)-doc"
-UPSTREAM_DOCUMENTATION="${DOCUMENTATION_ROOT} [[ lang = en ]]"
-UPSTREAM_CHANGELOG="${DOCUMENTATION_ROOT}/changelog.html"
+TOMCAT_DOCUMENTATION_ROOT="${HOMEPAGE}/${PN}-$(ever range 1-2)-doc"
+UPSTREAM_DOCUMENTATION="${TOMCAT_DOCUMENTATION_ROOT} [[ lang = en ]]"
+UPSTREAM_CHANGELOG="${TOMCAT_DOCUMENTATION_ROOT}/changelog.html"
 
 # All Tomcat slots provide these common options.
 MYOPTIONS+="debug"
-
-# All Tomcat slots extract to this path.
-WORK="${WORKBASE}/${APACHE_PNV}"
 
 # Some Tomcat slots require a different "build.xml" file.
 ANT_BUILD_XML="${TOMCAT_ANT_DIR}/build.xml"

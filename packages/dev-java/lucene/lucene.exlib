@@ -3,7 +3,7 @@
 # Based in part upon 'lucene-3.0.0.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix apache [ subdir="java" ]
+require antefix apache [ download_subdir="java" ]
 export_exlib_phases src_prepare src_compile src_install
 
 BUGS_TO="leycec@gmail.com"
@@ -16,8 +16,9 @@ featured, and full-text search.
 "
 
 MY_PV=$(ever replace_all _)
-UPSTREAM_DOCUMENTATION="${HOMEPAGE}/${subdir}/${MY_PV}/api/all [[ lang = en ]]"
-UPSTREAM_CHANGELOG="${HOMEPAGE}/${subdir}/${MY_PV}/changes/Changes.html"
+LUCENE_DOCUMENTATION_ROOT="${HOMEPAGE}/${APACHE_DOWNLOAD_SUBDIR}/${MY_PV}"
+UPSTREAM_DOCUMENTATION="${LUCENE_DOCUMENTATION_ROOT}/api/all [[ lang = en ]]"
+UPSTREAM_CHANGELOG="${LUCENE_DOCUMENTATION_ROOT}/changes/Changes.html"
 
 SLOT="0"
 
@@ -49,6 +50,9 @@ DEPENDENCIES+="
     build+test:
         dev-java/junit:4
 "
+
+# Lucene extracts to the usual directory -- not the usual Apache directory.
+WORK="${WORKBASE}/${PNV}"
 
 # Lucene's "build.xml" and "contrib/contrib-build.xml" both import
 # "common-build.xml", which has the guts of Lucene's build process.

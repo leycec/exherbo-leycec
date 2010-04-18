@@ -12,12 +12,24 @@
 # "mirror://apache/tomcat/tomcat-6/v6.0.26/src/apache-tomcat-6.0.26-src.tar.gz",
 # it requires this exlib like so:
 #
-#    require apache [ subdir="tomcat-${SLOT}/v${PV}/src" pnv="apache-${PNV}"]
+#    require apache [ download_subdir="tomcat-${SLOT}/v${PV}/src" pnv="apache-${PNV}"]
 #
 # This is not an optional parameter. You must pass it. (Unless, of course, you
 # don't want the exlib to manage download URLs for you.)
-myexparam subdir=
-APACHE_SUBDIR=$(exparam subdir)
+myexparam download_subdir=
+APACHE_DOWNLOAD_SUBDIR=$(exparam download_subdir)
+
+# Subdirectory under "http://${PN}.apache.org/" at which this exheres has its
+# homepage. To set this properly, you also want to set the "pn" parameter: e.g.,
+# as "log4j-1.2.exheres-0" has its homepage at
+# "http://logging.apache.org/log4j/", it requires this exlib like so:
+#
+#    require apache [ pn="logging" homepage_subdir="${PN}" pnv="${PNV}"]
+#
+# This is an optional parameter defaulting to nothing. Most Apache exheres do
+# not require it; but some do. 
+myexparam homepage_subdir=
+APACHE_HOMEPAGE_SUBDIR=$(exparam homepage_subdir)
 
 # Cut the prefixing "apache-" from exheres names.
 myexparam pn=${MY_PN:-${PN}}
@@ -42,14 +54,18 @@ myexparam suffix="tar.gz"
 APACHE_SUFFIX=$(exparam suffix)
 
 # ....................{ EXHERES GLOBALS                    }....................
-HOMEPAGE="http://${APACHE_PN}.apache.org"
-DOWNLOADS="mirror://apache/${APACHE_PN}/${APACHE_SUBDIR}/${APACHE_PNV}.${APACHE_SUFFIX}"
+HOMEPAGE="http://${APACHE_PN}.apache.org/${APACHE_HOMEPAGE_SUBDIR}"
+DOWNLOADS="mirror://apache/${APACHE_PN}/${APACHE_DOWNLOAD_SUBDIR}/${APACHE_PNV}.${APACHE_SUFFIX}"
 
 #FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
 #REMOTE_IDS+=" apache:$(exparam project) "
 
 # All Apache exheres share the same license.
 LICENCES="Apache-2.0"
+
+# Most Apache exheres extract to the same path as the filename of their fetched
+# tarball, sans ".tar.gz". Those that do not must explicitly override this.
+WORK="${WORKBASE}/${APACHE_PNV}"
 
 # Add buildtime dependencies appropriate for extracting this archive.
 case "${APACHE_SUFFIX}" in
