@@ -1,0 +1,7 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+require commons-logging
+
+PLATFORMS="~amd64 ~x86"
+
