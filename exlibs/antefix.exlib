@@ -16,8 +16,8 @@
 
 # ....................{ EXHERES                            }....................
 # All Ant exheres are, by assumption, Java exheres. It is therefore crucial that
-# this exlib explicitly require the "java" exlib. Subtle issues would arise were
-# this exlib to not require that exlib. In particular, note the following two
+# this exlib explicitly require the "java" exlib. Subtle issues could arise were
+# this exlib not to require that exlib. In particular, note the following two
 # require statements are not equal:
 #
 #     # This overwrites all "antefix" exlib phases with "javafix" exlib phases,
@@ -33,9 +33,6 @@
 # passing of parameters from exheres to the "javafix" exlib. Affected exheres 
 # should work around this by calling setter functions for the desired parameters
 # in global scope after requiring this exlib. Example:
-#
-#     # Instead of this...
-#     require antefix javafix [ clean_jar_files=false ]
 #
 #     # ...your exheres should do this.
 #     require antefix
@@ -114,7 +111,7 @@ antefix_src_unpack() {
     javafix_src_unpack
 
     if [[ "${ANT_IS_CREATING_BUILD_XML}" ]]; then
-        einfo "Creating ${ANT_BUILD_XML}..."
+        echo ">>> Creating ${ANT_BUILD_XML}"
         create_build_xml
     fi
 
@@ -174,12 +171,12 @@ antefix_src_compile() {
     # "build.xml" files often supply a default task performing all relevant
     # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
-        einfo "Preparing source files..."
+        echo ">>> Preparing source files"
         eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_PREPARE_PARAMS[@]}"
     fi
 
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
-        einfo "Compiling source files..."
+        echo ">>> Compiling source files"
         eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_COMPILE_PARAMS[@]}"
     fi
 }
@@ -188,7 +185,7 @@ antefix_src_test() {
     javafix_src_test
 
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
-        einfo "Testing compiled files..."
+        echo ">>> Testing compiled files"
         eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_TEST_PARAMS[@]}"
     fi
 }
@@ -197,7 +194,7 @@ antefix_src_install() {
     # Invoke Ant, which probably generates jar files, prior to calling the
     # parent "src_install" function, which actually install these files.
     if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
-        einfo "Collecting jar files..."
+        echo ">>> Collecting jar files"
         eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
     fi
 
@@ -298,7 +295,7 @@ create_build_xml() {
     # Copy the source tree unpacked from the exheres tarball into the
     # canonical "${WORK}/src/" directory Ant expects.
     if [[ ! -d "${ANT_SRC_COMPILE_SOURCE_DIR}" ]]; then
-        einfo "Creating source tree..."
+        echo ">>> Creating source tree"
         edo mkdir -p "${ANT_SRC_COMPILE_SOURCE_DIR}"
         if [[ -n "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" ]]; then
             edo mv "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" \

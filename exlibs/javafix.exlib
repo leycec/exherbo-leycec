@@ -178,14 +178,7 @@ javafix_pkg_setup() {
             if [[ "${JAVA_JDK}" = "${JAVA_RESTRICT_JDK_PREFIX}"* ]]; then
                 eerror "Your currently selected Java compiler is \"${JAVA_JDK}\". Unfortunately, \"${PNV}\""
                 eerror "reports it currently fails under this compiler. Consider installing and enabling"
-                eerror "a better supported Java compiler: e.g.,"
-                eerror
-                eerror "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
-                eerror "                           && eclectic java-jre set icedtea6-\$PV"
-                eerror
-                eerror "where \$PV is the installed version of icedtea6 as listed by:"
-                eerror
-                eerror "  paludis -q icedtea6"
+                eerror "a better supported Java compiler: e.g., \"icedtea6\"."
                 die_unless_nonfatal "${PNV} refuses to build under ${JAVA_JDK}"
             fi
         done
@@ -193,21 +186,9 @@ javafix_pkg_setup() {
 
     # Warn if the currently selected Java compiler is GCJ.
     if [[ "${JAVA_JDK}" == gcj* ]]; then
-        ewarn "Your currently selected Java compiler is \"gcj\". While, technically, this"
-        ewarn "compiler works, it also introduces sydbox access violations by attempting to"
-        ewarn "open spurious DNS requests. Until this is corrected, please consider"
-        ewarn "installing and enabling \"icedtea6\" with:"
-        ewarn
-        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
-        ewarn "                           && eclectic java-jre set icedtea6-\$PV"
-        ewarn
-        ewarn "where \$PV is your installed version of icedtea6 as listed by:"
-        ewarn
-        ewarn "  paludis -q icedtea6"
-        ewarn
-        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        eerror "! Proceeding with installation, but ignoring all network sandboxing !"
-        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        ewarn "Your currently selected Java compiler is \"gcj\". Unfortunately, this compiler"
+        ewarn "violates sydbox network sandboxing by attempting to open spurious DNS requests."
+        ewarn "Consider installing and enabling a better supported Java compiler: e.g., \"icedtea6\"."
         JAVA_IS_DISABLING_NETWORK_SANDBOXING=1
     fi
 
