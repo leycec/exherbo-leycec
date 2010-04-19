@@ -124,12 +124,6 @@ JAVA_IS_CLEANING_CLASS_FILES=1
 # Defaults to set.
 JAVA_IS_CLEANING_JAR_FILES=1
 
-# Absolute path to the parent of ${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}, below.
-#
-# Avoid changing this global unless you absolutely must, as that probably breaks
-# things elsewhere (e.g., other exheres trying to import these jar files).
-JAVA_SRC_INSTALL_JARS_IMAGE_ROOT="/usr/share"
-
 # Absolute path to which this exheres installs output jar files.
 #
 # Avoid changing this global unless you absolutely must, as that probably breaks
@@ -593,10 +587,12 @@ which_installed_jar_dir_nonfatal() {
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
 
-    # Bash regex matching trailing slot number.
+    # Bash regex matching trailing slot number. Note hardcoded jar file
+    # installation to subdirectories of "/usr/share", which is always where we
+    # want them so that other exheres may find them.
     if [[ "${1}" =~ ^(.+):([^:]+)$ ]]
-    then echo "${JAVA_SRC_INSTALL_JARS_IMAGE_ROOT}/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
-    else echo "${JAVA_SRC_INSTALL_JARS_IMAGE_ROOT}/${1}"
+    then echo "/usr/share/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
+    else echo "/usr/share/${1}"
     fi
 }
 
