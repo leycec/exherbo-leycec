@@ -2,19 +2,33 @@
 # Distributed under the terms of the GNU General Public License v2
 # Based in part upon 'junit-4.6.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Each JUnit slot requires a unique build process. This exlib abstracts out as
+# much commonality as possible, with individual exheres implementing the detail.
+#
+# --------------------( TODO                               )--------------------
+# * Integrate into "dev-java/apache-ant", which currently hardcodes a JUnit
+#   download. Rather ugly, but understandable.
 
-#FIXME: Integrate into "dev-java/apache-ant", which currently hardcodes a JUnit
-#download. Rather ugly, but understandable.
-
+# ....................{ EXLIB                              }....................
 # JUnit ships its source in an embedded jar file. Thus, do not clean jar files.
 #
 # Do not require the "sourceforge" exlib, as this exheres overrides most
 # default globals supplied by that exlib.
 require antefix [ clean_jar_files=false ]
+export_exlib_phases src_unpack
 
-export_exlib_phases src_unpack src_install
+# Relative path to the extracted jar file under "${WORK}" having source files
+# for this exheres.
+#
+# This is not optional, since most JUnit slots embed a different jar file.
+myexparam archive_jar_file=
+JUNIT_ARCHIVE_JAR_FILE=$(exparam archive_jar_file)
 
+# ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
+
 SUMMARY="Java unit testing framework"
 DESCRIPTION="
 JUnit is a Java unit testing framework. It significantly contributed to the
@@ -32,15 +46,12 @@ REMOTE_IDS="sourceforge:${PN}"
 # useless. We fallback to downloading the larger zipfile.
 MY_PNV="${PN}${PV}"
 DOWNLOADS="mirror://sourceforge/${PN}/${MY_PNV}.zip"
-WORK="${WORKBASE}"/${MY_PNV}
+WORK="${WORKBASE}/${MY_PNV}"
 
 LICENCES="CPL-1.0"
-MYOPTIONS+="doc examples"
 DEPENDENCIES+="
     build:
         app-arch/unzip
-    build+run:
-        dev-java/hamcrest[>=1.2]
 "
 
 # Absolute path to the root of the JUnit source tree.
@@ -49,70 +60,20 @@ JUNIT_SRC_DIR="${WORK}/src/main/java"
 # Absolute path to the root of the JUnit dist tree (i.e., output jarfile tree).
 JUNIT_DIST_DIR="${WORK}/dist"
 
-# Numerous patches correcting compatibility with Hamcrest 1.2 are thanks to the
-# MacPorts "port" for JUnit 4.6 at "http://trac.macports.org/changeset/52233".
-#
-# You guys are legends!
-DEFAULT_SRC_PREPARE_PATCHES=(
-    "${FILES}/build_xml-fix.patch"
-    "${FILES}/org_junit_internal_matchers-deprecate.patch"
-)
-
-ANT_SRC_PREPARE_SYMLINK_DIR="lib"
-ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest-core )
-
-ANT_PARAMS=(
-    -Ddist="${JUNIT_DIST_DIR}"
-    -Dhamcrestlib="${ANT_SRC_PREPARE_SYMLINK_DIR}/hamcrest-core.jar"
-)
-
-ANT_SRC_COMPILE_PARAMS=( build )
-ANT_SRC_INSTALL_PARAMS=( jars )
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "doc/ReleaseNotes${PV}.txt" )
-
 junit_src_unpack() {
     antefix_src_unpack
 
-    einfo "Unpacking ${PNV}-src.jar..."
+    einfo "Unpacking source jar file..."
     edo mkdir -p  "${JUNIT_SRC_DIR}"
-    edo unzip -qd "${JUNIT_SRC_DIR}" "${WORK}"/${PNV}-src.jar
+    edo unzip -qd "${JUNIT_SRC_DIR}" "${WORK}/${JUNIT_ARCHIVE_JAR_FILE}"
 
     # Delete all jar files, including the above.
     einfo "Removing jar files..."
     clean_jar_files
 
     einfo "Removing extraneous source files..."
-    edo rm -rf "${WORK}/temp.hamcrest.source/"
-}
-
-junit_src_install() {
-    antefix_src_install
-
-    # JUnit creates various jar files, of which we ignore all except the
-    # "${PN}-dep-${PV}.jar" jar file having no external dependencies.
-    einfo "Installing jar file..."
-    install_jar_as "${JUNIT_DIST_DIR}/${PN}-dep-${PV}.jar" "${PN}.jar"
-
-    # Restructure the JUnit documentation tree so as to place all HTML
-    # documentation under a new "/usr/share/doc/${PN}/html/" path.
-    if option doc; then
-        JUNIT_DOCUMENT_DIR="${WORK}/doc/"
-        JUNIT_JAVADOC_DIR="${WORK}/javadoc/"
-
-        # First, remove all non-HTML documents.
-        edo rm "${JUNIT_DOCUMENT_DIR}"/*.{sh,txt}
-
-        # Next, install all HTML documents.
-        docinto html
-        dodoc "${JUNIT_DOCUMENT_DIR}"/*
-        docinto html/javadoc
-        dodoc "${JUNIT_JAVADOC_DIR}"/*
-    fi
-
-    if option examples; then
-        einfo "Installing examples..."
-        docinto examples
-        dodoc "${WORK}/org/junit/samples"/*
-    fi
+    for EXTRA_SOURCE_FILES in "${WORK}/temp.hamcrest.source/"; do
+        [[ -d "${EXTRA_SOURCE_FILES}" ]] && edo rm -rf "${EXTRA_SOURCE_FILES}"
+    done
 }
 
