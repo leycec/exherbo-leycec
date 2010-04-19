@@ -16,8 +16,7 @@
 #
 # This is not an optional parameter. You must pass it. (Unless, of course, you
 # don't want the exlib to manage download URLs for you.)
-myexparam download_subdir=
-APACHE_DOWNLOAD_SUBDIR=$(exparam download_subdir)
+myexparam download_subdir=source
 
 # Subdirectory under "http://${PN}.apache.org/" at which this exheres has its
 # homepage. To set this properly, you also want to set the "pn" parameter: e.g.,
@@ -29,43 +28,40 @@ APACHE_DOWNLOAD_SUBDIR=$(exparam download_subdir)
 # This is an optional parameter defaulting to nothing. Most Apache exheres do
 # not require it; but some do. 
 myexparam homepage_subdir=
-APACHE_HOMEPAGE_SUBDIR=$(exparam homepage_subdir)
 
-# Cut the prefixing "apache-" from exheres names.
+# Apache-specific exheres name, version, and source tarball suffix, cutting
+# the prefixing "apache-" from exheres names.
 myexparam pn=${MY_PN:-${PN}}
-APACHE_PN=$(exparam pn)
+exparam -v APACHE_PN pn
 APACHE_PN=${APACHE_PN#apache-}
 
-# Apache-specific exheres version.
 myexparam pv=${MY_PV:-${PV}}
-APACHE_PV=$(exparam pv)
+exparam -v APACHE_PV pv
 
-# Source tarball filename sans suffix. Note that, by default, this is
-# "${PNV}-src". Explicitly set this for unconformant exheres. See example above.
-myexparam pnv=${MY_PNV:-${APACHE_PN}-${APACHE_PV}-src}
-APACHE_PNV=$(exparam pnv)
+# Use ${PN} rather than ${APACHE_PN} here. Source tarball names thus retain
+# the prefixing "apache-" on exheres names, by default.
+myexparam pnv=${MY_PNV:-${PN}-${APACHE_PV}-src}
+exparam -v APACHE_PNV pnv
 
-# Export the above, as it is generally useful for exheres: e.g.,
-#    WORK="${WORKBASE}/${APACHE_PNV}"
-export APACHE_PNV
-
-# Source tarball filename suffix.
 myexparam suffix="tar.gz"
-APACHE_SUFFIX=$(exparam suffix)
+exparam -v APACHE_SUFFIX suffix
+
+# Subdirectory under ${WORKBASE} to which the above source tarball extracts.
+myexparam work="${APACHE_PNV}"
 
 # ....................{ EXHERES GLOBALS                    }....................
-HOMEPAGE="http://${APACHE_PN}.apache.org/${APACHE_HOMEPAGE_SUBDIR}"
-DOWNLOADS="mirror://apache/${APACHE_PN}/${APACHE_DOWNLOAD_SUBDIR}/${APACHE_PNV}.${APACHE_SUFFIX}"
+HOMEPAGE="http://${APACHE_PN}.apache.org/$(exparam homepage_subdir)"
+DOWNLOADS="mirror://apache/${APACHE_PN}/$(exparam download_subdir)/${APACHE_PNV}.${APACHE_SUFFIX}"
 
 #FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
-#REMOTE_IDS+=" apache:$(exparam project) "
+#REMOTE_IDS+=" apache:${APACHE_PN} "
 
 # All Apache exheres share the same license.
 LICENCES="Apache-2.0"
 
 # Most Apache exheres extract to the same path as the filename of their fetched
 # tarball, sans ".tar.gz". Those that do not must explicitly override this.
-WORK="${WORKBASE}/${APACHE_PNV}"
+WORK="${WORKBASE}/$(exparam work)"
 
 # Add buildtime dependencies appropriate for extracting this archive.
 case "${APACHE_SUFFIX}" in
@@ -78,3 +74,4 @@ case "${APACHE_SUFFIX}" in
     build:
         app-arch/unzip" ;;
 esac
+

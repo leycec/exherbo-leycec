@@ -12,34 +12,38 @@
 # this exlib's parameter defaults are almost always fine, unlike the "apache"
 # exlib's parameter defaults, which often need overriding. (This is probably due
 # to more stringent standards in the Apache Commons community.)
+#
+# This exlib also does not require the "ant" or "java" exlibs. It probably
+# could, as all Apache Commons exheres are Ant exheres; however, that would
+# prevent these exheres from passing parameters to these exlibs.
+
 export_exlib_phases src_prepare src_install
 
 # Subdirectory under "mirror://apache/commons/${PN}" from which source tarballs
 # this exheres are fetched. For Apache Commons exheres, the default "source"
 # is almost always fine.
-myexparam subdir=source
-APACHE_COMMONS_SUBDIR=$(exparam subdir)
+myexparam download_subdir=source
 
-# Cut the prefixing "commons-" from exheres names.
+# Apache Commons-specific exheres name, version, and source tarball suffix,
+# cutting the prefixing "commons-" from exheres names.
 myexparam pn=${MY_PN:-${PN}}
-APACHE_COMMONS_PN=$(exparam pn)
+exparam -v APACHE_COMMONS_PN pn 
 APACHE_COMMONS_PN=${APACHE_COMMONS_PN#commons-}
 
-# Apache Commons-specific exheres version.
 myexparam pv=${MY_PV:-${PV}}
-APACHE_COMMONS_PV=$(exparam pv)
+exparam -v APACHE_COMMONS_PV pv 
 
-# Source tarball filename sans suffix. Prefix the "commons-" back. :)
-myexparam pnv=${MY_PNV:-commons-${APACHE_COMMONS_PN}-${APACHE_COMMONS_PV}-src}
-APACHE_COMMONS_PNV=$(exparam pnv)
+# Use ${PN} rather than ${APACHE_COMMONS_PN} here. Source tarball names thus
+# retain the prefixing "commons-" on exheres names, by default.
+myexparam pnv=${MY_PNV:-${PN}-${APACHE_COMMONS_PV}-src}
+exparam -v APACHE_COMMONS_PNV pnv 
 
-# Source tarball filename suffix.
 myexparam suffix="tar.gz"
-APACHE_COMMONS_SUFFIX=$(exparam suffix)
+exparam -v APACHE_COMMONS_SUFFIX suffix 
 
 # ....................{ EXHERES GLOBALS                    }....................
 HOMEPAGE="http://commons.apache.org/${APACHE_COMMONS_PN}"
-DOWNLOADS="mirror://apache/commons/${APACHE_COMMONS_PN}/${APACHE_COMMONS_SUBDIR}/${APACHE_COMMONS_PNV}.${APACHE_COMMONS_SUFFIX}"
+DOWNLOADS="mirror://apache/commons/${APACHE_COMMONS_PN}/$(exparam download_subdir)/${APACHE_COMMONS_PNV}.${APACHE_COMMONS_SUFFIX}"
 
 #FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
 #REMOTE_IDS+=" apache:$(exparam project) "
@@ -71,6 +75,8 @@ WORK="${WORKBASE}/${APACHE_COMMONS_PNV}"
 APACHE_COMMONS_DIST_DIR="dist"
 
 apache-commons_src_prepare() {
+    antefix_src_prepare
+
     # We can't call the "option" function in global scope above. Do it now!
     ANT_PARAMS+=" -Dcompile.debug="$(option debug && echo true || echo false)
 
@@ -87,8 +93,6 @@ apache-commons_src_prepare() {
         einfo "Cleaning build.properties.sample..."
         edo rm "build.properties.sample"
     fi
-
-    antefix_src_prepare
 }
 
 apache-commons_src_install() {
