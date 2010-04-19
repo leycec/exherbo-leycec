@@ -1,10 +1,8 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
-# Based in part upon 'memtest86+-4.00.ebuild' from Gentoo, which is:
-#     Copyright 1999-2010 Gentoo Foundation
 
-require boot_mounter multilib
-export_exlib_phases src_prepare src_configure src_compile src_install pkg_postinst
+require multilib
+export_exlib_phases src_configure src_compile src_install pkg_postinst
 
 BUGS_TO="leycec@gmail.com"
 
@@ -26,13 +24,14 @@ MYOPTIONS="platform: amd64"
 DEPENDENCIES=""
 
 WORK="${WORKBASE}/memtest86+-${PV}"
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/00-fix_Makefile.patch" )
 
-memtest86plus_src_prepare() {
-    default
-    expatch "${FILES}/00-fix_Makefile.patch"
-}
+MEMTEST86PLUS_INSTALL_DIR="/usr/share/${PN}"
+MEMTEST86PLUS_INSTALL_FILENAME="memtest.bin"
+MEMTEST86PLUS_INSTALL_FILE="${MEMTEST86PLUS_INSTALL_DIR}/${MEMTEST86PLUS_INSTALL_FILENAME}"
 
 memtest86plus_src_configure() {
+    # Memtest86+ does not compile under 64-bit libraries, at the moment. Force it.
     einfo "Forcing 32-bit compilation..."
     ABI=32
     default
@@ -45,35 +44,40 @@ memtest86plus_src_compile() {
         ewarn
         ewarn "Let's try anyway, shall we?"
     fi
-
     default
 }
 
 memtest86plus_src_install() {
     default
-    insinto "/boot/memtest86plus"
-    doins "memtest.bin"
+    insinto "${MEMTEST86PLUS_INSTALL_DIR}"
+    doins   "${MEMTEST86PLUS_INSTALL_FILENAME}"
 }
 
 memtest86plus_pkg_postinst() {
-    elog "MemTest86+ has been installed to /boot/memtest86plus/, but has not"
-    elog "yet been integrated into your current bootloader. To do so, please"
-    elog "manually edit your bootloader configuration: e.g.,"
+    elog "MemTest86+ has been installed to ${MEMTEST86PLUS_INSTALL_DIR}, but has been"
+    elog "neither installed to /boot nor integrated into your current bootloader. To"
+    elog "end the installation, please do both manually: e.g., assuming the boot"
+    elog "partition for your system is at /dev/sda4 and thus \"(hd0,3)\" in GRUB"
     elog
-    elog "* For GRUB 2, add the following lines to \"/boot/grub/grub.conf\""
-    elog "  with '?' replaced by the numbers for your boot partition:"
+    elog "* Install to /boot."
+    elog "  sudo mount /dev/sda4 /boot"
+    elog "  sudo mkdir /boot/${PN}"
+    elog "  sudo cp ${MEMTEST86PLUS_INSTALL_FILE} /boot/${PN}/"
+    elog
+    elog "* And for GRUB 2, add the following lines to \"/boot/grub/grub.conf\"."
     elog "  title=Memtest86+"
-    elog "  root (hd?,?)"
-    elog "  kernel /boot/memtest86plus/memtest.bin"
+    elog "  root (hd0,3)"
+    elog "  kernel /boot/${PN}/${MEMTEST86PLUS_INSTALL_FILENAME}"
     elog
-    elog "* For GRUB 1, add the following lines to \"/boot/grub/menu.lst\""
-    elog "  with '?' replaced by the numbers for your boot partition:"
+    elog "* Or, for GRUB 1, add the following lines to \"/boot/grub/menu.lst\"."
     elog "  title=Memtest86+"
-    elog "  root (hd?,?)"
-    elog "  kernel /boot/memtest86plus/memtest.bin"
+    elog "  root (hd0,3)"
+    elog "  kernel /boot/${PN}/${MEMTEST86PLUS_INSTALL_FILENAME}"
     elog
-    elog "* For LILO, add the following lines to \"/etc/lilo.conf\":"
-    elog "  image = /boot/memtest86plus/memtest"
+    elog "* Or, for LILO, add the following lines to \"/etc/lilo.conf\"."
+    elog "  image = /boot/${PN}/memtest"
     elog "  label = Memtest86+"
+    elog
+    elog "Thanks, and have a stable day."
 }
 
