@@ -19,36 +19,6 @@ require java
 export_exlib_phases pkg_setup \
     src_unpack src_prepare src_compile src_test src_install
 
-disable_class_file_cleaning() {
-    unset JAVA_IS_CLEANING_CLASS_FILES
-}
-disable_jar_file_cleaning() {
-    unset JAVA_IS_CLEANING_JAR_FILES
-}
-enable_class_file_cleaning() {
-    JAVA_IS_CLEANING_CLASS_FILES=1
-}
-enable_jar_file_cleaning() {
-    JAVA_IS_CLEANING_JAR_FILES=1
-}
-
-# If true, recursively delete all class files from "${WORK}" immediately after
-# unpacking source archives. Such class files are bundled in source archives by
-# their distributors so as to avoid the need for compiling. Make them suffer.
-#
-# Defaults to true.
-myexparam -b clean_class_files=true
-  exparam -b clean_class_files && enable_class_file_cleaning
-
-# If true, recursively delete all jar files from "${WORK}" immediately after
-# unpacking source archives. Such jar files are bundled with source archives by
-# their distributors so as to reduce dependency headaches. For us, bundled jar
-# files only aggravate headaches. Cut them away.
-#
-# Defaults to true.
-myexparam -b clean_jar_files=true
-  exparam -b clean_jar_files && enable_jar_file_cleaning
-
 # ....................{ CONFIGURATION                      }....................
 # Array of Java JDK prefixes. If the following expression is true for at least
 # one ${JAVA_RESTRICT_JDK_PREFIX} of this array, then installation fails
@@ -140,6 +110,20 @@ JAVA_IS_DISABLING_NETWORK_SANDBOXING=
 # enabled for this exheres.)
 JAVA_IS_INSTALLING_JAVADOC=
 
+# Set, if recursively deleting all class files from "${WORK}" immediately after
+# extracting source tarballs. Such class files are often bundled with tarballs
+# to avoid the need for user recompilation. Make them suffer; oh, yes.
+#
+# Defaults to set.
+JAVA_IS_CLEANING_CLASS_FILES=1
+
+# Set, if recursively deleting all jar files from "${WORK}" immediately after
+# extracting source tarballs. Such jar files are often bundled with tarballs
+# to reduce dependency hell. For us, bundled jar files only aggravate hell.
+#
+# Defaults to set.
+JAVA_IS_CLEANING_JAR_FILES=1
+
 # Absolute path to the parent of ${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}, below.
 #
 # Avoid changing this global unless you absolutely must, as that probably breaks
@@ -196,31 +180,29 @@ javafix_pkg_setup() {
     # Die if the currently selected Java compiler is exheres restricted.
     if [[ -n "${JAVA_RESTRICT_JDK_PREFIXES[@]}" ]]; then
         local JAVA_RESTRICT_JDK_PREFIX
-        for   JAVA_RESTRICT_JDK_PREFIX \
-            in ${JAVA_RESTRICT_JDK_PREFIXES}; do
+        for   JAVA_RESTRICT_JDK_PREFIX in "${JAVA_RESTRICT_JDK_PREFIXES}"; do
             if [[ "${JAVA_JDK}" = "${JAVA_RESTRICT_JDK_PREFIX}"* ]]; then
-                eerror "Your currently selected Java compiler is \"${JAVA_JDK}\". Unfortunately,"
-                eerror "\"${PNV}\" reports that it currently fails under this compiler. Please consider"
-                eerror "installing and enabling another Java compiler: e.g.,"
+                eerror "Your currently selected Java compiler is \"${JAVA_JDK}\". Unfortunately, \"${PNV}\""
+                eerror "reports it currently fails under this compiler. Consider installing and enabling"
+                eerror "a better supported Java compiler: e.g.,"
                 eerror
                 eerror "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
                 eerror "                           && eclectic java-jre set icedtea6-\$PV"
                 eerror
-                eerror "where \$PV is your installed version of icedtea6 as listed by:"
+                eerror "where \$PV is the installed version of icedtea6 as listed by:"
                 eerror
                 eerror "  paludis -q icedtea6"
-                die
+                die_unless_nonfatal "${PNV} refuses to build under ${JAVA_JDK}"
             fi
         done
     fi
 
     # Warn if the currently selected Java compiler is GCJ.
     if [[ "${JAVA_JDK}" == gcj* ]]; then
-        ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
-        ewarn "this compiler works, it also introduces sydbox access violations by"
-        ewarn "attempting to open spurious DNS requests. Until this can be"
-        ewarn "corrected, please consider installing and enabling the \"icedtea6\""
-        ewarn "compiler instead with:"
+        ewarn "Your currently selected Java compiler is \"gcj\". While, technically, this"
+        ewarn "compiler works, it also introduces sydbox access violations by attempting to"
+        ewarn "open spurious DNS requests. Until this is corrected, please consider"
+        ewarn "installing and enabling \"icedtea6\" with:"
         ewarn
         ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
         ewarn "                           && eclectic java-jre set icedtea6-\$PV"
@@ -263,34 +245,30 @@ javafix_src_unpack() {
     # recursively remove jar files rather than all files and paths, prior to
     # calling the "ant_src_unpack" function.
     if [[ "${JAVA_IS_CLEANING_JAR_FILES}" ]]; then
-        einfo "Removing jar files..."
+        echo ">>> Removing jar files"
         clean_jar_files
     fi
 
     if [[ "${JAVA_IS_CLEANING_CLASS_FILES}" ]]; then
-        einfo "Removing class files..."
+        echo ">>> Removing class files"
         clean_class_files
     fi
 }
 
 javafix_src_prepare() {
     javafix_src_preamble
-
-    if [[ -n "${DEFAULT_SRC_PREPARE_PATCHES[@]}" ]]; then
-        einfo "Patching files..."
-        expatch "${DEFAULT_SRC_PREPARE_PATCHES[@]}"
-    fi
+    default
 
     # Deversion files after patching files above but before invoking Ant below.
     if [[ -n "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}" ]]; then
-        einfo "Removing jar filename version specifiers..."
-        deversion_java_files ${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}
+        echo ">>> Removing jar filename version specifiers"
+        deversion_java_files "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}"
     fi
 
     if [[ -n "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
-        einfo "Linking external jar files..."
+        echo ">>> Linking external jar files"
         set_symlink_jar_dir "${JAVA_SRC_PREPARE_SYMLINK_DIR}"
-        symlink_jars         ${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}
+        symlink_jars        "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}"
     fi
 }
 
@@ -305,7 +283,7 @@ javafix_src_test() {
 javafix_src_install() {
     javafix_src_preamble
 
-    einfo "Installing documents..."
+    echo ">>> Installing documents"
     emagicdocs
 
     # Also ensure we generate javadoc if the user enabled the "doc" option and
@@ -313,14 +291,14 @@ javafix_src_install() {
     # ifs.)
     if [[ -n "${JAVA_IS_INSTALLING_JAVADOC}" ]] &&
        [[ -n "${JAVA_SRC_INSTALL_JAVADOC_DIR}" ]]; then
-        einfo "Installing javadoc..."
-        docinto html/javadoc
+        echo ">>> Installing javadoc"
+        docinto "html/javadoc"
         dodoc "${JAVA_SRC_INSTALL_JAVADOC_DIR}"/*
     fi
 
     if [[ -n "${JAVA_SRC_INSTALL_JARS[@]}" ]]; then
-        einfo "Installing jar files... ${JAVA_SRC_INSTALL_JARS[@]}"
-        install_jars ${JAVA_SRC_INSTALL_JARS[@]}
+        echo ">>> Installing jar files"
+        install_jars "${JAVA_SRC_INSTALL_JARS[@]}"
     fi
 }
 
@@ -332,6 +310,19 @@ javafix_src_preamble() {
 }
 
 # ....................{ CLEANERS                           }....................
+disable_class_file_cleaning() {
+    unset JAVA_IS_CLEANING_CLASS_FILES
+}
+disable_jar_file_cleaning() {
+    unset JAVA_IS_CLEANING_JAR_FILES
+}
+enable_class_file_cleaning() {
+    JAVA_IS_CLEANING_CLASS_FILES=1
+}
+enable_jar_file_cleaning() {
+    JAVA_IS_CLEANING_JAR_FILES=1
+}
+
 # void clean_jar_files(void)
 #
 # Recursively remove all jar files under ${WORK}. (Fairly destructive!)
@@ -339,7 +330,7 @@ clean_jar_files() {
     # Do not use "edo rm -f "${WORK}"/**/*.jar" as that tends to glob more
     # files than can be reasonably handled by the shell.
     edo find "${WORK}" -type f -iname '*.jar' \
-        ${JAVA_CLEAN_JAR_FILES_PARAMS[@]} -delete
+        "${JAVA_CLEAN_JAR_FILES_PARAMS[@]}" -delete
 }
 
 # void clean_class_files(void)
@@ -374,7 +365,7 @@ deversion_java_files() {
         # Do not remove version specifiers from other jar filenames as those
         # filenames may not actually exist. As we can't be sure, we don't.
         if [[ -n "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
-            for EPN in ${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}; do
+            for EPN in "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}"; do
                 if [[ "${EPN:0:1}" != / ]]; then  # ignore absolute paths
                     edo sed -i "${DEVERSION_JAVA_FILE}" \
                         -r -e "s~${EPN}${JAVA_JAR_VERSION_PATTERN}~${EPN}.jar~"
@@ -422,7 +413,7 @@ set_symlink_jar_dir() {
     # "${JAVA_BUNDLED_LIBSDIR}" array.
     if [[ -d "${JAVA_SRC_PREPARE_SYMLINK_DIR}" ]]; then
         edo rm -f "${JAVA_SRC_PREPARE_SYMLINK_DIR}"/*.jar
-    # Otherwise, create the path. It should already be, in general.
+    # Otherwise create the path. It should already be, in general.
     else
         edo install -d "${JAVA_SRC_PREPARE_SYMLINK_DIR}"
     fi
@@ -506,8 +497,8 @@ symlink_jars() {
             fi
         fi
 
-        [[ -f     "${INSTALLED_JAR_FILE}" ]] ||
-            die   "${INSTALLED_JAR_FILE} not found"
+        [[ -f "${INSTALLED_JAR_FILE}" ]] ||
+            die_unless_nonfatal "${INSTALLED_JAR_FILE} not found"
         edo ln -s "${INSTALLED_JAR_FILE}" "${JAVA_SRC_PREPARE_SYMLINK_DIR}"/
     done
 }
@@ -532,15 +523,15 @@ install_jars() {
 
     insinto "${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}"
 
-    local JAR_FILE
-    for   JAR_FILE in ${*}; do
+    local INSTALL_JAR_FILE
+    for   INSTALL_JAR_FILE in ${*}; do
         # Strip versions from filenames: e.g., convert "zebrapig-0.42.jar" to
         # "zebrapig.jar". The pattern substitution requires the bash "extglob"
         # shell option be enabled, which it is under exheres-0.
         #
         # See "man bash" for details.
-        newins ${JAR_FILE} \
-            $(basename "${JAR_FILE/${JAVA_JAR_PARAMETER_VERSION_PATTERN}/.jar}")
+        newins ${INSTALL_JAR_FILE} \
+            $(basename "${INSTALL_JAR_FILE/${JAVA_JAR_PARAMETER_VERSION_PATTERN}/.jar}")
     done
 }
 

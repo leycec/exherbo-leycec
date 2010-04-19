@@ -15,10 +15,10 @@
 # what a cymatium is. Or a cornice.
 
 # ....................{ EXHERES                            }....................
-# All Ant exheres are, by assumption, Java exheres. It is absolutely critical
-# this exlib explicitly requires the "javafix" exlib, for both this reason and
-# the possibility of subtle bugs were this exlib to not require that exlib. In
-# particular, note that the following two require statements are not equal:
+# All Ant exheres are, by assumption, Java exheres. It is therefore crucial that
+# this exlib explicitly require the "java" exlib. Subtle issues would arise were
+# this exlib to not require that exlib. In particular, note the following two
+# require statements are not equal:
 #
 #     # This overwrites all "antefix" exlib phases with "javafix" exlib phases,
 #     # which is never what you want.
@@ -29,7 +29,7 @@
 #     require javafix antefix
 #
 # This exlib explicitly requires the "javafix" exlib so as to eliminate such
-# subtle bugs. This has the unfortunate effect, however, of preventing the
+# subtleties. This has the unfortunate effect, however, of preventing the
 # passing of parameters from exheres to the "javafix" exlib. Affected exheres 
 # should work around this by calling setter functions for the desired parameters
 # in global scope after requiring this exlib. Example:
@@ -175,12 +175,12 @@ antefix_src_compile() {
     # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
         einfo "Preparing source files..."
-        eant "${ANT_BUILD_XML}" ${ANT_PARAMS[@]} ${ANT_SRC_PREPARE_PARAMS[@]}
+        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_PREPARE_PARAMS[@]}"
     fi
 
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
         einfo "Compiling source files..."
-        eant "${ANT_BUILD_XML}" ${ANT_PARAMS[@]} ${ANT_SRC_COMPILE_PARAMS[@]}
+        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_COMPILE_PARAMS[@]}"
     fi
 }
 
@@ -189,7 +189,7 @@ antefix_src_test() {
 
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
         einfo "Testing compiled files..."
-        eant "${ANT_BUILD_XML}" ${ANT_PARAMS[@]} ${ANT_SRC_TEST_PARAMS[@]}
+        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_TEST_PARAMS[@]}"
     fi
 }
 
@@ -198,7 +198,7 @@ antefix_src_install() {
     # parent "src_install" function, which actually install these files.
     if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
         einfo "Collecting jar files..."
-        eant "${ANT_BUILD_XML}" ${ANT_PARAMS[@]} ${ANT_SRC_INSTALL_PARAMS[@]}
+        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
     fi
 
     javafix_src_install
@@ -301,7 +301,8 @@ create_build_xml() {
         einfo "Creating source tree..."
         edo mkdir -p "${ANT_SRC_COMPILE_SOURCE_DIR}"
         if [[ -n "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" ]]; then
-            edo mv "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" "${ANT_SRC_COMPILE_SOURCE_DIR}/"
+            edo mv "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" \
+                   "${ANT_SRC_COMPILE_SOURCE_DIR}/"
         fi
     fi
 
@@ -362,10 +363,8 @@ create_build_xml_file() {
     local BUILD_XML_JAR_FILE="${ANT_SRC_INSTALL_JARS[1]:-${BUILD_XML_DIST_DIR}/${PN}.jar}"
     local BUILD_XML_JAVADOC_DIR="${ANT_SRC_INSTALL_JAVADOC_DIR:-javadoc}"
 
-    local BUILD_XML_DEBUG="false"
-    if has debug ${MYOPTIONS}; then
-        BUILD_XML_DEBUG=$(option debug && echo true || echo false)
-    fi
+    # Exheres calling this function always have a "debug" option.
+    local BUILD_XML_DEBUG=$(option debug && echo true || echo false)
 
     cat <<EOF > "${1}" 
 <?xml version="1.0" encoding="utf-8"?>
