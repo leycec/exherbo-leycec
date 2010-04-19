@@ -1,14 +1,14 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
-# Tomcat 5.5 ships a variety of "build.xml" files. The "${WORK}/build.xml"
+# Tomcat 5 ships a variety of "build.xml" files. The "${WORK}/build.xml"
 # file delegates to "${WORK}/build/build.xml" with additional logic for
 # retrieving online updates. That's bad. Thus, the latter is what we want.
 require tomcat [ ant_dir="build" ]
 
 # See the newest exheres for SLOT commentary. We maintain older Tomcat slots as
 # several older Java exheres require them (for leveraging older Servlet APIs).
-SLOT="5.5"
+SLOT="5"
 PLATFORMS="~amd64 ~x86"
 
 ANT_SRC_PREPARE_PARAMS=( init )
@@ -27,16 +27,16 @@ DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "BENCHMARKS.txt" )
 src_install() {
     tomcat_src_install
 
-    # Other exheres requiring Tomcat 5.5 expect an installation tree resembling:
+    # Other exheres requiring Tomcat 5 expect an installation tree resembling:
     #
     #     /usr/share/tomcat/5/jsr152/dist/lib/jsp-api.jar
     #     /usr/share/tomcat/5/jsr154/dist/lib/servlet-api.jar
-    # Set absolute paths in a reasonably generic way. (See below.)
     einfo "Installing canonical symlinks..."
-    local TOMCAT_INSTALL_JSP_DIR="${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/jsr152/dist/lib/"
-    local TOMCAT_INSTALL_SERVLET_DIR="${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/jsr154/dist/lib/"
-    dodir "${TOMCAT_INSTALL_JSP_DIR}" "${TOMCAT_INSTALL_SERVLET_DIR}"
-    dosym "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/jsp-api.jar"     "${TOMCAT_INSTALL_JSP_DIR}"/
-    dosym "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/servlet-api.jar" "${TOMCAT_INSTALL_SERVLET_DIR}"/
+    local TOMCAT_JAR_DIR=$(which_installed_jar_dir_nonfatal "tomcat:${SLOT}")
+    local TOMCAT_JSP_DIR="${TOMCAT_JAR_DIR}/jsr152/dist/lib/"
+    local TOMCAT_SERVLET_DIR="${TOMCAT_JAR_DIR}/jsr154/dist/lib/"
+    dodir "${TOMCAT_JSP_DIR}" "${TOMCAT_SERVLET_DIR}"
+    dosym "${TOMCAT_JAR_DIR}/jsp-api.jar"     "${TOMCAT_JSP_DIR}"/
+    dosym "${TOMCAT_JAR_DIR}/servlet-api.jar" "${TOMCAT_SERVLET_DIR}"/
 }
 

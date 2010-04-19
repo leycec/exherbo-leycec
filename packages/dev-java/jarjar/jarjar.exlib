@@ -7,18 +7,13 @@
 # "dev-java/apache-ant" exheres, for integrating with Ant.
 
 # Jar Jar Links downloads to a file having this basename. (Set this prior to
-# including the "googlcode" exlib so as to ensure that exlib establishes the
-# proper string for the ${DOWNLOADS} global.)
-MY_PV=${MY_PV:-$PV}
-MY_PNV=${PN}-src-${MY_PV}
+# including the "googlecode" exlib to ensure that exlib establishes the proper
+# ${DOWNLOADS} value.)
+MY_PV=${MY_PV:-${PV}}
+MY_PNV="${PN}-src-${MY_PV}"
 
 require antefix googlecode [ suffix=zip ]
-export_exlib_phases src_prepare src_install
-
-# Jar Jar Links extracts to a file having this basename. Note, this slightly
-# differs from the download filename above.
-MY_PNV=${PN}-${MY_PV}
-WORK="${WORKBASE}"/${MY_PNV}
+export_exlib_phases src_unpack
 
 BUGS_TO="leycec@gmail.com"
 SUMMARY="Java utility for repackaging Java libraries"
@@ -38,24 +33,26 @@ DEPENDENCIES+="
         dev-java/asm[>=3.2]
 "
 
+# Jarjar extracts to a subdirectory whose name differs from its basename. Shrug.
+WORK="${WORKBASE}/${PN}-${MY_PV}"
+
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 
-ANT_SRC_PREPARE_SYMLINK_DIR="lib"
-ANT_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons )
+JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
+JAVA_SRC_PREPARE_SYMLINK_JARS=( asm asm-commons )
+JAVA_SRC_INSTALL_JARS=( "dist/${PNV}.jar" )
+
+# Jarjar's "build.xml" defaults its version to "snapshot", causing havoc. Patch.
+ANT_PARAMS=( -Dversion="${PV}" )
 
 ANT_SRC_PREPARE_PARAMS=( init )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
-jarjar_src_prepare() {
-    antefix_src_prepare
+jarjar_src_unpack() {
+    antefix_src_unpack
 
     # Remove Maven-specific sources.
     edo rm "${WORK}/src/main/com/tonicsystems/jarjar/JarJarMojo.java"
-}
-
-jarjar_src_install() {
-    antefix_src_install
-    install_jar_as "${WORK}/dist/${PN}-snapshot.jar" "${PN}.jar"
 }
 

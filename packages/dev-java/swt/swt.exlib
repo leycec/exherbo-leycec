@@ -23,8 +23,7 @@ DOWNLOADS="
     platform:amd64? ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86_64.zip )
 "
 HOMEPAGE="http://www.eclipse.org"
-
-UPSTREAM_DOCUMENTATION="http://www.eclipse.org/swt/docs.php [[ lang = en ]]"
+UPSTREAM_DOCUMENTATION="http://www.eclipse.org/${PN}/docs.php [[ lang = en ]]"
 
 SLOT="3.5"
 LICENCES="|| ( CPL-1.0 LGPL-2.1 MPL-1.1 )"
@@ -76,7 +75,8 @@ ANT_BUILD="${WORK}/${ANT_BUILD_DIR}"
 ANT_DIST_DIR="dist"
 ANT_DIST="${WORK}/${ANT_DIST_DIR}"
 
-# Relative name of this machine's "lib/" directory.
+# Relative name of this machine's "lib/" directory. (This global is exported to
+# the SWT shell script, but otherwise never used by this exheres.)
 MULTILIB_DIR=$(get_libdir)
 
 DEFAULT_SRC_PREPARE_PATCHES=(
@@ -84,9 +84,10 @@ DEFAULT_SRC_PREPARE_PATCHES=(
     "${FILES}/build_sh-fix.patch"
 )
 
+JAVA_SRC_INSTALL_JARS=( "${ANT_DIST}/${PN}.jar" )
+
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
-ANT_SRC_INSTALL_JARS=( "${ANT_DIST}/${PN}.jar" )
 
 # Extract the "src.zip" archive from the fetched compressed archive, then
 # extract the contents of that archive to ${WORK}.

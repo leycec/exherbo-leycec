@@ -15,11 +15,11 @@
 #     # "build-2.4.xml" for building.
 #     require sat4j [ build_date=20090826 build_version=2.4 ]
 require antefix
-export_exlib_phases src_unpack src_prepare
+export_exlib_phases src_unpack src_prepare src_install
 
 # Get the suffix for this subcomponent: e.g., for "sat4j-core" this is "core".
 # Set this early, so that we can reference it via "myexparam" defaults.
-PN_SUFFIX=${PN#sat4j-}
+SAT4J_PN=${PN#sat4j-}
 
 # SAT4J tarballs are named according to completion date rather than program
 # version. These dates are formatted "${YEAR}${MONTH}${DAY}".
@@ -41,31 +41,28 @@ myexparam build_version=
 # Most SAT4J subcomponents are built by running a single Ant task corresponding
 # to the same name as the subcomponent: e.g., the "core" Ant task for the
 # "sat4j-core" exheres. Some, however, do not and must be explicitly specified.
-myexparam build_task="${PN_SUFFIX}"
+myexparam build_task="${SAT4J_PN}"
 
-# Most SAT4J subcomponents expect input jar files in "${PN_SUFFIX}/lib": e.g.,
+# Most SAT4J subcomponents expect input jar files in "${SAT4J_PN}/lib": e.g.,
 # "maxsat/lib" for the "sat4j-maxsat" exheres. Some, however, do not and must be
 # explicitly specified.
-myexparam lib_dir="${PN_SUFFIX}/lib"
+myexparam lib_dir="${SAT4J_PN}/lib"
 
 # Copy the above parameters to global variables.
-exparam -v BUILD_DATE    build_date
-exparam -v BUILD_VERSION build_version
-exparam -v BUILD_TASK    build_task
-exparam -v LIB_DIR       lib_dir
+exparam -v SAT4J_BUILD_DATE    build_date
+exparam -v SAT4J_BUILD_VERSION build_version
+exparam -v SAT4J_BUILD_TASK    build_task
+exparam -v SAT4J_LIB_DIR       lib_dir
 
 # ....................{ FILENAMES                          }....................
 # Uppercase this suffix's first letter: e.g., for "sat4j-core" this is "Core".
-PN_SUFFIX_CASED=${PN_SUFFIX^}
+SAT4J_PN_CASED=${SAT4J_PN^}
 
 # Construct the basename for both input and output jar files for this
 # subcomponent, sans type: e.g., for "sat4j-core" this is "org.sat4j.core".
 # Simply append file type to this name to get the full basename. (In most cases,
 # but not all, the file type is ".jar".)
-JAR_PN="org.sat4j.${PN_SUFFIX}"
-
-# Construct the basename for the output jar files for the core subcomponent.
-CORE_JAR_PN="org.sat4j.core"
+SAT4J_JAR_PN="org.sat4j.${SAT4J_PN}"
 
 # Absolute path to the work directory. SAT4J tarballs extract into the current
 # directory, so... this is it.
@@ -73,9 +70,9 @@ WORK="${WORKBASE}"
 
 # The build file expects a directory tree resembling:
 #
-# * "${PN_SUFFIX}/src/", having source files.
-# * "${PN_SUFFIX}/lib/", having input jar files (i.e., external dependencies).
-# * "${PN_SUFFIX}/META-INF/", having manifest files.
+# * "${SAT4J_PN}/src/", having source files.
+# * "${SAT4J_PN}/lib/", having input jar files (i.e., external dependencies).
+# * "${SAT4J_PN}/META-INF/", having manifest files.
 #
 # Non-core subcomponents also expect core directories, despite ignoring the
 # contents of these directories, resembling:
@@ -83,17 +80,17 @@ WORK="${WORKBASE}"
 # * "core/src/", having source files for SAT4J Core.
 # * "core/lib/", having input jar files for SAT4J Core.
 #
-# So be it, scoundrel. (Note that ${LIB_DIR} is set above.)
-CORE_SRC_DIR="core/src"
-CORE_LIB_DIR="core/lib"
-SRC_DIR="${PN_SUFFIX}/src"
-MANIFEST_DIR="${PN_SUFFIX}/META-INF"
-MANIFEST_FILE="${MANIFEST_DIR}/MANIFEST.MF"
+# So be it, scoundrel. (Note that ${SAT4J_LIB_DIR} is set above.)
+SAT4J_SRC_DIR_CORE="core/src"
+SAT4J_LIB_DIR_CORE="core/lib"
+SAT4J_SRC_DIR="${SAT4J_PN}/src"
+SAT4J_MANIFEST_DIR="${SAT4J_PN}/META-INF"
+SAT4J_MANIFEST_FILE="${MANIFEST_DIR}/MANIFEST.MF"
 
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
 
-SUMMARY="${PN_SUFFIX_CASED} component for SAT4J, a Java reasoning engine"
+SUMMARY="${SAT4J_PN_CASED} component for SAT4J, a Java reasoning engine"
 DESCRIPTION="
 SAT4J is a Java reasoning engine for solving SATisfiability (SAT) problems.
 Compared to the OpenSAT project, the SAT4J library targets first users of SAT
@@ -104,8 +101,8 @@ also possible for SAT researchers to use it as a basis for their work.
 
 HOMEPAGE="http://www.sat4j.org/"
 DOWNLOADS="
-    http://download.forge.objectweb.org/sat4j/${PN}-v${BUILD_DATE}.zip
-    http://download.forge.objectweb.org/sat4j/build-${BUILD_VERSION}.xml -> build.xml"
+    http://download.forge.objectweb.org/sat4j/${PN}-v${SAT4J_BUILD_DATE}.zip
+    http://download.forge.objectweb.org/sat4j/build-${SAT4J_BUILD_VERSION}.xml -> build.xml"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/maven$(ever range 1-2 ${PV}) [[ lang = en ]]"
 
 SLOT="0"
@@ -117,10 +114,9 @@ DEPENDENCIES+="
 
 # Non-core subcomponents depend upon core of the exact same version, and must
 # symlink that external jar file for core into their "lib/" directory.
-if [[ "${PN_SUFFIX}" != "core" ]]; then
-    ANT_SRC_PREPARE_SYMLINK_DIR="${LIB_DIR}"
-    ANT_SRC_PREPARE_SYMLINK_JARS=(
-        $(which_install_jar_file "sat4j-core" "${CORE_JAR_PN}") )
+if [[ "${SAT4J_PN}" != "core" ]]; then
+    JAVA_SRC_PREPARE_SYMLINK_DIR="${SAT4J_LIB_DIR}"
+    JAVA_SRC_PREPARE_SYMLINK_JARS=( $(which_install_jar_file "sat4j-core") )
 
     DEPENDENCIES+="
     build+run:
@@ -134,9 +130,9 @@ fi
 # case, a customized build.)
 #
 # Thus, there's no prepare or jar tasks. One shot for glory, baby.
-ANT_SRC_COMPILE_PARAMS=( "${BUILD_TASK}" )
-ANT_SRC_INSTALL_JARS=( "dist/CUSTOM/${JAR_PN}.jar" )
+ANT_SRC_COMPILE_PARAMS=( "${SAT4J_BUILD_TASK}" )
 
+JAVA_SRC_INSTALL_JARS=( "dist/CUSTOM/${SAT4J_JAR_PN}.jar" )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "overview.html" )
 
 # Each SAT4J tarball comes bundled with two jar files: one ending in "-src.jar"
@@ -146,11 +142,11 @@ sat4j_src_unpack() {
     default
 
     einfo "Unpacking sources jar file..."
-    JAR_FILE_SOURCES="${JAR_PN}-src.jar"
-    JAR_FILE_CLASSES="${JAR_PN}.jar"
-    edo mkdir -p "${SRC_DIR}" "${LIB_DIR}" "${MANIFEST_DIR}" \
-                 "${CORE_SRC_DIR}" "${CORE_LIB_DIR}"
-    edo unzip -q "${JAR_FILE_SOURCES}" -d "${SRC_DIR}"
+    SAT4J_JAR_FILE_SOURCES="${SAT4J_JAR_PN}-src.jar"
+    SAT4J_JAR_FILE_CLASSES="${SAT4J_JAR_PN}.jar"
+    edo mkdir -p "${SAT4J_SRC_DIR}" "${SAT4J_LIB_DIR}" "${SAT4J_MANIFEST_DIR}" \
+                 "${SAT4J_SRC_DIR_CORE}" "${SAT4J_LIB_DIR_CORE}"
+    edo unzip -q "${SAT4J_JAR_FILE_SOURCES}" -d "${SAT4J_SRC_DIR}"
 
     # A few SAT4J jar files bundle a version file, which the SAT4J launcher and
     # presumably other files read to version themselves. The version file
@@ -158,27 +154,30 @@ sat4j_src_unpack() {
     # provided by their .java jar file has a placeholder token resembling
     # "9.9.9.token". In any case, since not all SAT4J jar files bundle a version
     # file, we assume none do and manually reconstruct it for all builds. It has
-    # format "${PV}.${BUILD_VERSION}": e.g., "2.1.1.v20090826" for SAT4J 2.1.1.
+    # format "${PV}.${SAT4J_BUILD_VERSION}": e.g., "2.1.1.v20090826" for SAT4J
+    # 2.1.1.
     #
     # The build file requires this version file to reside in the hardcoded path
-    # "${CORE_SRC_DIR}" rather than the usual "${SRC_DIR}/". Eh?
+    # "${SAT4J_SRC_DIR_CORE}" rather than the usual "${SAT4J_SRC_DIR}/". Eh?
     einfo "Unpacking classes jar file version..."
-    edo echo "${PV}.${BUILD_VERSION}" > "${CORE_SRC_DIR}/sat4j.version"
+    edo echo "${PV}.${SAT4J_BUILD_VERSION}" > "${SAT4J_SRC_DIR_CORE}/sat4j.version"
 
     einfo "Deleting sources and classes jar files..."
-    edo rm "${JAR_FILE_SOURCES}" "${JAR_FILE_CLASSES}"
+    edo rm "${SAT4J_JAR_FILE_SOURCES}" "${SAT4J_JAR_FILE_CLASSES}"
 
     # The sources jar file unpacked above bundles a manifest file into the
-    # "${PN_SUFFIX}/src/META-INF/" directory. The build file expects it in the
-    # "${PN_SUFFIX}/META-INF/" directory, however. Move it. /me sighs
+    # "${SAT4J_PN}/src/META-INF/" directory. The build file expects it in the
+    # "${SAT4J_PN}/META-INF/" directory, however. Move it. /me sighs
     einfo "Moving manifest file..."
-    edo mv "${SRC_DIR}/META-INF/MANIFEST.MF" "${MANIFEST_FILE}"
+    edo mv "${SRC_DIR}/META-INF/MANIFEST.MF" "${SAT4J_MANIFEST_FILE}"
 
     einfo "Moving build.xml..."
     edo cp "${FETCHEDDIR}/build.xml" .
 }
 
 sat4j_src_prepare() {
+    antefix_src_prepare
+
     # Prevent Ant from getting CVS source as performed by the "getsource" task;
     # prevent Ant tasks from depending on the "core" task, as this exlib already
     # ensures "sat4j-core.jar" is built and symlinked into ${WORK} for non-core
@@ -188,13 +187,19 @@ sat4j_src_prepare() {
     einfo "Patching ${ANT_BUILD_XML}..."
     edo sed -e 's: depends="core"::' -e 's:,getsource::' -i "${ANT_BUILD_XML}"
 
-    antefix_src_prepare
-
     # These values retrieved from "plugin.properties" bundled with this jar file.
     # Thor, I pray they stay in sync.
     einfo "Patching jar file manifest..."
-    local BUNDLE_NAME="SAT4J ${PN_SUFFIX_CASED}"
+    local BUNDLE_NAME="SAT4J ${SAT4J_PN_CASED}"
     local PROVIDER_NAME="CRIL CNRS UMR 8188 - Universite d'Artois"
-    patch_jar_manifest "${MANIFEST_FILE}"
+    patch_jar_manifest "${SAT4J_MANIFEST_FILE}"
+}
+
+sat4j_src_install() {
+    # Other exheres often expect SAT4J jar filenames to be named as follows.
+    einfo "Installing jar file symlinks..."
+    dosym \
+        $(which_installed_jar_file_nonfatal "sat4j") \
+        $(which_installed_jar_dir_nonfatal  "sat4j")/"${SAT4J_JAR_PN}"
 }
 

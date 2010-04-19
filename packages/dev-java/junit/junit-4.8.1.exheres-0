@@ -7,7 +7,6 @@ require junit [ archive_jar_file="${PNV}-src.jar" ]
 # JUnit 3.x.x series? High-profile exheres (like Eclipse) require both.
 SLOT="4"
 PLATFORMS="~amd64 ~x86"
-
 MYOPTIONS+="doc examples"
 
 # JUnit 4.x.x adds a dependency on Hamcrest. 
@@ -26,13 +25,13 @@ DEFAULT_SRC_PREPARE_PATCHES=(
 )
 
 # Declare this prior to declaring "ANT_PARAMS" below.
-ANT_SRC_PREPARE_SYMLINK_DIR="lib"
-ANT_SRC_PREPARE_SYMLINK_JARS=( hamcrest-core )
+JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
+JAVA_SRC_PREPARE_SYMLINK_JARS=( hamcrest-core )
 
 # JUnit needs to be hand-held, a bit; explicitly tell it where hamcrest lives.
 ANT_PARAMS=(
     -Ddist="${JUNIT_DIST_DIR}"
-    -Dhamcrestlib="${ANT_SRC_PREPARE_SYMLINK_DIR}/hamcrest-core.jar"
+    -Dhamcrestlib="${JAVA_SRC_PREPARE_SYMLINK_DIR}/hamcrest-core.jar"
 )
 
 ANT_SRC_COMPILE_PARAMS=( build )

@@ -51,6 +51,8 @@ ANT_SRC_PREPARE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
 
 commons-logging_src_prepare() {
+    apache-commons_src_prepare
+
     # Commons Logging ships a not very helpful "build.properties.sample" file.
     # Brush off that file and create our own "build.properties" file by hand.
     einfo "Creating build.properties..."
@@ -61,8 +63,5 @@ EOF
 
     # Notify Commons Logging of optional dependencies.
     option log4j && echo "log4j12.jar="$(which_installed_jar_file "log4j:1.2") >> build.properties
-
-    # Do the above prior to calling this "src_prepare", as this invokes Ant.
-    apache-commons_src_prepare
 }
 

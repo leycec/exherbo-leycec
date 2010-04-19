@@ -22,10 +22,10 @@ application data without using scriptlets.
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/api [[ lang = en ]]"
 UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/RELEASE-NOTES.txt"
 
-# Commons El depends on the Tomcat 5.5 slot. It's rather old... but it works.
+# Commons El depends on the Tomcat 5 slot. It's rather old... but it works.
 DEPENDENCIES+="
     build+run:
-        dev-java/tomcat:5.5
+        dev-java/tomcat:5
     build+test:
         dev-java/junit:4
 "
@@ -42,13 +42,15 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "PROPOSAL.html" )
 
 commons-el_src_prepare() {
+    apache-commons_src_prepare
+
     # Commons El ships a not very helpful "build.properties.sample" file.
     # Murder that file and create our own "build.properties". Note these
     # properties enable "*.build.notrequired"; without this, Commons El's
-    # "build.xml" oddly attempts to rebuild the Tomcat 5.5 API by hand. (Bad.)
+    # "build.xml" oddly attempts to rebuild the Tomcat 5 API by hand. (Bad.)
     einfo "Creating build.properties..."
     edo cat <<EOF > "build.properties" 
-api.home=$(which_installed_jar_dir "tomcat:5.5")
+api.home=$(which_installed_jar_dir "tomcat:5")
 junit.home=$(which_installed_jar_dir "junit:4")
 servletapi.build.notrequired = true
 jspapi.build.notrequired = true
@@ -56,9 +58,6 @@ EOF
 
     # Commons El ships a clearly broken "build.xml" referencing a non-existant
     # "../LICENSE" file. Astonishingly, this causes the "jar" task to fail.
-    edo sed -e "s:../LICENSE:LICENSE.txt:" -i "build.xml"
-
-    # Do the above prior to calling this "src_prepare", as this invokes Ant.
-    apache-commons_src_prepare
+    edo sed -e "s:../LICENSE:LICENSE.txt:" -i "${ANT_BUILD_XML}"
 }
 

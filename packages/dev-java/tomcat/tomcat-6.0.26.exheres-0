@@ -18,14 +18,15 @@ PLATFORMS="~amd64 ~x86"
 # Eclipse's JDT. But Eclipse itself depends on the Tomcat jar files. Thus, this
 # introduces a catch-22. Patch her up, Sulu.
 DEFAULT_SRC_PREPARE_PATCHES+=( "${FILES}/${SLOT}/build_xml-fix.patch" )
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "RUNNING.txt" "STATUS.txt" )
 
 ANT_SRC_PREPARE_PARAMS=( build-prepare )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( package )
 
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "RUNNING.txt" "STATUS.txt" )
-
 src_prepare() {
+    tomcat_src_prepare
+
     # Tomcat ships with crufty source files:
     #
     # * The "java/org/apache/jasper" tree, which depends on Eclipse's JDT.
@@ -37,7 +38,5 @@ src_prepare() {
     # It's a wonder anything's left.
     einfo "Removing extraneous source files..."
     edo rm -rf "java/org/apache"/{catalina,coyote,jasper,jk,naming}
-
-    tomcat_src_prepare
 }
 

@@ -3,7 +3,7 @@
 # Based in part upon 'commons-codec-1.4.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix apache-commons
+require antefix javafix apache-commons
 export_exlib_phases src_prepare
 
 BUGS_TO="leycec@gmail.com"
@@ -33,6 +33,8 @@ ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
 commons-codec_src_prepare() {
+    apache-commons_src_prepare
+
     # Commons Codec ships a not very helpful "build.properties.sample" file.
     # Brush off that file and create our own "build.properties" file by hand.
     einfo "Creating build.properties..."
@@ -43,8 +45,5 @@ build.home=build
 junit.jar=$(which_installed_jar_file "junit:4")
 final.name=${PN}
 EOF
-
-    # Do the above prior to calling this "src_prepare", as this invokes Ant.
-    apache-commons_src_prepare
 }
 

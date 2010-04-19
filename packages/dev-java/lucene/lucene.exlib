@@ -3,7 +3,8 @@
 # Based in part upon 'lucene-3.0.0.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix apache [ download_subdir="java" ]
+# Lucene extracts to the usual directory -- not the usual Apache directory.
+require antefix apache [ download_subdir="java" work="${PNV}" ]
 export_exlib_phases src_prepare src_compile src_install
 
 BUGS_TO="leycec@gmail.com"
@@ -51,9 +52,6 @@ DEPENDENCIES+="
         dev-java/junit:4
 "
 
-# Lucene extracts to the usual directory -- not the usual Apache directory.
-WORK="${WORKBASE}/${PNV}"
-
 # Lucene's "build.xml" and "contrib/contrib-build.xml" both import
 # "common-build.xml", which has the guts of Lucene's build process.
 ANT_BUILD_XML="build.xml"
@@ -72,10 +70,15 @@ ANT_CONTRIB_BUILD_DIR="build/contrib"
 ANT_CONTRIB_ANALYZERS_BUILD_XML="contrib/analyzers/build.xml"
 ANT_CONTRIB_ANALYZERS_BUILD_DIR="${ANT_CONTRIB_BUILD_DIR}/analyzers/common"
 
-# Symlink these external jars; patch these internal files.
-ANT_SRC_PREPARE_SYMLINK_DIR="lib"
-ANT_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
-ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
+JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
+JAVA_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
+JAVA_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
+JAVA_SRC_INSTALL_JARS=(
+    "build/${PN}-core-${PV}.jar"
+    "build/${PN}-demos-${PV}.jar"
+)
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
 
 # Lucene requires "javacc.jar" to run the "javacc" task, which makes sense.
 # But it requires it under "/usr/share/javacc/bin/lib/", which doesn't. We
@@ -106,21 +109,13 @@ ANT_SRC_TEST_PARAMS=( test-core )
 # Apache PDFBox requires both "lucene-core.jar" and "lucene-demos.jar". Most
 # other exheres require the former but not the latter. Make both, just in case.
 ANT_SRC_INSTALL_PARAMS=( jar-core jar-demo )
-ANT_SRC_INSTALL_JARS=(
-    "build/${PN}-core-${PV}.jar"
-    "build/${PN}-demos-${PV}.jar"
-)
-
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
 
 lucene_src_prepare() {
+    antefix_src_prepare
+
     # See "ANT_PARAMS" above for why we remove "-dev" from version strings here.
-    # Do this prior to calling the parent "src_prepare" function to ensure that
-    # function invokes Ant with a properly patched "build.xml" file.
     einfo "Patching ${ANT_COMMON_BUILD_XML}..."
     edo sed -e "s:${PV}-dev:${PV}:" -i "${ANT_COMMON_BUILD_XML}"
-
-    antefix_src_prepare
 }
 
 lucene_src_compile() {

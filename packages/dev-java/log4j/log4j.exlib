@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 # Log4j does not use an Apache-compliant URL scheme. It just mostly complies.
-require antefix apache [ \
+require antefix javafix apache [ \
     pn="logging"        homepage_subdir="${PN}" \
     pnv="apache-${PNV}" download_subdir="${PN}/${PV}" ]
 
@@ -27,8 +27,7 @@ UPSTREAM_CHANGELOG="${HOMEPAGE}/${PV}/changes-report.html"
 #    jms?      ( dev-java/jms )
 #"
 
-# The "build.xml" task in log4j's "build.xml" insists it depends upon JAXP jar
-# files being installed
+JAVA_SRC_INSTALL_JARS=( "dist/lib/${PNV}.jar" )
 
 # Log4j's "build.xml" often hardcodes erroneous version values (e.g., the
 # "build.xml" file corresponding to "log4j-1.2.16.exheres-0" insisted it was
@@ -52,5 +51,4 @@ ANT_SRC_COMPILE_PARAMS=( build )
 # suggests, it generates a jar file having log4j class files. The more generally
 # named "jar" task generates both this and a jar file having source files. Dull!
 ANT_SRC_INSTALL_PARAMS=( "log4j.jar" )
-ANT_SRC_INSTALL_JARS=( "dist/lib/${PNV}.jar" )
 

@@ -31,16 +31,9 @@ code. Unlike Yacc, however, JavaCC generates top-down parsers. This limits it to
 the LL(k) class of grammars and, in particular, prevents use of left recursion.
 "
 
-export EXTRA_WGET="--no-check-certificate"
 HOMEPAGE="https://${PN}.dev.java.net"
+DOWNLOADS="${HOMEPAGE}/files/documents/17/$(exparam download_id)/${PNV}src.tar.gz"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/doc/docindex.html [[ lang = en ]]"
-
-#FIXME: Alas! Our resolvers don't support https fetching, yet, as that requires
-#they support "fetch:" dependencies. As a VERY-VERY TEMPORARY FIX, I've agreed to
-#host the distfile at a non-https URL. This is only temporary and should probably
-#not be depended upon long-term! YMMV.
-#DOWNLOADS="${HOMEPAGE}/files/documents/17/$(exparam download_id)/${PNV}src.tar.gz"
-DOWNLOADS="http://bcurry.gomen.org/exherbo.org/distfiles/${PNV}src.tar.gz"
 
 SLOT="0"
 LICENCES="BSD-3"
@@ -54,10 +47,10 @@ WORK="${WORKBASE}/${PN}"
 # JavaCC actually bundles a compiled version of itself as a jar file so as to
 # bootstrap compile a new JavaCC parser given this bundle. This is odd, but
 # there's not much we can do.
-ANT_CLEAN_JAR_FILES_PARAMS=( -not -name 'javacc.jar' )
-
-ANT_SRC_PREPARE_SYMLINK_DIR="lib/junit"
-ANT_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
+JAVA_CLEAN_JAR_FILES_PARAMS=( -not -name 'javacc.jar' )
+JAVA_SRC_PREPARE_SYMLINK_DIR="lib/junit"
+JAVA_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
+JAVA_SRC_INSTALL_JARS=( "bin/lib/${PN}.jar" )
 
 # Note that, though the "compile" task compiles "*Test.java" files the "jar"
 # task does not actually jar them. (Good enough for us.)
@@ -67,7 +60,6 @@ ANT_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
 # non-deprecated versions of this file. Hurk, spu-urk.
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
-ANT_SRC_INSTALL_JARS=( "bin/lib/${PN}.jar" )
 
 # ....................{ PHASES                             }....................
 javacc_src_prepare() {
@@ -79,7 +71,7 @@ javacc_src_prepare() {
     einfo "Patching build.xml files..."
     for BROKEN_BUILD_XML in \
         "${ANT_BUILD_XML}" "src/org/javacc/parser/build.xml"; do
-        edo sed -e 's:lib/junit[0-9.]*/:lib/junit/:' -i "${BROKEN_BUILD_XML}"
+        edo sed -e 's~lib/junit[0-9.]*/~lib/junit/~' -i "${BROKEN_BUILD_XML}"
     done
 }
 
@@ -87,8 +79,8 @@ javacc_src_install() {
     antefix_src_install
 
     # Set absolute paths in a reasonably generic way. (See below.)
-    local JAVACC_JAR_FILE=$(which_installed_jar_file_nonfatal "javacc.jar")
-    local JAVACC_INSTALL_DIR="${ANT_SRC_INSTALL_JARS_IMAGE_DIR}/bin"
+    local JAVACC_JAR_FILE=$(which_installed_jar_file_nonfatal "javacc")
+    local JAVACC_BIN_DIR=$( which_installed_jar_dir_nonfatal  "javacc")/"bin"
 
     # JavaCC provides several convenience shell scripts for running various
     # Java class files in its installed jar file as command-line executables.
@@ -101,7 +93,7 @@ javacc_src_install() {
     local JAVACC_SHELL_SCRIPT
     for   JAVACC_SHELL_SCRIPT in \
         "bin/javacc" "bin/jjdoc" "bin/jjrun" "bin/jjtree"; do
-        edo sed -e "s:^JAR=.*$:JAR=\"${JAVACC_JAR_FILE}\":" \
+        edo sed -e "s~^JAR=.*$~JAR=\"${JAVACC_JAR_FILE}\"~" \
             -i "${JAVACC_SHELL_SCRIPT}"
         dobin  "${JAVACC_SHELL_SCRIPT}"
     done
@@ -125,10 +117,10 @@ javacc_src_install() {
     #
     # Provide both by symlinking the former to the latter.
     einfo "Installing canonical symlinks..."
-    dodir                      "${JAVACC_INSTALL_DIR}/lib/"
-    dosym "${JAVACC_JAR_FILE}" "${JAVACC_INSTALL_DIR}/lib/"
+    dodir                      "${JAVACC_BIN_DIR}/lib/"
+    dosym "${JAVACC_JAR_FILE}" "${JAVACC_BIN_DIR}/lib/"
     for JAVACC_SHELL_SCRIPT in "javacc" "jjdoc" "jjrun" "jjtree"; do
-        dosym "/usr/bin/${JAVACC_SHELL_SCRIPT}" "${JAVACC_INSTALL_DIR}/"
+        dosym "/usr/bin/${JAVACC_SHELL_SCRIPT}" "${JAVACC_BIN_DIR}/"
     done
 }
 

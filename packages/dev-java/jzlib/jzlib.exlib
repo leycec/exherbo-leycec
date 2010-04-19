@@ -1,8 +1,10 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
+require antefix jcraft
+
 # JZlib ships no "build.xml" file. Let's help them with that.
-require antefix [ create_build_xml=true ] jcraft
+enable_build_xml_creation
 
 # Smallest exlib evar.
 BUGS_TO="leycec@gmail.com"

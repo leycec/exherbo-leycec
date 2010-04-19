@@ -12,11 +12,9 @@
 #   download. Rather ugly, but understandable.
 
 # ....................{ EXLIB                              }....................
-# JUnit ships its source in an embedded jar file. Thus, do not clean jar files.
-#
 # Do not require the "sourceforge" exlib, as this exheres overrides most
 # default globals supplied by that exlib.
-require antefix [ clean_jar_files=false ]
+require antefix
 export_exlib_phases src_unpack
 
 # Relative path to the extracted jar file under "${WORK}" having source files
@@ -25,6 +23,9 @@ export_exlib_phases src_unpack
 # This is not optional, since most JUnit slots embed a different jar file.
 myexparam archive_jar_file=
 JUNIT_ARCHIVE_JAR_FILE=$(exparam archive_jar_file)
+
+# JUnit ships its source in an embedded jar file. Thus, do not clean jar files.
+disable_jar_file_cleaning
 
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"

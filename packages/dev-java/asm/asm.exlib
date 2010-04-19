@@ -19,9 +19,9 @@ simplicity of use and performance. Because it was designed and implemented to be
 as small and as fast as possible, ASM is attractive for use in dynamic systems.
 "
 
-HOMEPAGE="http://asm.ow2.org"
+HOMEPAGE="http://${PN}.ow2.org"
 DOWNLOADS="http://download.forge.objectweb.org/${PN}/${PNV}.tar.gz"
-UPSTREAM_DOCUMENTATION="http://asm.ow2.org/asm32/javadoc/user/index.html [[ lang = en ]]"
+UPSTREAM_DOCUMENTATION="http://${PN}.ow2.org/${PN}$(ever delete_all)/javadoc/user/index.html [[ lang = en ]]"
 
 SLOT="0"
 LICENCES="BSD-3"
@@ -41,6 +41,6 @@ asm_src_install() {
     antefix_src_install
 
     einfo "Installing jar files..."
-    install_jars "${WORK}/output/dist/lib"/*.jar
+    install_jars "output/dist/lib"/*.jar
 }
 

@@ -7,7 +7,8 @@
 
 # ....................{ EXLIB                              }....................
 require antefix apache [ \
-    download_subdir="tomcat-$(ever range 1)/v${PV}/src" pnv="apache-${PNV}-src" ]
+    download_subdir="tomcat-$(ever range 1)/v${PV}/src" \
+    pnv="apache-${PNV}-src" ]
 export_exlib_phases src_prepare src_install
 
 # Absolute or relative path to this Tomcat slot's "build.xml" directory. This is
@@ -16,7 +17,7 @@ export_exlib_phases src_prepare src_install
 #
 # This defaults to "${WORK}".
 myexparam ant_dir=.
-TOMCAT_ANT_DIR=$(exparam ant_dir)
+exparam -v TOMCAT_ANT_DIR ant_dir
 
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
@@ -50,12 +51,14 @@ ANT_BUILD_XML="${TOMCAT_ANT_DIR}/build.xml"
 # All Tomcat slots output jar files under this path.
 TOMCAT_DIST_ROOT_DIR="${WORK}/output/build"
 
-# Some Tomcat 5.5 bundle documentation in another path.
+# Some Tomcat exheres bundle documentation under another path.
 if [[ "${TOMCAT_ANT_DIR}" != . ]]; then
     DEFAULT_SRC_INSTALL_EXTRA_SUBDIRS+="${TOMCAT_ANT_DIR}"
 fi
 
 tomcat_src_prepare() {
+    antefix_src_prepare
+
     # Tomcat ships "build.properties.default" which it requires we manually 
     # copy to this "build.properties" and change as follows:
     #
@@ -63,8 +66,6 @@ tomcat_src_prepare() {
     #   otherwise the build process tries writing to "/usr/share/java". (Baad.)
     # * Enable debugging if and only if the "debug" exheres option is enabled.
     # * Do not append "-dev" to the build version.
-    #
-    # Do this prior to calling the parent "src_prepare" as that invokes Ant.
     einfo "Patching build.properties..."
     edo mv "${TOMCAT_ANT_DIR}/build.properties.default" \
            "${TOMCAT_ANT_DIR}/build.properties"
@@ -73,8 +74,6 @@ tomcat_src_prepare() {
         -e "s:^\(compile\.debug=\).*$:\1$(option debug && echo true || echo false):" \
         -e "s:^\(version\.suffix=\).*$:\1:" \
         -i "${TOMCAT_ANT_DIR}/build.properties"
-
-    antefix_src_prepare
 }
 
 tomcat_src_install() {

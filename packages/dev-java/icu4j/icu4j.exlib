@@ -7,7 +7,8 @@
 # not be purged! Note that they need not be installed to the local system,
 # however, as the build process automatically adds their content to the output
 # ICU4J jar file.
-require antefix [ clean_jar_files=false ]
+require antefix
+disable_jar_file_cleaning
 
 BUGS_TO="leycec@gmail.com"
 
@@ -16,7 +17,7 @@ DESCRIPTION="
 ICU is a mature, widely used set of C/C++ and Java libraries providing Unicode
 and globalization support for software applications. ICU is widely portable and
 gives applications the same results on all platforms and between C/C++ and Java
-software. (This is the Java port.)
+software. (This is the Java port, ICU4j.)
 "
 
 # ICU4J is somewhat inconsistent in version naming.
@@ -30,15 +31,16 @@ UPSTREAM_CHANGELOG="http://source.icu-project.org/repos/icu/${PN}/tags/release-$
 # Technically, this only applies to the most recent version of ICU4J.
 UPSTREAM_DOCUMENTATION="http://icu-project.org/apiref/${PN} [[ lang = en ]]"
 
+# ICU elected to licence their work under a homebrew license. Not terribly wise.
 SLOT="0"
 LICENCES="ICU-1.8.1"
 
 WORK="${WORKBASE}"
-
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "APIChangeReport.html" )
 
 # ICU4J does not compile under "gcj", currently.
-ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
+JAVA_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
+JAVA_SRC_INSTALL_JARS=( "${PN}.jar" "${PN}-charsets.jar" )
 
 # Strictly speaking, it's not necessary we pass the "env.COMPUTERNAME" property;
 # it just makes build output moderately prettier.
@@ -47,5 +49,4 @@ ANT_PARAMS=( -Denv.COMPUTERNAME=$(hostname) )
 ANT_SRC_COMPILE_PARAMS=( main )
 ANT_SRC_TEST_PARAMS=( check )
 ANT_SRC_INSTALL_PARAMS=( jar )
-ANT_SRC_INSTALL_JARS=( "${PN}.jar" "${PN}-charsets.jar" )
 
