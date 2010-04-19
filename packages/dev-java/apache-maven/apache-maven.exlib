@@ -145,6 +145,7 @@ apache-maven_src_install() {
     # Move the locally installed Maven into a system-wide directory. Happily,
     # Maven defines sufficiently distro-agnostic executable scripts; install!
     einfo "Installing shared files..."
+    dodir  "${MAVEN_HOME%/*}"      "/usr/bin/"
     edo mv "${MAVEN_HOME_WORK}" "${IMAGE}/${MAVEN_HOME}"
     dosym  "${MAVEN_HOME}/bin/mvn" "/usr/bin/mvn"
 
