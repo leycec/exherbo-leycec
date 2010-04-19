@@ -48,7 +48,7 @@ MYOPTIONS+="debug"
 ANT_BUILD_XML="${TOMCAT_ANT_DIR}/build.xml"
 
 # All Tomcat slots output jar files under this path.
-TOMCAT_DIST_ROOT_DIR=${WORK}/output/build
+TOMCAT_DIST_ROOT_DIR="${WORK}/output/build"
 
 # Some Tomcat 5.5 bundle documentation in another path.
 if [[ "${TOMCAT_ANT_DIR}" != . ]]; then

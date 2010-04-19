@@ -25,7 +25,7 @@ export_exlib_phases pkg_setup \
 #
 # Defaults to true.
 myexparam -b clean_class_files=true
-  exparam -b clean_class_files && ANT_CLEAN_CLASS_FILES=1
+  exparam -b clean_class_files && ANT_IS_CLEANING_CLASS_FILES=1
 
 # If true, recursively delete all jar files from "${WORK}" immediately after
 # unpacking source archives. Such jar files are bundled with source archives by
@@ -34,7 +34,7 @@ myexparam -b clean_class_files=true
 #
 # Defaults to true.
 myexparam -b clean_jar_files=true
-  exparam -b clean_jar_files && ANT_CLEAN_JAR_FILES=1
+  exparam -b clean_jar_files && ANT_IS_CLEANING_JAR_FILES=1
 
 # If true, programmatically create a new "${WORK}/build.xml" file for this
 # exheres. (Enable this for exheres providing no "build.xml", but for which the
@@ -42,9 +42,17 @@ myexparam -b clean_jar_files=true
 # projects already provide Ant, Maven, or Ivy build files; so, this should be
 # used sparingly.)
 #
-# Defaults to true.
+# Defaults to false. Note: for exheres with complex exlib dependencies, you may
+# also selectively enable this after requiring this exlib by calling
+# "enable_build_xml_creation" in global scope. Example:
+#
+#      # "junit-3.8.2.exheres-0" requires "build.xml" creation. However, the
+#      # "junit.exlib" it requires already requires this exlib. Thus, it has no
+#      # opportunity to enable this parameter at require time. Instead:
+#      require junit
+#      enable_build_xml_creation
 myexparam -b create_build_xml=false
-  exparam -b create_build_xml && ANT_CREATE_BUILD_XML=1
+exparam -b create_build_xml && ANT_IS_CREATING_BUILD_XML=1
 
 # ....................{ CONFIGURATION                      }....................
 # Absolute or relative path under ${WORK} to the "build.xml" for this exheres.
@@ -225,8 +233,17 @@ DEPENDENCIES+="
 # This section specific to exheres using the "create_build_xml" exparam.
 
 # If creating a new "build.xml" file, this file is guaranteed to provide the
-# following exheres options and Ant tasks.
-if [[ "${ANT_CREATE_BUILD_XML}" ]]; then
+[[ "${ANT_IS_CREATING_BUILD_XML}" ]] && enable_build_xml_creation
+
+# void enable_build_xml_creation(void)
+#
+# Enables "build.xml" creation. This function should only be called in global
+# exheres scope, as it provides exheres globals, Ant tasks, et al.
+enable_build_xml_creation() {
+    # Ensure the appropriate global boolean is also enabled.
+    ANT_IS_CREATING_BUILD_XML=1
+
+    # The created "build.xml" is guaranteed to support these options.
     MYOPTIONS+="debug doc"
 
     # Absolute or relative path under "${WORK}" from which sources files (e.g.,
@@ -263,7 +280,7 @@ if [[ "${ANT_CREATE_BUILD_XML}" ]]; then
     # later, if and only if the caller has enabled the exheres "doc" option.
     ANT_SRC_INSTALL_PARAMS=( jar )
     ANT_SRC_INSTALL_JARS=( "${ANT_SRC_INSTALL_JARS_DIR}/${PN}.jar" )
-fi
+}
 
 # ....................{ PHASES                             }....................
 antefix_pkg_setup() {
@@ -333,7 +350,7 @@ antefix_pkg_setup() {
 antefix_src_unpack() {
     default
 
-    if [[ "${ANT_CREATE_BUILD_XML}" ]]; then
+    if [[ "${ANT_IS_CREATING_BUILD_XML}" ]]; then
         einfo "Creating ${ANT_BUILD_XML}..."
         edo pushd "${WORK}"
 
@@ -371,14 +388,14 @@ antefix_src_unpack() {
     #
     # Disable this by requiring this exlib with:
     #     require antefix [ clean_jar_files=false ]
-    if [[ "${ANT_CLEAN_JAR_FILES}" ]]; then
+    if [[ "${ANT_IS_CLEANING_JAR_FILES}" ]]; then
         einfo "Removing jar files..."
         clean_jar_files
     fi
 
     # Disable this by requiring this exlib with:
     #     require antefix [ clean_class_files=false ]
-    if [[ "${ANT_CLEAN_CLASS_FILES}" ]]; then
+    if [[ "${ANT_IS_CLEANING_CLASS_FILES}" ]]; then
         einfo "Removing class files..."
         clean_class_files
     fi
