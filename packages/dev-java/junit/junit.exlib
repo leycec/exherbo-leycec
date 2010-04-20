@@ -64,16 +64,17 @@ JUNIT_DIST_DIR="${WORK}/dist"
 junit_src_unpack() {
     antefix_src_unpack
 
-    einfo "Unpacking source jar file..."
+    echo ">>> Unpacking source jar file"
     edo mkdir -p  "${JUNIT_SRC_DIR}"
     edo unzip -qd "${JUNIT_SRC_DIR}" "${WORK}/${JUNIT_ARCHIVE_JAR_FILE}"
 
     # Delete all jar files, including the above.
-    einfo "Removing jar files..."
+    echo ">>> Removing jar files"
     clean_jar_files
 
-    einfo "Removing extraneous source files..."
-    for EXTRA_SOURCE_FILES in "${WORK}/temp.hamcrest.source/"; do
+    echo ">>> Removing extraneous source files"
+    local EXTRA_SOURCE_FILES
+    for   EXTRA_SOURCE_FILES in "${WORK}/temp.hamcrest.source/"; do
         [[ -d "${EXTRA_SOURCE_FILES}" ]] && edo rm -rf "${EXTRA_SOURCE_FILES}"
     done
 }

@@ -141,7 +141,7 @@ DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "overview.html" )
 sat4j_src_unpack() {
     default
 
-    einfo "Unpacking sources jar file..."
+    echo ">>> Unpacking sources jar file"
     SAT4J_JAR_FILE_SOURCES="${SAT4J_JAR_PN}-src.jar"
     SAT4J_JAR_FILE_CLASSES="${SAT4J_JAR_PN}.jar"
     edo mkdir -p "${SAT4J_SRC_DIR}" "${SAT4J_LIB_DIR}" "${SAT4J_MANIFEST_DIR}" \
@@ -159,19 +159,15 @@ sat4j_src_unpack() {
     #
     # The build file requires this version file to reside in the hardcoded path
     # "${SAT4J_SRC_DIR_CORE}" rather than the usual "${SAT4J_SRC_DIR}/". Eh?
-    einfo "Unpacking classes jar file version..."
+    echo ">>> Unpacking classes jar file version"
     edo echo "${PV}.${SAT4J_BUILD_VERSION}" > "${SAT4J_SRC_DIR_CORE}/sat4j.version"
-
-    einfo "Deleting sources and classes jar files..."
-    edo rm "${SAT4J_JAR_FILE_SOURCES}" "${SAT4J_JAR_FILE_CLASSES}"
 
     # The sources jar file unpacked above bundles a manifest file into the
     # "${SAT4J_PN}/src/META-INF/" directory. The build file expects it in the
     # "${SAT4J_PN}/META-INF/" directory, however. Move it. /me sighs
-    einfo "Moving manifest file..."
+    echo ">>> Structuring directory tree"
+    edo rm "${SAT4J_JAR_FILE_SOURCES}" "${SAT4J_JAR_FILE_CLASSES}"
     edo mv "${SRC_DIR}/META-INF/MANIFEST.MF" "${SAT4J_MANIFEST_FILE}"
-
-    einfo "Moving build.xml..."
     edo cp "${FETCHEDDIR}/build.xml" .
 }
 
@@ -184,12 +180,12 @@ sat4j_src_prepare() {
     # SAT4J exheres (e.g., "sat4j-pb").
     #
     # Do this prior to calling the parent "src_prepare", which invokes Ant.
-    einfo "Patching ${ANT_BUILD_XML}..."
+    echo ">>> Patching ${ANT_BUILD_XML}"
     edo sed -e 's: depends="core"::' -e 's:,getsource::' -i "${ANT_BUILD_XML}"
 
     # These values retrieved from "plugin.properties" bundled with this jar file.
     # Thor, I pray they stay in sync.
-    einfo "Patching jar file manifest..."
+    echo ">>> Patching jar file manifest"
     local BUNDLE_NAME="SAT4J ${SAT4J_PN_CASED}"
     local PROVIDER_NAME="CRIL CNRS UMR 8188 - Universite d'Artois"
     patch_jar_manifest "${SAT4J_MANIFEST_FILE}"
@@ -197,7 +193,7 @@ sat4j_src_prepare() {
 
 sat4j_src_install() {
     # Other exheres often expect SAT4J jar filenames to be named as follows.
-    einfo "Installing jar file symlinks..."
+    echo ">>> Installing jar file symlinks"
     dosym \
         $(which_installed_jar_file_nonfatal "sat4j") \
         $(which_installed_jar_dir_nonfatal  "sat4j")/"${SAT4J_JAR_PN}"

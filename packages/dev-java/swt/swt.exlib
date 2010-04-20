@@ -101,7 +101,7 @@ swt_src_unpack() {
 }
 
 swt_src_prepare() {
-    einfo "Preparing Java libraries for compilation..."
+    echo ">>> Preparing Java libraries"
 
     # See comments in "files/build.xml" for details.
     edo cp "${FILES}/build.xml" "${WORK}/build.xml"
@@ -145,24 +145,24 @@ swt_src_compile_build_sh() {
     export OS MODEL OPTION_CAIRO OPTION_GNOME OPTION_OPENGL OPTION_XULRUNNER MULTILIB_DIR
 
     # So say we all!
-    einfo "Compiling C and C++ libraries..."
+    echo ">>> Compiling C and C++ libraries"
     edo sh "${WORK}/build.sh"
 }
 
 # Compile underlying Java libraries.
 swt_src_compile_ant() {
-    einfo "Copying absent Java files..."
+    echo ">>> Copying absent Java files"
     edo mkdir -p "${ANT_BUILD}/org/eclipse/swt/internal/"
     edo cp "${ANT_SRC}/org/eclipse/swt/internal/SWTMessages.properties" \
            "${ANT_BUILD}/org/eclipse/swt/internal/"
     edo cp "${WORK}/version.txt" "${ANT_BUILD}/version.txt"
 
-    einfo "Compiling Java libraries..."
+    echo ">>> Compiling Java libraries"
     antefix_src_compile
 }
 
 swt_src_install() {
-    einfo "Preparing Java manifest..."
+    echo ">>> Preparing Java manifest"
 
     # Set "SWT_ARCH" according to the architecture being built against. The
     # values for this variable follow from the variable of same name in the
@@ -179,7 +179,7 @@ swt_src_install() {
 
     antefix_src_install
 
-    einfo "Installing C and C++ libraries..."
+    echo ">>> Installing C and C++ libraries"
     dolib.so "${WORK}"/*.so
 }
 

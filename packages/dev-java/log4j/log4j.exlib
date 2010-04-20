@@ -34,7 +34,7 @@ JAVA_SRC_INSTALL_JARS=( "dist/lib/${PNV}.jar" )
 # "1.2.15"), which causes jar tasks to generate improperly named jar files.
 # Forcefully notify log4j of its actual version.
 ANT_PARAMS=( -Dversion="${PV}" )
-ANT_SRC_PREPARE_PARAMS=( init )
+ANT_SRC_CONFIGURE_PARAMS=( init )
 
 # The "build" task in log4j's "build.xml" is clever enough to only compile those
 # Ant targets for which the local system has installed the requisite

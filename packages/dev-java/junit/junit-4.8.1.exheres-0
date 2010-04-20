@@ -44,7 +44,7 @@ src_install() {
 
     # JUnit creates various jar files, of which we ignore all except the
     # "${PN}-dep-${PV}.jar" jar file having no external dependencies.
-    einfo "Installing jar file..."
+    echo ">>> Installing jar file"
     install_jar_as "${JUNIT_DIST_DIR}/${PN}-dep-${PV}.jar" "${PN}.jar"
 
     # Restructure the JUnit documentation tree so as to place all HTML
@@ -64,7 +64,7 @@ src_install() {
     fi
 
     if option examples; then
-        einfo "Installing examples..."
+        echo ">>> Installing examples"
         docinto examples
         dodoc "${WORK}/org/junit/samples"/*
     fi

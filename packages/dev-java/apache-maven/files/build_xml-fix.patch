@@ -1,3 +1,6 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Prevent execution of integration tests.
 --- old/build.xml	2010-04-19 16:22:25.753028179 +0000
 +++ new/build.xml	2010-04-19 18:27:02.098154024 +0000
 @@ -43,7 +43,8 @@

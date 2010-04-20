@@ -28,7 +28,7 @@ DEPENDENCIES+="
 
 # Common Codec's "static" task is the "compile" task's only dependency, and
 # prepares the build for compilation.
-ANT_SRC_PREPARE_PARAMS=( static )
+ANT_SRC_CONFIGURE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
@@ -37,7 +37,7 @@ commons-codec_src_prepare() {
 
     # Commons Codec ships a not very helpful "build.properties.sample" file.
     # Brush off that file and create our own "build.properties" file by hand.
-    einfo "Creating build.properties..."
+    echo ">>> Creating build.properties"
     edo cat <<EOF > "build.properties" 
 source.home=src/java
 test.home=src/test

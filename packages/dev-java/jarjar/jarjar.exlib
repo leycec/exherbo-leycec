@@ -45,7 +45,7 @@ JAVA_SRC_INSTALL_JARS=( "dist/${PNV}.jar" )
 # Jarjar's "build.xml" defaults its version to "snapshot", causing havoc. Patch.
 ANT_PARAMS=( -Dversion="${PV}" )
 
-ANT_SRC_PREPARE_PARAMS=( init )
+ANT_SRC_CONFIGURE_PARAMS=( init )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 

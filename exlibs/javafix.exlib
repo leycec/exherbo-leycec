@@ -17,7 +17,7 @@
 # ....................{ EXHERES                            }....................
 require java
 export_exlib_phases pkg_setup \
-    src_unpack src_prepare src_compile src_test src_install
+    src_unpack src_prepare src_configure src_compile src_test src_install
 
 # ....................{ CONFIGURATION                      }....................
 # Array of Java JDK prefixes. If the following expression is true for at least
@@ -169,7 +169,7 @@ DEPENDENCIES+="
 # ....................{ PHASES                             }....................
 javafix_pkg_setup() {
     default
-    einfo "Setting up exheres defaults..."
+    echo ">>> Setting up exheres defaults"
 
     # Die if the currently selected Java compiler is exheres restricted.
     if [[ -n "${JAVA_RESTRICT_JDK_PREFIXES[@]}" ]]; then
@@ -247,6 +247,10 @@ javafix_src_prepare() {
     fi
 }
 
+javafix_src_configure() {
+    javafix_src_preamble
+}
+
 javafix_src_compile() {
     javafix_src_preamble
 }
@@ -285,17 +289,20 @@ javafix_src_preamble() {
 }
 
 # ....................{ CLEANERS                           }....................
+# void disable_class_file_cleaning(void)
+#
+# Disable recursive deletion of all class files under ${WORK} in "src_unpack".
+# Calling this function is preferable to explicitly unsetting the global.
 disable_class_file_cleaning() {
     unset JAVA_IS_CLEANING_CLASS_FILES
 }
+
+# void disable_jar_file_cleaning(void)
+#
+# Disable recursive deletion of all jar files under ${WORK} in "src_unpack".
+# Calling this function is preferable to explicitly unsetting the global.
 disable_jar_file_cleaning() {
     unset JAVA_IS_CLEANING_JAR_FILES
-}
-enable_class_file_cleaning() {
-    JAVA_IS_CLEANING_CLASS_FILES=1
-}
-enable_jar_file_cleaning() {
-    JAVA_IS_CLEANING_JAR_FILES=1
 }
 
 # void clean_jar_files(void)

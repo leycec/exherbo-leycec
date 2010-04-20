@@ -35,7 +35,7 @@ DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
 
 # Common El's "static" task is the "compile" task's only dependency, and
 # prepares the build for compilation... Everything else makes sense.
-ANT_SRC_PREPARE_PARAMS=( static )
+ANT_SRC_CONFIGURE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
@@ -48,8 +48,8 @@ commons-el_src_prepare() {
     # Murder that file and create our own "build.properties". Note these
     # properties enable "*.build.notrequired"; without this, Commons El's
     # "build.xml" oddly attempts to rebuild the Tomcat 5 API by hand. (Bad.)
-    einfo "Creating build.properties..."
-    edo cat <<EOF > "build.properties" 
+    echo ">>> Creating build.properties"
+    edo cat <<EOF >   "build.properties" 
 api.home=$(which_installed_jar_dir "tomcat:5")
 junit.home=$(which_installed_jar_dir "junit:4")
 servletapi.build.notrequired = true

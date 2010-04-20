@@ -40,7 +40,7 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 asm_src_install() {
     antefix_src_install
 
-    einfo "Installing jar files..."
+    echo ">>> Installing jar files"
     install_jars "output/dist/lib"/*.jar
 }
 

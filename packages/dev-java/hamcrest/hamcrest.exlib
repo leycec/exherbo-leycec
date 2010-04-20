@@ -67,7 +67,7 @@ hamcrest_src_prepare() {
     antefix_src_prepare
 
     # We can't call the "option" function in global scope above. Do it now!
-    ANT_PARAMS+=" -Ddebug="$(option debug && echo true || echo false)
+    ANT_PARAMS+=( "-Ddebug="$(option debug && echo true || echo false) )
 
     # Hamcrest's "build.xml" file explicitly requires "jarjar.jar" but not
     # "asm.jar" or "asm-commons.jar", which "jarjar.jar" requires. Patch this

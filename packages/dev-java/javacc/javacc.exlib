@@ -68,7 +68,7 @@ javacc_src_prepare() {
     # JavaCC's several "build.xml" files actually hardcode a JUnit version
     # dependency. Cull, but note this is probably unsurprising giving the
     # project's... dormancy.
-    einfo "Patching build.xml files..."
+    echo ">>> Patching build.xml files"
     for BROKEN_BUILD_XML in \
         "${ANT_BUILD_XML}" "src/org/javacc/parser/build.xml"; do
         edo sed -e 's~lib/junit[0-9.]*/~lib/junit/~' -i "${BROKEN_BUILD_XML}"
@@ -89,7 +89,7 @@ javacc_src_install() {
     #
     # Don't do this in "javacc_src_prepare" as "javacc.jar" will not have been
     # installed at that point.
-    einfo "Installing shell scripts..."
+    echo ">>> Installing shell scripts"
     local JAVACC_SHELL_SCRIPT
     for   JAVACC_SHELL_SCRIPT in \
         "bin/javacc" "bin/jjdoc" "bin/jjrun" "bin/jjtree"; do
@@ -116,7 +116,7 @@ javacc_src_install() {
     #     /usr/share/javacc/bin/jjtree
     #
     # Provide both by symlinking the former to the latter.
-    einfo "Installing canonical symlinks..."
+    echo ">>> Installing canonical symlinks"
     dodir                      "${JAVACC_BIN_DIR}/lib/"
     dosym "${JAVACC_JAR_FILE}" "${JAVACC_BIN_DIR}/lib/"
     for JAVACC_SHELL_SCRIPT in "javacc" "jjdoc" "jjrun" "jjtree"; do

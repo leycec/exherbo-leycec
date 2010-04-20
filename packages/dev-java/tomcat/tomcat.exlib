@@ -66,7 +66,7 @@ tomcat_src_prepare() {
     #   otherwise the build process tries writing to "/usr/share/java". (Baad.)
     # * Enable debugging if and only if the "debug" exheres option is enabled.
     # * Do not append "-dev" to the build version.
-    einfo "Patching build.properties..."
+    echo ">>> Patching build.properties"
     edo mv "${TOMCAT_ANT_DIR}/build.properties.default" \
            "${TOMCAT_ANT_DIR}/build.properties"
     edo sed \
@@ -79,7 +79,7 @@ tomcat_src_prepare() {
 tomcat_src_install() {
     antefix_src_install
 
-    einfo "Installing jar files..."
+    echo ">>> Installing jar files"
     install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
 }
 

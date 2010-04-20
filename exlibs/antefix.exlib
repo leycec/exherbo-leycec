@@ -38,9 +38,10 @@
 #     require antefix
 #     disable_jar_file_cleaning
 require javafix
-export_exlib_phases src_unpack src_prepare src_compile src_test src_install
+export_exlib_phases \
+    src_unpack src_prepare src_configure src_compile src_test src_install
 
-# ....................{ CONFIGURATION                      }....................
+# ....................{ SETTINGS                           }....................
 # Absolute or relative path under ${WORK} to the "build.xml" for this exheres.
 ANT_BUILD_XML="build.xml"
 
@@ -48,18 +49,17 @@ ANT_BUILD_XML="build.xml"
 #     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
 ANT_PARAMS=( )
 
-# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_prepare" phase.
-# This is empty by default, implying no Ant tasks will be run for preparation.
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_configure" phase.
+# This is empty by default, implying no Ant tasks will be run for configuration.
 # Example:
-#     ANT_SRC_PREPARE_PARAMS=( init )
+#     ANT_SRC_CONFIGURE_PARAMS=( init )
 #
 # This and all other Ant task arrays below are empty by default, as Ant is by
 # design unable to force task names to adhere to ISO standards. In other words,
-# any "build.xml" file can name its tasks anything; and they often due. Since
-# there's no sensible way of predicting this, or programmatically safe way of
-# extracting this from exheres-specific "build.xml" files, Ant exheres must
-# manually specify these tasks.
-ANT_SRC_PREPARE_PARAMS=( )
+# any "build.xml" file can name its tasks anything and they do. As there's no
+# sensible way of predicting this, or programmatically safe way of extracting
+# this from "build.xml" files, Ant exheres must manually list tasks.
+ANT_SRC_CONFIGURE_PARAMS=( )
 
 # Ant tasks to be run against ${ANT_BUILD_XML} during the "src_compile" phase.
 # This is empty by default, implying no Ant tasks will be run for compilation.
@@ -79,6 +79,29 @@ ANT_SRC_TEST_PARAMS=( )
 #     ANT_SRC_INSTALL_PARAMS=( jar )
 ANT_SRC_INSTALL_PARAMS=( )
 
+# ....................{ DEPRECATED SETTINGS                }....................
+# Synonym to the ${ANT_SRC_CONFIGURE_PARAMS} setting. Ant is no longer invoked
+# in the "src_prepare" phase (due to reasons discussed there). This setting is
+# thus duplicitous and deprecated.
+ANT_SRC_PREPARE_PARAMS=( )
+
+# Array of absolute paths or relative paths under ${WORK} to be recursively
+# deleted in the "src_unpack" phase. The "javafix" exlib now provides a similar,
+# but safer, pair of settings for recursively deleting source tarball-bundled
+# class and jar files. This setting is somewhat more dangerous and deprecated.
+ANT_BUNDLED_LIBSDIR=( )
+
+# ....................{ CONSTANTS                          }....................
+if [[ -z "${ANT_HOME}" ]]; then
+    ewarn "\$ANT_HOME is not set; it defaults to \"/usr/share/ant\"."
+    ANT_HOME="/usr/share/ant"
+fi
+
+# Absolute path to the "ant" binary. ${ANT_HOME} is an environment variable set
+# by "/etc/env.d/*ant", itself installed by the Ant exheres. It usually points
+# to "/usr/share/ant/".
+ANT="${ANT_HOME}/bin/ant"
+
 # If true, programmatically create a new "${WORK}/build.xml" file for this
 # exheres. (Enable this for exheres providing no "build.xml", but for which the
 # default "build.xml" is sufficient to build the project. Most modern Java
@@ -89,16 +112,10 @@ ANT_SRC_INSTALL_PARAMS=( )
 # the "enable_build_xml_creation" function to have it set for you. Do this at
 # the earliest time possible after requiring this exlib. Example:
 #
-#      # "qdox-1.11.exheres-0" requires "build.xml" creation. Make it so.
+#      # "qdox-1.11.exheres-0" needs a fake "build.xml". Make it so.
 #      require antefix
 #      enable_build_xml_creation
 ANT_IS_CREATING_BUILD_XML=
-
-# ....................{ CONSTANTS                          }....................
-# Absolute path to the "ant" binary. ${ANT_HOME} is an environment variable set
-# by "/etc/env.d/*ant", itself installed by the Ant exheres. It usually points
-# to "/usr/share/ant/".
-ANT="${ANT_HOME}/bin/ant"
 
 # ....................{ EXHERES                            }....................
 DEPENDENCIES+="
@@ -107,6 +124,17 @@ DEPENDENCIES+="
 "
 
 # ....................{ PHASES                             }....................
+antefix_pkg_setup() {
+    javafix_pkg_setup
+
+    if [[ -n "${ANT_SRC_PREPARE_PARAMS}" ]]; then
+        ewarn "${PN} sets the depcrecated \$ANT_SRC_PREPARE_PARAMS global."
+    fi
+    if [[ -n "${ANT_BUNDLED_LIBSDIR}" ]]; then
+        ewarn "${PN} sets the depcrecated \$ANT_BUNDLED_LIBSDIR global."
+    fi
+}
+
 antefix_src_unpack() {
     javafix_src_unpack
 
@@ -151,29 +179,37 @@ antefix_src_prepare() {
     # called //before// performing any such sedding, as "expatch" tends to
     # overwrite file changes with patched content. So we can't reliably do the
     # above. Instead, we need to partition file patching and Ant invocation
-    # into two phases. There is no "src_patch" stage and probably never will be.
-    # Thus, we need to push Ant invocation into a later stage that does exist:
-    # and "src_compile" is the best candidate. Then the above example becomes:
+    # into two phases. Do this by pushing Ant invocation into the next stage,
+    # "src_compile", even though tasks run by this invocation of Ant are
+    # probably not analogous to "econfigure". Then the above example becomes:
     #
     #     # This is better!
     #     exheres_src_prepare() {
     #         antefix_src_prepare
     #         edo sed -e 's~bad~good~' -i "${ANT_BUILD_XML}"
     #     }
-    #
-    # It's not pretty, but it works reliably.
 }
 
-antefix_src_compile() {
-    javafix_src_compile
+antefix_src_configure() {
+    javafix_src_configure
+
+    # If the deprecated ${ANT_SRC_PREPARE_PARAMS} is set, append its values to
+    # the nondeprecated ${ANT_SRC_CONFIGURE_PARAMS}.
+    if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
+        ANT_SRC_CONFIGURE_PARAMS+=( "${ANT_SRC_PREPARE_PARAMS[@]}" )
+    fi
 
     # Never invoke Ant unless you have a task with which to invoke it, since
     # "build.xml" files often supply a default task performing all relevant
     # tasks when passed no explicit task. (This is rarely what we want.)
-    if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
-        echo ">>> Preparing source files"
-        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_PREPARE_PARAMS[@]}"
+    if [[ -n "${ANT_SRC_CONFIGURE_PARAMS[@]}" ]]; then
+        echo ">>> Configuring source files"
+        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_CONFIGURE_PARAMS[@]}"
     fi
+}
+
+antefix_src_compile() {
+    javafix_src_compile
 
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
         echo ">>> Compiling source files"
@@ -194,7 +230,7 @@ antefix_src_install() {
     # Invoke Ant, which probably generates jar files, prior to calling the
     # parent "src_install" function, which actually install these files.
     if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
-        echo ">>> Collecting jar files"
+        echo ">>> Packaging jar files"
         eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
     fi
 
@@ -224,7 +260,7 @@ eant() {
     # Always enable the "noget" property when invoking Ant. This instructs Ant
     # to ignore any "get" tasks defined by this "build.xml" file; such tasks,
     # if defined, attempt to remotely download external jar files.
-    edo "${ANT}" -f "${EANT_BUILD_XML}" -Dnoget=true "${@}"
+    edo "${ANT}" -file "${EANT_BUILD_XML}" -Dnoget=true "${@}"
 }
 
 # ....................{ BUILD.XML                          }....................
@@ -265,7 +301,7 @@ enable_build_xml_creation() {
     # need to, you're probably better off writing your own "build.xml".
     ANT_SRC_INSTALL_JARS_DIR="dist"
 
-    ANT_SRC_PREPARE_PARAMS=( )
+    ANT_SRC_CONFIGURE_PARAMS=( )
     ANT_SRC_COMPILE_PARAMS=( compile )
 
     # Note: the "javadoc" task will be conditionally appended to this array,

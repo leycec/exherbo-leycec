@@ -87,8 +87,10 @@ ANT_PARAMS=(
 
 #FIXME leycec: only for testing, at the moment.
 if [[ -n "${MAVEN_IS_OFFLINE}" ]]; then
-    ANT_PARAMS+="-Dskip.pull=true"
-    ANT_PARAMS+="-Dmaven.repo.local.poms=${WORK}/target/repository.poms"
+    ANT_PARAMS+=(
+        "-Dskip.pull=true"
+        "-Dmaven.repo.local.poms=${WORK}/target/repository.poms"
+    )
 fi
 
 # Maven's "build.xml" demands that it be invoked once and only once. It
@@ -114,7 +116,7 @@ apache-maven_pkg_setup() {
     ewarn "temporary disabling of network sandboxing, for example, to facilitate Maven's"
     ewarn "installation of an integration repository. The download process currently"
     ewarn "consumes 33MB of bandwidth and additional local space. Replacing such downloads"
-    ewarn "with source-based exheres is a non-trivial task, given this number of downloads"
+    ewarn "with source-based exheres is a non-trivial task, given the number of downloads"
     ewarn "as well as Maven's obsession with remote resolution of project dependencies. In"
     ewarn "other words, don't expect a proper fix anytime soon."
     ewarn
@@ -125,12 +127,12 @@ apache-maven_pkg_setup() {
 apache-maven_src_prepare() {
     antefix_src_prepare
 
-    einfo "Preparing directory tree..."
+    echo ">>> Preparing directory tree"
     edo mkdir -p "${MAVEN_DIST_DIR}"
 
     #FIXME leycec: only for testing, at the moment.
     if [[ -n "${MAVEN_IS_OFFLINE}" ]]; then
-        einfo "Copying offline repository..."
+        echo ">>> Copying offline repository"
         edo cp -R "${MAVEN_REPO_SOURCE}" "${MAVEN_REPO_WORK%/*}"
     fi
 }
@@ -138,20 +140,20 @@ apache-maven_src_prepare() {
 apache-maven_src_install() {
     antefix_src_install
 
-    einfo "Removing extraneous files..."
+    echo ">>> Removing extraneous files"
     edo rm "${MAVEN_HOME_WORK}"/*.txt
     edo rm "${MAVEN_HOME_WORK}"/bin/*.bat
 
     # Move the locally installed Maven into a system-wide directory. Happily,
     # Maven defines sufficiently distro-agnostic executable scripts; install!
-    einfo "Installing shared files..."
+    echo ">>> Installing shared files"
     dodir  "${MAVEN_HOME%/*}"      "/usr/bin/"
     edo mv "${MAVEN_HOME_WORK}" "${IMAGE}/${MAVEN_HOME}"
     dosym  "${MAVEN_HOME}/bin/mvn" "/usr/bin/mvn"
 
     # Make the ${MAVEN_HOME} exheres global a system-wide environment variable
     # for subsequent access by other exlibs, exheres, and users.
-    einfo "Installing environment files..."
+    echo ">>> Installing environment files"
     hereenvd 50maven <<EOF
 M2_HOME=${MAVEN_HOME}
 EOF

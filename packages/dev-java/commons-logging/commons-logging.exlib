@@ -47,7 +47,7 @@ ANT_PARAMS=(
 )
 
 # The "compile" task both compiles and jars. So, we're done.
-ANT_SRC_PREPARE_PARAMS=( static )
+ANT_SRC_CONFIGURE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
 
 commons-logging_src_prepare() {
@@ -55,7 +55,7 @@ commons-logging_src_prepare() {
 
     # Commons Logging ships a not very helpful "build.properties.sample" file.
     # Brush off that file and create our own "build.properties" file by hand.
-    einfo "Creating build.properties..."
+    echo ">>> Creating build.properties"
     edo cat <<EOF > "build.properties" 
 junit.jar=$(which_installed_jar_file "junit:4")
 servletapi.jar=$(which_installed_jar_file "tomcat:6" "servlet-api")

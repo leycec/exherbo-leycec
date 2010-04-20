@@ -27,19 +27,19 @@ myexparam download_subdir=source
 # Apache Commons-specific exheres name, version, and source tarball suffix,
 # cutting the prefixing "commons-" from exheres names.
 myexparam pn=${MY_PN:-${PN}}
-exparam -v APACHE_COMMONS_PN pn 
+exparam -v APACHE_COMMONS_PN pn
 APACHE_COMMONS_PN=${APACHE_COMMONS_PN#commons-}
 
 myexparam pv=${MY_PV:-${PV}}
-exparam -v APACHE_COMMONS_PV pv 
+exparam -v APACHE_COMMONS_PV pv
 
 # Use ${PN} rather than ${APACHE_COMMONS_PN} here. Source tarball names thus
 # retain the prefixing "commons-" on exheres names, by default.
 myexparam pnv=${MY_PNV:-${PN}-${APACHE_COMMONS_PV}-src}
-exparam -v APACHE_COMMONS_PNV pnv 
+exparam -v APACHE_COMMONS_PNV pnv
 
 myexparam suffix="tar.gz"
-exparam -v APACHE_COMMONS_SUFFIX suffix 
+exparam -v APACHE_COMMONS_SUFFIX suffix
 
 # ....................{ EXHERES GLOBALS                    }....................
 HOMEPAGE="http://commons.apache.org/${APACHE_COMMONS_PN}"
@@ -77,22 +77,21 @@ APACHE_COMMONS_DIST_DIR="dist"
 apache-commons_src_prepare() {
     antefix_src_prepare
 
-    # We can't call the "option" function in global scope above. Do it now!
-    ANT_PARAMS+=" -Dcompile.debug="$(option debug && echo true || echo false)
+    ANT_PARAMS+=(
+        # We can't call the "option" function in global scope above. Do it now!
+        "-Dcompile.debug="$(option debug && echo true || echo false)
 
-    # The "build.xml" file for most Apache Commons exheres accepts this
-    # property, permitting us to force the output jar file directory.
-    ANT_PARAMS+=" -Ddist.home=${APACHE_COMMONS_DIST_DIR}"
+        # The "build.xml" file for most Apache Commons exheres accepts this
+        # property, permitting us to force the output jar file directory.
+        "-Ddist.home=${APACHE_COMMONS_DIST_DIR}"
+    )
 
     # Most Apache Commons exheres ship a "build.properties.sample" file that,
     # while helpful when writing exheres, has no utility when actually building
     # exheres. It's definitely dangerous to leave lying around: if found by
     # "build.xml", the bad defaults this file defines might conflict with those
     # this exheres defines.
-    if [[ -f "build.properties.sample" ]]; then
-        einfo "Cleaning build.properties.sample..."
-        edo rm "build.properties.sample"
-    fi
+    [[ -f "build.properties.sample" ]] && edo rm "build.properties.sample"
 }
 
 apache-commons_src_install() {
@@ -100,7 +99,7 @@ apache-commons_src_install() {
 
     # We're guaranteed that all output jar files were placed in this directory.
     # It is fairly safe to assume all such files must be installed.
-    einfo "Installing jar files..."
+    echo ">>> Installing jar files"
     install_jars "${APACHE_COMMONS_DIST_DIR}"/**/*.jar
 }
 
