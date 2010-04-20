@@ -4,969 +4,131 @@
 # --------------------( SYNOPSIS                           )--------------------
 # This exlib aggregates Java Maven-specific logic for those Java exheres
 # supporting Maven installation.
+#
+# This exlib conflicts with the "antefix" exlib. Given a Java exheres providing
+# both "build.xml" and "pom.xml" files, it's generally better to use the former
+# rather than latter: i.e., to have the exheres require the "antefix" exlib
+# rather than this exlib. Ant "build.xml" are typically more readable than Maven
+# "pom.xml" files, more amenable to change with command-line or
+# "build.properties" file properties, more amenable to symbolically linked jar
+# file dependencies, and less dependent on download of dependencies. Ant is,
+# moreover, much easier to compile from source. It has no mandatory build- or
+# runtime dependencies (aside from the JDK itself) unlike Maven, which has a
+# sick multitude of buildtime dependencies. Maven is a fine build tool for
+# deploying web applications; less so for deploying source-based applications.
+#
+# Given a Java exheres providing neither "build.xml" nor "pom.xml" files, it's
+# again better to use the "antefix" exlib than this exlib. Why? "antefix"
+# permits dynamic creation of fake "build.xml" files, which assists with
+# cobbling together a build process for Java exheres shipping no build process.
+#
+# --------------------( SEE ALSO                           )--------------------
+# * "Maven Lifecycle, Phase, and Goal Reference."
+#   http://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
 
 # ....................{ EXHERES                            }....................
+# All Maven exheres are, by assumption, Java exheres. See the "antefix.exlib"
+# header for commentary as to why this exlib requires "javafix".
+require javafix
 export_exlib_phases src_prepare src_compile src_test src_install
 
 # ....................{ CONFIGURATION                      }....................
 # Absolute or relative path under ${WORK} to the "pom.xml" for this exheres.
-MAVEN_POM_XML="build.xml"
+MAVEN_POM_XML="pom.xml"
 
-# Ant parameters to be passed to all command-line invocations of Ant. Example:
-#     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
-ANT_PARAMS=( )
+# Maven parameters to be passed to all command-line Maven invocations. Example:
+#     MAVEN_PARAMS=( -Dproject.classpath=/usr/share/elephantdog/ )
+MAVEN_PARAMS=( )
 
-# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_prepare" phase.
-# This is empty by default, implying no Ant tasks will be run for preparation.
-# Example:
-#     ANT_SRC_PREPARE_PARAMS=( init )
+# Maven tasks to be run on ${MAVEN_POM_XML} during the "src_configure" phase.
 #
-# This and all other Ant task arrays below are empty by default, as Ant is by
-# design unable to force task names to adhere to ISO standards. In other words,
-# any "build.xml" file can name its tasks anything; and they often due. Since
-# there's no sensible way of predicting this, or programmatically safe way of
-# extracting this from exheres-specific "build.xml" files, Ant exheres must
-# manually specify these tasks.
-ANT_SRC_PREPARE_PARAMS=( )
+# Unlike Ant, this and all other Maven task arrays below have sensible defaults
+# as listed in the "Maven Lifecycle..." reference, above. Maven exheres may, if
+# they need, redefine these arrays; but that is typically unnecessary.
+MAVEN_SRC_CONFIGURE_PARAMS=( initialize )
 
-# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_compile" phase.
-# This is empty by default, implying no Ant tasks will be run for compilation.
-# Example:
-#     ANT_SRC_COMPILE_PARAMS=( compile )
-ANT_SRC_COMPILE_PARAMS=( )
+# Maven tasks to be run against ${MAVEN_POM_XML} during the "src_compile" phase.
+MAVEN_SRC_COMPILE_PARAMS=( compile )
 
-# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_test" phase.
-# This is empty by default, implying no Ant tasks will be run for testing.
-# Example:
-#     ANT_SRC_TEST_PARAMS=( test )
-ANT_SRC_TEST_PARAMS=( )
+# Maven tasks to be run against ${MAVEN_POM_XML} during the "src_test" phase.
+MAVEN_SRC_TEST_PARAMS=( test )
 
-# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_install" phase.
-# This is empty by default, implying no Ant tasks will be run for installation.
-# Example:
-#     ANT_SRC_INSTALL_PARAMS=( jar )
-ANT_SRC_INSTALL_PARAMS=( )
-
-# Array of Java JDK prefixes. If the following expression is true for at least
-# one ${ANT_RESTRICT_JAVA_JDK_PREFIX} of this array, then installation fails
-# prior to performing any work:
-#     [[ $(eclectic java-jdk show) = "${ANT_RESTRICT_JAVA_JDK_PREFIX}"* ]]
-#
-# Common example for exheres failing under "gcj" or "gij":
-#     ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
-#
-# As of mid 2010, all Ant exheres should test compilation under "gcj". Many will
-# fail! Those that do should set this array, as above.
-ANT_RESTRICT_JAVA_JDK_PREFIXES=( )
-
-# Hamcrest does not compile under "gcj", currently.
-ANT_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
-
-# Find parameters to be passed to the command-line invocation of "find" when
-# cleaning jar files from ${WORK}. Specify this to prevent cleaning of wanted,
-# specific jar files: e.g.,
-#     ANT_CLEAN_JAR_FILES_PARAMS=( -not -wholename 'bootstrap/young_lad.jar' )
-ANT_CLEAN_JAR_FILES_PARAMS=( )
-
-# Absolute or relative path under "${WORK}" into which external jar files will
-# be symlinked. Though this path is typically "lib" for most exheres, you must
-# still specify this global to have symlinking performed for you. Example:
-#     ANT_SRC_PREPARE_SYMLINK_DIR="lib"
-ANT_SRC_PREPARE_SYMLINK_DIR=""
-
-# Array of absolute paths to or relative names of external jar files to be
-# symlinked into "${ANT_SRC_SYMLINK_DIR}". These external jar files should
-# generally be buildtime dependencies of this exheres. Example mixing both
-# absolute paths to and relative names of external jar files:
-#     ANT_SRC_PREPARE_SYMLINK_JARS=( jarjar qdox "/usr/share/asm/asm.jar" )
-#
-# If filenames are not known until install time, leave this array blank and
-# call "symlink_jars" within your "${PN}_src_prepare" function.
-ANT_SRC_PREPARE_SYMLINK_JARS=( )
-
-# Array of absolute paths to text files to be "deversion"-ated. Ant "build.xml"
-# files often hardcode references to pre-bundled jar files with names suffixed
-# by a version specifier. This is bad, as this exlib replaces all pre-bundled
-# jar files with externally symlinked jar files with names NEVER EVER suffixed
-# by a version specifier. To resolve the discrepancy, we could do one of two
-# ugly hacks:
-#
-# * Sed affected "build.xml" files, removing jar filename version specifiers OR
-# * Grep affected "build.xml" files for these version specifiers and, when
-#   symlinking in external jar files, add the version specifier for each jar
-#   filename to its symlink filename.
-#
-# The first is easier. And easier is better. So that's what we do. Example
-# deversioning two files, "build.xml" and "common-build.xml":
-#     ANT_SRC_PREPARE_DEVERSION_FILES=( "${ANT_BUILD_XML}" "common-build.xml" )
-ANT_SRC_PREPARE_DEVERSION_FILES=( )
-
-# Absolute or relative path under "${WORK}" into which javadoc HTML files will
-# be generated by the "${ANT_BUILD_XML}" file for this exheres. Though this path
-# is typically "javadoc" for most exheres, you must still specify this global to
-# have installation of these files performed for you. Example:
-#     ANT_SRC_INSTALL_JAVADOC_DIR="javadoc"
-ANT_SRC_INSTALL_JAVADOC_DIR=""
-
-# Array of absolute paths to this exheres' output jar files to be installed
-# under "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}". Versions are automatically removed
-# from filenames on your behalf. (Yippee...!) Example:
-#     ANT_SRC_PREPARE_INSTALL_JARS=( "dist/${PNV}.jar" )
-#
-# If filenames are not known until install time, leave this array blank and
-# call "install_jars" within your "${PN}_src_install" function.
-ANT_SRC_INSTALL_JARS=( )
+# Maven tasks to be run against ${MAVEN_POM_XML} during the "src_install" phase.
+MAVEN_SRC_INSTALL_PARAMS=( package )
 
 # ....................{ CONSTANTS                          }....................
-# This exlib sets these constants on your behalf. Read them; don't write them.
-# 
-# Scratch that -- don't even read them. If you access these constants in any
-# exheres, you're doing something wrong. :)
+if [[ -z "${M2_HOME}" ]]; then
+    ewarn "\$M2_HOME is not set; it defaults to \"/usr/share/maven\"."
+    M2_HOME="/usr/share/maven"
+fi
 
-# Absolute path to the "ant" binary.
-ANT="${ANT_HOME}/bin/ant"
+# Absolute path to the "mvn" binary. ${M2_HOME} is an environment variable set
+# by "/etc/env.d/*maven", itself installed by the Maven exheres. It usually
+# points to "/usr/share/maven/".
+MAVEN="${M2_HOME}/bin/mvn"
 
-# Set to the currently selected Java compiler as reported by...
-ANT_JAVA_JDK=$(eclectic java-jdk show)
-
-# Set, if "gcj" is the currently selected Java compiler. This additionally
-# implies "gij" is the currently selected Java interpreter.
-ANT_IS_JAVA_JDK_GCJ=
-
-# Set, if installing javadoc. (This is set for you if and only if "doc" is
-# enabled for this exheres.)
-ANT_IS_INSTALLING_JAVADOC=
-
-# Absolute path to the parent of ${ANT_SRC_INSTALL_JARS_IMAGE_DIR}, below.
-#
-# Avoid changing this global unless you absolutely must, as that probably breaks
-# things elsewhere (e.g., other exheres trying to import these jar files).
-ANT_SRC_INSTALL_JARS_IMAGE_ROOT="/usr/share"
-
-# Absolute path to which this exheres installs output jar files.
-#
-# Avoid changing this global unless you absolutely must, as that probably breaks
-# things elsewhere (e.g., other exheres trying to import these jar files).
-#
-# This defaults to the empty string; if still the empty string during the
-# "pkg_setup" phase, then that phase resets this to a proper default. We wait
-# until that phase as the proper default depends on exheres globals (e.g.,
-# ${SLOT}) that will only be set after the exheres requires this exlib.
-ANT_SRC_INSTALL_JARS_IMAGE_DIR=
-
-# Bash pattern matching the version suffix commonly appended to jar filenames.
-# This pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
-# unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). By design,
-# this pattern may also be passed without change to "egrep" or "sed -r".
-#
-# Don't forget to append a '$' if appropriate!
-ANT_JAR_VERSION_PATTERN='-[[:digit:].]+(rc[[:digit:].]+)?\.jar'
-
-# Bash pattern matching the same from within a parameter expansion: e.g.,
-#
-#    Echoes "harhar.jar".
-#    JAR_FILE=harhar-5.62.951.jar && \
-#        echo ${JAR_FILE/${ANT_JAR_PARAMETER_VERSION_PATTERN}/.jar}
-ANT_JAR_PARAMETER_VERSION_PATTERN='%-+([[:digit:].])*(rc+([[:digit:].]))\.jar'
-
-# Sed pattern matching the version suffix commonly appended to jar filenames.
-# The pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
-# unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). Note that, due
-# to simplicity, the pattern may ocassionally match more than you want!
-#ANT_JAR_SED_VERSION_PATTERN='-[0-9].*\.jar'
-
-# ....................{ EXHERES GLOBALS                    }....................
-# Add a buildtime dependency on "app-arch/zip" to all Ant exheres. The
-# "replace_jar_manifest" function implicitly requires this binary.
+# ....................{ EXHERES                            }....................
 DEPENDENCIES+="
     build:
-        app-arch/zip
+        dev-java/apache-maven
 "
 
-# ....................{ CREATE_BUILD_XML                   }....................
-# This section specific to exheres using the "create_build_xml" exparam.
-
-# If creating a new "build.xml" file, this file is guaranteed to provide the
-[[ "${ANT_IS_CREATING_BUILD_XML}" ]] && enable_build_xml_creation
-
-# void enable_build_xml_creation(void)
-#
-# Enables "build.xml" creation. This function should only be called in global
-# exheres scope, as it provides exheres globals, Ant tasks, et al.
-enable_build_xml_creation() {
-    # Ensure the appropriate global boolean is also enabled.
-    ANT_IS_CREATING_BUILD_XML=1
-
-    # The created "build.xml" is guaranteed to support these options.
-    MYOPTIONS+="debug doc"
-
-    # Absolute or relative path under "${WORK}" from which sources files (e.g.,
-    # .java files) will be read during compilation. You'll probably need to
-    # manually move source files from wherever the archive unpacks them into
-    # this directory -- unless you set ${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR},
-    # in which case this is done for you.
-    ANT_SRC_COMPILE_SOURCE_DIR="src"
-
-    # Absolute or relative path under "${WORK}" serving as the root of the Java
-    # source file namespace for this exheres. Most Java projects having no
-    # "build.xml" file have their namespace under "com"; thus, this will
-    # probably be "com" for most exheres. For example, the JZlib project claims
-    # the "com.jcraft.jzlib" namespace, and distributes a source tarball having
-    # the "com/jcraft/jzlib/" directory; to appease Ant, the root of this
-    # directory (e.g., "com") must be moved into a canonical directory that Ant
-    # expects (e.g., "src"). So, this exheres sets:
-    #     ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR="com"
-    #
-    # When set, this exlib automatically moves this directory under
-    # ${ANT_SRC_COMPILE_SOURCE_DIR} as, again, this is what Ant expects.
-    ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR=""
-
-    # Absolute or relative path under "${WORK}" to which the output jar file
-    # (NOTE: singular "jar file") will be created. Avoid changing this. If you
-    # need to, you're probably better off writing your own "build.xml".
-    ANT_SRC_INSTALL_JARS_DIR="dist"
-
-    ANT_SRC_PREPARE_SYMLINK_DIR="lib"
-    ANT_SRC_PREPARE_PARAMS=( )
-    ANT_SRC_COMPILE_PARAMS=( compile )
-
-    # Note: the "javadoc" task will be conditionally appended to this array,
-    # later, if and only if the caller has enabled the exheres "doc" option.
-    ANT_SRC_INSTALL_PARAMS=( jar )
-    ANT_SRC_INSTALL_JARS=( "${ANT_SRC_INSTALL_JARS_DIR}/${PN}.jar" )
-}
-
 # ....................{ PHASES                             }....................
-antefix_pkg_setup() {
-    default
-    einfo "Setting up exheres defaults..."
+maven_src_configure() {
+    javafix_src_configure
 
-    # Die if the currently selected Java compiler is exheres restricted.
-    if [[ -n "${ANT_RESTRICT_JAVA_JDK_PREFIXES[@]}" ]]; then
-        local ANT_RESTRICT_JAVA_JDK_PREFIX
-        for   ANT_RESTRICT_JAVA_JDK_PREFIX \
-            in ${ANT_RESTRICT_JAVA_JDK_PREFIXES}; do
-            if [[ "${ANT_JAVA_JDK}" = "${ANT_RESTRICT_JAVA_JDK_PREFIX}"* ]]; then
-                eerror "Your currently selected Java compiler is \"${ANT_JAVA_JDK}\". Unfortunately,"
-                eerror "\"${PNV}\" reports that it currently fails under this compiler. Please consider"
-                eerror "installing and enabling another Java compiler: e.g.,"
-                eerror
-                eerror "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
-                eerror "                           && eclectic java-jre set icedtea6-\$PV"
-                eerror
-                eerror "where \$PV is your installed version of icedtea6 as listed by:"
-                eerror
-                eerror "  paludis -q icedtea6"
-                die
-            fi
-        done
-    fi
-
-    # Warn if the currently selected Java compiler is GCJ.
-    if [[ "${ANT_JAVA_JDK}" == gcj* ]]; then
-        ewarn "Your currently selected Java compiler is \"gcj\". While, technically,"
-        ewarn "this compiler works, it also introduces sydbox access violations by"
-        ewarn "attempting to open spurious DNS requests. Until this can be"
-        ewarn "corrected, please consider installing and enabling the \"icedtea6\""
-        ewarn "compiler instead with:"
-        ewarn
-        ewarn "  sudo paludis -i icedtea6 && eclectic java-jdk set icedtea6-\$PV \\"
-        ewarn "                           && eclectic java-jre set icedtea6-\$PV"
-        ewarn
-        ewarn "where \$PV is your installed version of icedtea6 as listed by:"
-        ewarn
-        ewarn "  paludis -q icedtea6"
-        ewarn
-        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        eerror "! Proceeding with installation, but ignoring all network sandboxing !"
-        eerror "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-        export ANT_IS_JAVA_JDK_GCJ=1
-    fi
-
-    # Establish the system directory to which we install output jar files.
-    if [[ -z "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}" ]]; then
-        # Output jar files for slotted exheres must be installed to a slotted
-        # subdirectory of this directory. (Exheres for which [[ ${SLOT} -eq 0 ]]
-        # are unslotted exheres; all other exheres are slotted.)
-        if [[ -z "${SLOT}" ]] || [[ "${SLOT}" -eq 0 ]]
-        then ANT_SRC_INSTALL_JARS_IMAGE_DIR=$(which_installed_jar_dir_nonfatal "${PN}")
-        else ANT_SRC_INSTALL_JARS_IMAGE_DIR=$(which_installed_jar_dir_nonfatal "${PN}:${SLOT}")
-        fi
-    fi
-
-    # Establish whether we want javadoc installed or not via the "doc" option.
-    # Do this in "pkg_setup" as that is the earliest time we may test options.
-    if has doc ${MYOPTIONS} && option doc; then
-        ANT_IS_INSTALLING_JAVADOC=1
+    if [[ -n "${MAVEN_SRC_CONFIGURE_PARAMS[@]}" ]]; then
+        echo ">>> Configuring source files"
+        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_CONFIGURE_PARAMS[@]}"
     fi
 }
 
-antefix_src_unpack() {
-    default
+maven_src_compile() {
+    javafix_src_compile
 
-    if [[ "${ANT_IS_CREATING_BUILD_XML}" ]]; then
-        einfo "Creating ${ANT_BUILD_XML}..."
-        edo pushd "${WORK}"
-
-        [[ -f "${ANT_BUILD_XML}" ]] &&
-            die "${PN} already provides a default ${ANT_BUILD_XML}!"
-
-        create_build_xml "${ANT_BUILD_XML}"
-
-        # Copy the source tree unpacked from the exheres tarball into the
-        # canonical "${WORK}/src/" directory Ant expects.
-        if [[ ! -d "${ANT_SRC_COMPILE_SOURCE_DIR}" ]]; then
-            einfo "Creating source tree..."
-            edo mkdir -p "${ANT_SRC_COMPILE_SOURCE_DIR}"
-            if [[ -n "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" ]]; then
-                edo mv "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" "${ANT_SRC_COMPILE_SOURCE_DIR}/"
-            fi
-        fi
-
-        # Also ensure we generate javadoc if that option is enabled.
-        if [[ -n "${ANT_IS_INSTALLING_JAVADOC}" ]]; then
-            ANT_SRC_INSTALL_JAVADOC_DIR="javadoc"
-            ANT_SRC_INSTALL_PARAMS+=( javadoc )
-        fi
-
-        # Pop goes the Edo jidai.
-        edo popd
-    fi
-
-    # The "ant_src_prepare" function recursively destroys the contents of
-    # all paths in "${ANT_BUNDLED_LIBSDIR}". Obviously, we must not destroy the
-    # "${WORK}" path. However, some Java libraries (e.g., Hamcrest) come with
-    # jar files pre-bundled in the "${WORK}" path. We thus homebrew this boolean
-    # to recursively remove jar files rather than all files and paths, prior to
-    # the "ant_src_prepare" function.
-    #
-    # Disable this by requiring this exlib with:
-    #     require antefix [ clean_jar_files=false ]
-    if [[ "${ANT_IS_CLEANING_JAR_FILES}" ]]; then
-        einfo "Removing jar files..."
-        clean_jar_files
-    fi
-
-    # Disable this by requiring this exlib with:
-    #     require antefix [ clean_class_files=false ]
-    if [[ "${ANT_IS_CLEANING_CLASS_FILES}" ]]; then
-        einfo "Removing class files..."
-        clean_class_files
+    if [[ -n "${MAVEN_SRC_COMPILE_PARAMS[@]}" ]]; then
+        echo ">>> Compiling source files"
+        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_COMPILE_PARAMS[@]}"
     fi
 }
 
-antefix_src_prepare() {
-    [[ -n "${DEFAULT_SRC_PREPARE_PATCHES}" ]] && einfo "Patching files..."
-    default  # calls the original "src_prepare" function
-    antefix_src_preamble
+maven_src_test() {
+    javafix_src_test
 
-    # Deversion files after patching files above but before invoking Ant below.
-    if [[ -n "${ANT_SRC_PREPARE_DEVERSION_FILES[@]}" ]]; then
-        einfo "Removing jar filename version specifiers..."
-        antefix_deversion_files ${ANT_SRC_PREPARE_DEVERSION_FILES[@]}
-    fi
-
-    # Never invoke Ant unless you have a task with which to invoke it, since
-    # "build.xml" files often supply a default task performing all relevant
-    # tasks when passed no explicit task. (This is rarely what we want.)
-    if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
-        einfo "Preparing source files..."
-        ANT_SRC_PREPARE_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_PREPARE_PARAMS[@]} )
-        ant_src_prepare
-    fi
-
-    if [[ -n "${ANT_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
-        einfo "Linking external jar files..."
-        set_symlink_jar_dir "${ANT_SRC_PREPARE_SYMLINK_DIR}"
-        symlink_jars         ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}
+    if [[ -n "${MAVEN_SRC_TEST_PARAMS[@]}" ]]; then
+        echo ">>> Testing compiled files"
+        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_TEST_PARAMS[@]}"
     fi
 }
 
-antefix_src_compile() {
-    antefix_src_preamble
-
-    if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
-        einfo "Compiling source files..."
-        ANT_SRC_COMPILE_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_COMPILE_PARAMS[@]} )
-        ant_src_compile
-    fi
-}
-
-antefix_src_test() {
-    antefix_src_preamble
-
-    if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
-        einfo "Testing compiled files..."
-        ANT_SRC_TEST_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_TEST_PARAMS[@]} )
-        ant_src_test
-    fi
-}
-
-antefix_src_install() {
-    antefix_src_preamble
-
-    einfo "Installing documents..."
-    emagicdocs
-
-    # Also ensure we generate javadoc if the user enabled the "doc" option and
-    # this exheres specified a directory having generated javadoc. (That's a few
-    # ifs.)
-    if [[ -n "${ANT_IS_INSTALLING_JAVADOC}" ]] &&
-       [[ -n "${ANT_SRC_INSTALL_JAVADOC_DIR}" ]]; then
-        einfo "Installing javadoc..."
-        docinto html/javadoc
-        dodoc "${ANT_SRC_INSTALL_JAVADOC_DIR}"/*
+maven_src_install() {
+    # Invoke Maven, which probably generates jar files, prior to calling the
+    # parent "src_install" function, which actually install these files.
+    if [[ -n "${MAVEN_SRC_INSTALL_PARAMS[@]}" ]]; then
+        echo ">>> Packaging jar files"
+        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_INSTALL_PARAMS[@]}"
     fi
 
-    if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
-        einfo "Collecting jar files..."
-        ANT_SRC_INSTALL_PARAMS=( ${ANT_PARAMS[@]} ${ANT_SRC_INSTALL_PARAMS[@]} )
-        ant_src_install
-    fi
-
-    if [[ -n "${ANT_SRC_INSTALL_JARS[@]}" ]]; then
-        einfo "Installing jar files... ${ANT_SRC_INSTALL_JARS[@]}"
-        install_jars ${ANT_SRC_INSTALL_JARS[@]}
-    fi
+    javafix_src_install
 }
 
-antefix_src_preamble() {
-    if [[ -n "${ANT_IS_JAVA_JDK_GCJ}" ]]; then
-        ewarn "Disabling network sandboxing..."
-        sydboxcmd 'sandunbox/net'
-    fi
-}
-
-# ....................{ CLEANERS                           }....................
-# void clean_jar_files(void)
+# ....................{ EMAVEN                             }....................
+# void emaven(char *pom_xml_filename, char *param1, char *param2, ...)
 #
-# Recursively remove all jar files under ${WORK}. (Fairly destructive!)
-clean_jar_files() {
-    # Do not use "edo rm -f "${WORK}"/**/*.jar" as that tends to glob more
-    # files than can be reasonably handled by the shell.
-    edo find "${WORK}" -type f -iname '*.jar' \
-        ${ANT_CLEAN_JAR_FILES_PARAMS[@]} -delete
-}
-
-# void clean_class_files(void)
-#
-# Recursively remove all class files under ${WORK}. (Danger, Exherbon.)
-clean_class_files() {
-    edo find "${WORK}" -type f -iname '*.class' -delete
-}
-
-# ....................{ DEVERSIONERS                       }....................
-# void antefix_deversion_files(char *filename1, char *filename2, ...)
-#
-# Patch the passed absolute or relative filenames of jar file version suffixes.
-# These files are typically "build.xml" files, so as to generalize their build
-# process to non-versioned jar files installed on the local machine.
-antefix_deversion_files() {
-    local EPN
-    local ANT_DEVERSION_FILE
-    for   ANT_DEVERSION_FILE in ${*}; do
-        # Implicitly remove filename version specifiers matching:
-        # "-${DSTAMP}.jar", "-${TSTAMP}.jar", or "-${TODAY}.jar". These
-        # are Ant properties generated by the "tstamp" task and, when
-        # used in jar filenames, mostly produce badly named jar files.
-        #
-        # This should be safe... should.
-        edo sed -i "${ANT_DEVERSION_FILE}" \
-            -r -e 's~-\$\{(DSTAMP|TSTAMP|TODAY)\}\.jar~.jar~'
-
-        # Explicitly remove filename version specifiers only for externally
-        # symlinked jar files, where the 'E' in "EPN" stands for external.
-        #
-        # Do not remove version specifiers from other jar filenames as those
-        # filenames may not actually exist. As we can't be sure, we don't.
-        if [[ -n "${ANT_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
-            for EPN in ${ANT_SRC_PREPARE_SYMLINK_JARS[@]}; do
-                if [[ "${EPN:0:1}" != / ]]; then  # ignore absolute paths
-                    edo sed -i "${ANT_DEVERSION_FILE}" \
-                        -r -e "s~${EPN}${ANT_JAR_VERSION_PATTERN}~${EPN}.jar~"
-                fi
-            done
-        fi
-    done
-}
-
-# ....................{ SYMLINKERS                         }....................
-# The following convenience functions symbolically link external Java libraries
-# into the current exhere's work directory prior to compilation of that exheres.
-
-# void set_symlink_jar_dir(char *pathname)
-#
-# Set the path of the directory into which external jar files should be
-# symbolically linked for this exheres. The "build.xml" file for this exheres
-# presumably requires these external jar files to be present in this directory
-# prior to operation. The "prepare_jar*" family of functions, below, operate on
-# this directory until the next invocation of this function.
-#
-# If absolute, no path processing is performed upon the filename aside from
-# ensuring that this path resides under "${WORK}/"; if relative, the absolute
-# path "${WORK}/" is prepended to this path.
-#
-# By convention, this is usually just "lib". Most Java libraries are different,
-# of course.
-set_symlink_jar_dir() {
-    illegal_in_global_scope
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one and only one argument needed"
-
-    ANT_SRC_PREPARE_SYMLINK_DIR="${1}"
-
-    # If we were passed an absolute path, test it.
-    if [[ ${ANT_SRC_PREPARE_SYMLINK_DIR:0:1} == / ]]; then
-        [[ "${ANT_SRC_PREPARE_SYMLINK_DIR}" == "${WORK}"* ]] ||
-            die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not under ${WORK}"
-    # If we were passed a relative path, canonicalize it.
-    else
-        ANT_SRC_PREPARE_SYMLINK_DIR="${WORK}/${ANT_SRC_PREPARE_SYMLINK_DIR}"
-    fi
-
-    # If the path exists, remove all jar files the archive extracted into it.
-    # This provides a convenient alternative to the rather cumbersome
-    # "${ANT_BUNDLED_LIBSDIR}" array.
-    if [[ -d "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]]; then
-        edo rm -f "${ANT_SRC_PREPARE_SYMLINK_DIR}"/*.jar
-    # Otherwise, create the path. It should already be, in general.
-    else
-        edo install -d "${ANT_SRC_PREPARE_SYMLINK_DIR}"
-    fi
-
-    # Notify the world!
-    export ANT_SRC_PREPARE_SYMLINK_DIR
-}
-
-# void symlink_jars(char *jar_spec1, char *jar_spec2, ...)
-#
-# Symbolically link jar specificiers to relative filenames having same basename
-# under the above directory, where "jar specificiers" are strings specifying
-# external jar files already installed to the local system by another exheres
-# on which this exheres depends. These strings are usually, but not always,
-# absolute or relative paths:
-#
-# * If an absolute path, that path is symlinked as is without modification.
-# * If a string having no whitespace, this string signifies both the exheres
-#   name (and optional slot) and jar filename. The slot, if present, is
-#   demarcated via a colon. (See below.) Then, the absolute path
-#   "/usr/share/${exheres_name}/${slot}" is prepended to the string, the type
-#   ".jar" is appended to the string, and the final path symlinked. Example:
-#
-#    # Symbolically links "/usr/share/ecocide/ecocide.jar" into "lib/".
-#    symlink_jars("ecocide")
-#
-#    # Symbolically links "/usr/share/ecocide/4/ecocide.jar" into "lib/".
-#    symlink_jars("ecocide:4")
-#
-#   If the resultant absolute path is not found, this also tries
-#   "/usr/share/$(basename ${jar_spec%%-*})/". This is the first part of the
-#   passed jar specifier up to but not including the first hyphen. Example:
-#
-#    # Tries "/usr/share/moa-core/moa-core.jar", which is not found. Then
-#    # tries "/usr/share/moa/moa-core.jar", which is found. Finally,
-#    # symbolically links "/usr/share/moa/moa-core.jar" into "lib/".
-#    symlink_jars("moa-core")
-#
-# * If a string having whitespace, the string is first split on the first
-#   whitespace in that string. The first half of the string signifies the
-#   exheres name (and optional slot), while the second half signifies the
-#   jar filename as above. The slot, if present, is demarcated from the
-#   exheres name via a colon. (See below.) Then, the absolute path
-#   "/usr/share/${exheres_name}/${slot}" is prepended to the string, the type
-#   ".jar" is appended to the string, and the final path symlinked. Example:
-#
-#    # Symbolically links "/usr/share/ecocide/1080.jar" into "lib/".
-#    symlink_jars("ecocide" "1080")
-#
-#    # Symbolically links "/usr/share/ecocide/1.2/1080.jar" into "lib/".
-#    symlink_jars("ecocide:1.2" "1080")
-#
-# This function is usually clever enough to suss out the absolute path to
-# whatever you pass it. When it doesn't, simply pass the absolute path.
-symlink_jars() {
-    illegal_in_global_scope
-    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
-    [[ -d "${ANT_SRC_PREPARE_SYMLINK_DIR}" ]] ||
-        die_unless_nonfatal "${ANT_SRC_PREPARE_SYMLINK_DIR} not found or not set"
-
-    local JAR_SPEC EXHERES_NAME JAR_FILENAME
-    for   JAR_SPEC in ${*}; do
-        # If an absolute path, use as is.
-        if [[ "${JAR_SPEC:0:1}" = / ]]; then
-            INSTALLED_JAR_FILE="${JAR_SPEC}"
-        # Otherwise, get the absolute path.
-        else
-            # If split on whitespace, grep the exheres name from jar filename in
-            # the passed jar specifier via Bash regexp matching.
-            if [[ "${JAR_SPEC}" =~ ^([^[:space:]]+)[[:space:]]+(.+)$ ]]; then
-                INSTALLED_JAR_FILE=$(which_installed_jar_file_nonfatal "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}")
-            # Otherwise, the jar filename is the passed jar specifier.
-            else
-                INSTALLED_JAR_FILE=$(which_installed_jar_file_nonfatal "${JAR_SPEC}" "${JAR_SPEC}")
-
-                # If not found but has a hyphen, grep the exheres name again.
-                if [[ ! -f "${INSTALLED_JAR_FILE}" ]] &&
-                   [[ "${JAR_SPEC}" =~ ^([^-]+)- ]]; then
-                   INSTALLED_JAR_FILE=$(which_installed_jar_file_nonfatal "${BASH_REMATCH[1]}" "${JAR_SPEC}")
-                fi
-            fi
-        fi
-
-        [[ -f     "${INSTALLED_JAR_FILE}" ]] ||
-            die   "${INSTALLED_JAR_FILE} not found"
-        edo ln -s "${INSTALLED_JAR_FILE}" "${ANT_SRC_PREPARE_SYMLINK_DIR}"/
-    done
-}
-
-# ....................{ INSTALLERS                         }....................
-# The following convenience functions install all Java libraries produced by
-# this exheres into local directories appropriate for this exheres.
-
-# void install_jars(char *filename1, char *filename2, ...)
-#
-# Copy absolute filenames to relative filenames having the same basename sans
-# version under the above directory. By "sans version", we mean basename minus
-# "-${PV}". Jar filenames should be versionless so as to permit their usage
-# elsewhere without concern for the specific versions they represent. This
-# resembles:
-#
-#   cp "$filename1" "$filename2" ... "${IMAGE}/${ANT_SRC_INSTALL_JARS_IMAGE_DIR}"
-install_jars() {
-    illegal_in_global_scope
-    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
-    [[ "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}" =~ ^/(usr|opt)/ ]] ||
-        die_unless_nonfatal "${ANT_SRC_INSTALL_JARS_IMAGE_DIR} not under /usr or /opt"
-
-    insinto "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}"
-
-    local JAR_FILE
-    for   JAR_FILE in ${*}; do
-        # Strip versions from filenames: e.g., convert "zebrapig-0.42.jar" to
-        # "zebrapig.jar". The pattern substitution requires the bash "extglob"
-        # shell option be enabled, which it is under exheres-0.
-        #
-        # See "man bash" for details.
-        newins ${JAR_FILE} \
-            $(basename "${JAR_FILE/${ANT_JAR_PARAMETER_VERSION_PATTERN}/.jar}")
-    done
-}
-
-# void install_jar_as(char *filename1, char *filename2)
-#
-# Copy absolute "$filename1" to relative "$filename2" under the above directory.
-# This is functionally equivalent to:
-#
-#   cp "$filename1" "${IMAGE}/$install_jar_dir/$filename2"
-install_jar_as() {
-    illegal_in_global_scope
-    [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
-    [[ "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}" =~ ^/(usr|opt)/ ]] ||
-        die_unless_nonfatal "${ANT_SRC_INSTALL_JARS_IMAGE_DIR} not under /usr or /opt"
-
-    local JAR_FILE_IN="${1}"
-    local JAR_FILE_OUT="${2}"
-    [[ "${JAR_FILE_OUT}" =~ ${ANT_JAR_VERSION_PATTERN}$ ]] &&
-        ewarn "${JAR_FILE_OUT} contains a version specifier"
-
-    insinto "${ANT_SRC_INSTALL_JARS_IMAGE_DIR}"
-    newins "${JAR_FILE_IN}" "${JAR_FILE_OUT}"
-}
-
-# char *which_installed_jar_dir(char *exheres_name)
-#
-# Given an exheres name and optional slot, returns the absolute path to the
-# installed directory having jar files for that exheres: e.g.,
-#
-#     # Echoes "/usr/share/turkish_dream".
-#     echo $(which_installed_jar_dir "turkish_dream")
-#     # Echoes "/usr/share/british_moors/2.5".
-#     echo $(which_installed_jar_dir "british_moors:2.5")
-#
-# Append the exheres slot to the exheres name as in "DEPENDENCIES": e.g.,
-# "${PN}:${SLOT}". A slot need not be specified, of course. See examples.
-#
-# For safety, this function dies when the path does not exist.
-which_installed_jar_dir() {
-    local    JAR_DIR=$(which_installed_jar_dir_nonfatal ${*})
-    [[ -d "${JAR_DIR}" ]] || die_unless_nonfatal "${JAR_DIR} not found"
-    echo  "${JAR_DIR}"
-}
-
-# char *which_installed_jar_dir_nonfatal(char *exheres_name)
-#
-# Identical to "which_installed_jar_dir" but does not ensure the path exists.
-which_installed_jar_dir_nonfatal() {
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
-    [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
-
-    # Bash regex matching trailing slot number.
-    if [[ "${1}" =~ ^(.+):([^:]+)$ ]]
-    then echo "${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
-    else echo "${ANT_SRC_INSTALL_JARS_IMAGE_ROOT}/${1}"
-    fi
-}
-
-# char *which_installed_jar_file(char *jar_file)
-# --OR--
-# char *which_installed_jar_file(char *exheres_name, char *jar_file)
-#
-# Given a jar file and optional exheres name and slot, returns the absolute path
-# to that jar file as installed on the local system: e.g.,
-#
-#     # Echoes "/usr/share/hamcrest/hamcrest-library.jar".
-#     echo $(which_installed_jar_file "hamcrest-library")
-#     # Echoes "/usr/share/raki-saki/raki-saki-core.jar".
-#     echo $(which_installed_jar_file "dist/lib/raki-saki-core.5.22.jar")
-#     # Echoes "/usr/share/raki-saki/org.turkish.dream.jar".
-#     echo $(which_installed_jar_file "raki-saki" "bin/org.turkish.dream-0.1.3.jar")
-#     # Echoes "/usr/share/raki-saki/8/org.turkish.dream.jar".
-#     echo $(which_installed_jar_file "raki-saki:8" "bin/org.turkish.dream-0.1.3.jar")
-#
-# Append the exheres slot to the exheres name as in "DEPENDENCIES": e.g.,
-# "${PN}:${SLOT}". A slot need not be specified, of course. See examples.
-#
-# This automatically strips version strings from passed jar filenames as well as
-# establishing the expected parent directory. As above, for safety, this
-# function dies when the file does not exist.
-which_installed_jar_file() {
-    local    JAR_FILE=$(which_installed_jar_file_nonfatal ${*})
-    [[ -f "${JAR_FILE}" ]] || die_unless_nonfatal "${JAR_FILE} not found"
-    echo  "${JAR_FILE}"
-}
-
-# char *which_installed_jar_file_nonfatal(char *jar_file)
-# --OR--
-# char *which_installed_jar_file_nonfatal(char *exheres_name, char *jar_file)
-#
-# Identical to "which_installed_jar_file" but does not ensure the file exists.
-which_installed_jar_file_nonfatal() {
-    illegal_in_global_scope
-    [[ ${#} -eq 1 ]] ||
-    [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
-    [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
-
-    local JAR_FILENAME EXHERES_NAME
-
-    if   [[ ${#} -eq 1 ]]
-    then JAR_FILENAME="${1}"
-    else JAR_FILENAME="${2}"; EXHERES_NAME="${1}"
-    fi
-
-    local JAR_BASENAME="${JAR_FILENAME##*/}"   # filename sans path
-    local JAR_ROOTNAME="${JAR_BASENAME%.jar}"  # filename sans path and type
-
-    if [[ -z "${EXHERES_NAME}" ]]
-    then EXHERES_NAME="${JAR_ROOTNAME}"
-    fi
-
-    # "JAR_ROOTNAME" could still contain a suffixing ":" slot number, however;
-    # as no jar file should, cut that if found.
-    local JAR_TRUENAME="${JAR_ROOTNAME%:*}"    # filename sans path, type, slot
-    echo $(which_installed_jar_dir_nonfatal "${EXHERES_NAME}")"/${JAR_TRUENAME}.jar"
-}
-
-# ....................{ BUILD.XML                          }....................
-# void create_build_xml(char *filename)
-#
-# Create a new "build.xml" file at the passed absolute or relative path
-# appropriate for building this exheres. This is only appropriate for those
-# exheres not already providing a "build.xml" file. By convention, this file
-# defines the following top-level Ant tasks:
-#
-# * "compile", compiling class files for this exheres from "src/" to "build/".
-# * "jar", jaring this exheres into "dist/".
-# * "javadoc", generating HTML files for this exheres in "javadoc/".
-#
-# These tasks accept the following Ant properties at the command-line:
-#
-# * "src", an absolute or relative path to the root of the source directory.
-#   Defaults to "${WORK}/src/". (You will probably have to either manually move
-#   the source directory for this exheres to this default or redefine this
-#   property. Either are fine.)
-# * "lib", an absolute or relative path to the root of the input jar file
-#   directory (i.e., the directory having symlinks to external dependencies).
-#   Defaults to "${WORK}/lib/". (This exlib ensures that these dependencies will
-#   be symlinked into this directory, when specified via the
-#   ${ANT_SRC_PREPARE_SYMLINK_DIR} global.)
-# * "build", an absolute or relative path to the root of the classes directory.
-#   Defaults to "${WORK}/build/".
-# * "dist", an absolute or relative path to the root of the output jar file
-#   directory. Defaults to "${WORK}/build/".
-# * "javadoc", an absolute or relative path to the root of the output javadoc
-#   directory. Defaults to "${WORK}/javadoc/".
-# * "debug", a "true" or "false" boolean that, if true, embeds debugging
-#   metadata in compiled class files. Defaults to "false".
-#
-# Thus, exheres need to ensure source files appear in the directory
-# corresponding to the "src" property, which defaults to "${WORK}/src/". But
-# that's it. This exlib takes care of everything else for you. See
-# implementation for details.
-create_build_xml() {
-    illegal_in_global_scope
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
-
-    local BUILD_XML_SRC_DIR="${ANT_SRC_COMPILE_SOURCE_DIR:-src}"
-    local BUILD_XML_LIB_DIR="${ANT_SRC_PREPARE_SYMLINK_DIR:-lib}"
-    local BUILD_XML_DIST_DIR="${ANT_SRC_INSTALL_JARS_DIR:-dist}"
-    local BUILD_XML_JAR_FILE="${ANT_SRC_INSTALL_JARS[1]:-${BUILD_XML_DIST_DIR}/${PN}.jar}"
-    local BUILD_XML_JAVADOC_DIR="${ANT_SRC_INSTALL_JAVADOC_DIR:-javadoc}"
-
-    local BUILD_XML_DEBUG="false"
-    if has debug ${MYOPTIONS}; then
-        BUILD_XML_DEBUG=$(option debug && echo true || echo false)
-    fi
-
-    cat <<EOF > "${1}" 
-<?xml version="1.0" encoding="utf-8"?>
-<project name="${PN}" default="jar" basedir=".">
-    <property name="src"     location="${BUILD_XML_SRC_DIR}"/>
-    <property name="lib"     location="${BUILD_XML_LIB_DIR}"/>
-    <property name="build"   location="build"/>
-    <property name="dist"    location="${BUILD_XML_DIST_DIR}"/>
-    <property name="javadoc" location="${BUILD_XML_JAVADOC_DIR}"/>
-    <property name="jar"     value="${BUILD_XML_JAR_FILE}"/>
-    <property name="debug"   value="${BUILD_XML_DEBUG}"/>
-
-    <path id="lib.classpath">
-        <fileset dir="\${lib}">
-            <include name="**/*.jar"/>
-        </fileset>
-    </path>
-
-    <target name="init">
-        <tstamp/>
-        <mkdir dir="\${lib}"/>
-        <mkdir dir="\${build}"/>
-        <mkdir dir="\${dist}"/>
-        <mkdir dir="\${javadoc}"/>
-    </target>
-
-    <target name="compile" depends="init">
-        <javac srcdir="\${src}" destdir="\${build}" debug="\${debug}"
-               classpathref="lib.classpath"/>
-    </target>
-
-    <target name="jar" depends="compile">
-        <jar jarfile="\${jar}" basedir="\${build}"/>
-    </target>
-
-    <target name="javadoc" depends="init">
-        <javadoc sourcepath="\${src}" destdir="\${javadoc}"
-                 classpathref="lib.classpath">
-            <packageset dir="\${src}"/>
-        </javadoc>
-    </target>
-</project>
-EOF
-}
-
-# ....................{ MANIFEST.MF                        }....................
-# void replace_jar_manifest(char *jar_filename, char *manifest_filename)
-#
-# Replace "META-INF/MANIFEST.MF" in the passed jar filename with the passed
-# manifest filename. Also, substitute placeholder variables with their current
-# Bash values as performed by the "rectify_jar_manifest" function.
-#
-# Exheres usually call this function from "${PN}_src_install", often overriding
-# exheres globals with jar file-specific locals: e.g.,
-#
-#     local PV=0.8.1   # ...hides the global ${PV}
-#     replace_jar_manifest "dist/${PN}.jar" "${FILES}/${PN}-MANIFEST.MF"
-replace_jar_manifest() {
-    illegal_in_global_scope
-    [[ ${#} -eq 2        ]] || die_unless_nonfatal "exactly two arguments needed"
-    [[ -x "/usr/bin/zip" ]] || die_unless_nonfatal "zip not installed"
-
-    local      JAR_FILE="${1}"
-    local MANIFEST_FILE="${2}"
-
-    # Copy the source to target manifest file, and patch placeholders.
-    edo mkdir -p              "${TEMP}/META-INF"
-    edo cp "${MANIFEST_FILE}" "${TEMP}/META-INF/MANIFEST.MF"
-    rectify_jar_manifest      "${TEMP}/META-INF/MANIFEST.MF"
-
-    # Move the jar file to the temporary path having the target manifest,
-    # temporarily renaming it for convenience.
-    edo mv "${JAR_FILE}" "${TEMP}/jar.jar"
-
-    # The activated JDK necessarily installs a "jar" binary. This binary permits
-    # updating, but not replacement, of existing jar file manifest files. That's
-    # not what we want; so, unfortunately, we depend on the "zip" binary. This
-    # binary is not guaranteed to be installed; when installed, it requires we
-    # we change directories.
-    edo pushd "${TEMP}"
-    edo zip -q "jar.jar" "META-INF/MANIFEST.MF"
-
-    # Get us home, Commander Gaeta.
-    edo popd
-
-    # Move the jar file to its original path.
-    edo mv "${TEMP}/jar.jar" "${JAR_FILE}"
-}
-
-# void rectify_jar_manifest(char *manifest_filename)
-#
-# Patch contents of the passed manifest filename or "META-INF/MANIFEST.MF" from
-# the current directory, if no manifest filename is passed. In particular,
-# substitute placeholder variables in the manifest with their current values.
-# Recognized placeholders are:
-#
-# * __PV__, which will be substituted with ${PV}.
-# * %bundleName, which will be substituted with ${BUNDLE_NAME}
-# * %providerName, which will be substituted with ${PROVIDER_NAME}
-#
-# Placeholder variables prefixed by '%' are specific to the Java OSGI standard.
-# Placeholder variables enclosed by '__' are specific to this function, and
-# chosen so as to avoid conflicting with existing manifest file text.
-#
-# Exheres usually call this function from "${PN}_src_prepare", often overriding
-# exheres globals with jar file-specific locals: e.g.,
-#
-#     local PV=3.0.2                   # ...hides the global ${PV}
-#     local BUNDLE_NAME="SAT4J Core"   # ...hides the global ${BUNDLE_NAME}
-#     rectify_jar_manifest "${WORK}/build/META-INF/MANIFEST.MF"
-#
-# !!!!!IMPORTANT!!!!! strings substituted into placeholder variables must not
-# contain backtick characters '`', as the sed expressions performing these
-# substitutions use that character to delimit themselves. Since this would be a
-# strange character for a string to contain, this is generally "safe."
-rectify_jar_manifest() {
-    illegal_in_global_scope
-    [[ ${#} -le 1 ]] || die_unless_nonfatal "zero or one arguments needed"
-
-    local MANIFEST_FILE="${1:-META-INF/MANIFEST.MF}"
-    local PROVIDER_NAME="${PROVIDER_NAME:-Exherbo!}"
-
-    # Substitute placeholder variables, with undefined variables simply
-    # expanding to the empty string.
-    edo sed -i "${MANIFEST_FILE}" \
-        -e "s\`__PV__\`${PV}\`" \
-        -e "s\`%bundleName\`${BUNDLE_NAME}\`" \
-        -e "s\`%providerName\`${PROVIDER_NAME}\`"
-}
-
-# ....................{ EANT                               }....................
-# void eant(char *build_xml_filename, char *param1, char *param2, ...)
-#
-# Call "ant" with the passed absolute or relative path to a "build.xml" file and
-# zero or more command-line parameters to be passed to this "build.xml" file.
-# These parameters must be either: {a} Ant properties of the form "-Dkey=value"
-# (e.g., "-Djavacc.home=lib/javacc.jar") or {b} Ant tasks of the form "task"
-# (e.g., "compile").
-#
-# This function supplants the earlier "_ant_run" function and, unlike that
-# function, may be explicitly called by exheres operating on multiple
-# "build.xml" files. (Exheres not operating on multiple "build.xml" files should
-# avoid calling this function explicitly.)
-eant() {
+# Call "maven" with the passed absolute or relative path to a "pom.xml" file and
+# zero or more command-line parameters to be passed to this "pom.xml" file.
+# These parameters must be either: {a} Maven properties of the form
+# "-Dkey=value" (e.g., "-Dmaven.test.skip=false") or {b} Maven tasks of the form
+# "task" (e.g., "install").
+emaven() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
 
-    local ANT_BUILD_XML="${1}"
+    local MAVEN_POM_XML="${1}"
     shift
 
-    # Always enable the "noget" property when invoking Ant. This instructs Ant
-    # to ignore any "get" tasks defined by this "build.xml" file; such tasks,
-    # if defined, attempt to remotely download external jar files.
-    edo "${ANT}" -f "${ANT_BUILD_XML}" -Dnoget=true "${@}"
+    # Always pass the "--offline" option when invoking Maven. As the name
+    # suggests, this prevents Maven from downloading dependencies or updates.
+    edo "${MAVEN}" --file "${MAVEN_POM_XML}" --offline "${@}"
 }
+
