@@ -59,22 +59,16 @@ memtest86plus_pkg_postinst() {
     elog "end the installation, please do both manually: e.g., assuming the boot"
     elog "partition for your system is at /dev/sda4 and thus \"(hd0,3)\" in GRUB"
     elog
-    elog "* Install to /boot."
-    elog "  sudo mount /dev/sda4 /boot"
-    elog "  sudo mkdir /boot/${PN}"
-    elog "  sudo cp ${MEMTEST86PLUS_INSTALL_FILE} /boot/${PN}/"
-    elog
-    elog "* And for GRUB 2, add the following lines to \"/boot/grub/grub.conf\"."
+    elog "* Copy ${MEMTEST86PLUS_INSTALL_FILE} to /boot/${PN}/."
+    elog "* For GRUB 2, add the following lines to \"/boot/grub/grub.conf\"."
     elog "  title=Memtest86+"
     elog "  root (hd0,3)"
     elog "  kernel /boot/${PN}/${MEMTEST86PLUS_INSTALL_FILENAME}"
-    elog
-    elog "* Or, for GRUB 1, add the following lines to \"/boot/grub/menu.lst\"."
+    elog "* For GRUB 1, add the following lines to \"/boot/grub/menu.lst\"."
     elog "  title=Memtest86+"
     elog "  root (hd0,3)"
     elog "  kernel /boot/${PN}/${MEMTEST86PLUS_INSTALL_FILENAME}"
-    elog
-    elog "* Or, for LILO, add the following lines to \"/etc/lilo.conf\"."
+    elog "* For LILO, add the following lines to \"/etc/lilo.conf\"."
     elog "  image = /boot/${PN}/memtest"
     elog "  label = Memtest86+"
     elog
