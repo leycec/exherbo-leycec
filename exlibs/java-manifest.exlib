@@ -1,0 +1,104 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+#
+# --------------------( SYNOPSIS                           )--------------------
+# This exlib provides utility functions for manipulating the
+# "META-INF/MANIFEST.MF" file archived in Java jar files.
+#
+# This exlib doesn't explicitly require the "javafix.exlib" exlib. That said,
+# most exheres requiring this exlib require "javafix.exlib".
+
+# ....................{ EXHERES                            }....................
+# Add a buildtime dependency on "app-arch/zip" to calling exheres. The
+# "replace_jar_manifest" function implicitly requires this binary. While many
+# Java exheres do not call this function, many others do; as this is a common
+# dependency of other core exheres, our adding it here does little harm.
+DEPENDENCIES+="
+    build:
+        app-arch/zip
+"
+
+# ....................{ MANIFEST.MF                        }....................
+# void replace_jar_manifest(char *jar_filename, char *manifest_filename)
+#
+# Replace "META-INF/MANIFEST.MF" in the passed jar filename with the passed
+# manifest filename. Also, substitute placeholder variables with their current
+# Bash values as performed by the "rectify_jar_manifest" function.
+#
+# Exheres usually call this function from "src_install", occasionally overriding
+# exheres globals with jar file-specific locals: e.g.,
+#
+#     local PV=0.8.1   # ...hides the global ${PV}
+#     replace_jar_manifest "dist/${PN}.jar" "${FILES}/${PN}-MANIFEST.MF"
+replace_jar_manifest() {
+    illegal_in_global_scope
+    [[ ${#} -eq 2        ]] || die_unless_nonfatal "exactly two arguments needed"
+
+    local      JAR_FILE="${1}"
+    local MANIFEST_FILE="${2}"
+
+    # Copy the source to target manifest file, and patch placeholders.
+    edo mkdir -p              "${TEMP}/META-INF"
+    edo cp "${MANIFEST_FILE}" "${TEMP}/META-INF/MANIFEST.MF"
+    rectify_jar_manifest      "${TEMP}/META-INF/MANIFEST.MF"
+
+    # Move the jar file to the temporary path having the target manifest,
+    # temporarily renaming it for convenience.
+    edo mv "${JAR_FILE}" "${TEMP}/jar.jar"
+
+    # The activated JDK necessarily installs a "jar" binary. This binary permits
+    # updating, but not replacement, of existing jar file manifest files. That's
+    # not what we want; so, unfortunately, we depend on the "zip" binary. This
+    # binary is not guaranteed to be installed; when installed, it requires we
+    # we change directories.
+    edo pushd "${TEMP}"
+    edo zip -q "jar.jar" "META-INF/MANIFEST.MF"
+
+    # Get us home, Commander Gaeta.
+    edo popd
+
+    # Move the jar file to its original path.
+    edo mv "${TEMP}/jar.jar" "${JAR_FILE}"
+}
+
+# void rectify_jar_manifest(char *manifest_filename)
+#
+# Patch contents of the passed manifest filename or "META-INF/MANIFEST.MF" from
+# the current directory, if no manifest filename is passed. In particular,
+# substitute placeholder variables in the manifest with their current values.
+# Recognized placeholders are:
+#
+# * __PV__, which will be substituted with ${PV}.
+# * %bundleName, which will be substituted with ${BUNDLE_NAME}
+# * %providerName, which will be substituted with ${PROVIDER_NAME}
+#
+# Placeholder variables prefixed by '%' are specific to the Java OSGI standard.
+# Placeholder variables enclosed by '__' are specific to this function, and
+# chosen so as to avoid conflicting with existing manifest file text.
+#
+# Exheres usually call this function from "${PN}_src_prepare", often overriding
+# exheres globals with jar file-specific locals: e.g.,
+#
+#     local PV=3.0.2                   # ...hides the global ${PV}
+#     local BUNDLE_NAME="SAT4J Core"   # ...hides the global ${BUNDLE_NAME}
+#     rectify_jar_manifest "${WORK}/build/META-INF/MANIFEST.MF"
+#
+# !!!!!IMPORTANT!!!!! strings substituted into placeholder variables must not
+# contain backtick characters '`', as the sed expressions performing these
+# substitutions use that character to delimit themselves. Since this would be a
+# strange character for a string to contain, this is generally "safe."
+rectify_jar_manifest() {
+    illegal_in_global_scope
+    [[ ${#} -le 1 ]] || die_unless_nonfatal "zero or one arguments needed"
+
+    local MANIFEST_FILE="${1:-META-INF/MANIFEST.MF}"
+    local PROVIDER_NAME="${PROVIDER_NAME:-Exherbo!}"
+
+    # Substitute placeholder variables, with undefined variables simply
+    # expanding to the empty string.
+    edo sed -i "${MANIFEST_FILE}" \
+        -e "s\`__PV__\`${PV}\`" \
+        -e "s\`%bundleName\`${BUNDLE_NAME}\`" \
+        -e "s\`%providerName\`${PROVIDER_NAME}\`"
+}
+

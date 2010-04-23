@@ -41,14 +41,14 @@ JAVA_RESTRICT_JDK_PREFIXES=( gcj )
 #     JAVA_CLEAN_JAR_FILES_PARAMS=( -not -wholename 'bootstrap/young_lad.jar' )
 JAVA_CLEAN_JAR_FILES_PARAMS=( )
 
-# Absolute or relative path under "${WORK}" into which external jar files will
-# be symlinked. Though this path is typically "lib" for most exheres, you must
-# still specify this global to have symlinking performed for you. Example:
+# Absolute or relative path under ${WORK} into which external jar files will
+# be symlinked. Though this path is usually "lib" for most exheres, you must
+# still explicitly specify it to have symlinking performed for you. Example:
 #     JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
 JAVA_SRC_PREPARE_SYMLINK_DIR=""
 
 # Array of absolute paths to or relative names of external jar files to be
-# symlinked into "${JAVA_SRC_SYMLINK_DIR}". These external jar files should
+# symlinked into ${JAVA_SRC_PREPARE_SYMLINK_DIR} during the "src_prepare" phase. External jar files should
 # generally be buildtime dependencies of this exheres. Example mixing both
 # absolute paths to and relative names of external jar files:
 #     JAVA_SRC_PREPARE_SYMLINK_JARS=( jarjar qdox "/usr/share/asm/asm.jar" )
@@ -56,6 +56,12 @@ JAVA_SRC_PREPARE_SYMLINK_DIR=""
 # If filenames are not known until install time, leave this array blank and
 # call "symlink_jars" within your "${PN}_src_prepare" function.
 JAVA_SRC_PREPARE_SYMLINK_JARS=( )
+
+# Absolute or relative path under "${WORK}" into which external jar files will
+# be symlinked for the "src_test" phase. This is usually, but not always, the
+# same path as ${JAVA_SRC_PREPARE_SYMLINK_DIR}. Example:
+#     JAVA_SRC_TEST_SYMLINK_DIR="lib"
+JAVA_SRC_TEST_SYMLINK_DIR=""
 
 # Array of absolute paths to text files to be "deversion"-ated. Ant "build.xml"
 # files often hardcode references to pre-bundled jar files with names suffixed
@@ -82,12 +88,12 @@ JAVA_SRC_PREPARE_DEVERSION_FILES=( )
 JAVA_SRC_INSTALL_JAVADOC_DIR=""
 
 # Array of absolute paths to this exheres' output jar files to be installed
-# under "${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}". Versions are automatically removed
-# from filenames on your behalf. (Yippee...!) Example:
+# under "$(which_installed_jar_dir_for_this_exheres)", with suffixing versions
+# automatically removed from filenames on your behalf. Example:
 #     JAVA_SRC_PREPARE_INSTALL_JARS=( "dist/${PNV}.jar" )
 #
-# If filenames are not known until install time, leave this array blank and
-# call "install_jars" within your "${PN}_src_install" function.
+# If filenames are not known until install time, leave this blank and explicitly
+# call "install_jars" within your "src_install".
 JAVA_SRC_INSTALL_JARS=( )
 
 # ....................{ CONSTANTS                          }....................
@@ -106,10 +112,6 @@ JAVA_JDK=$(eclectic java-jdk show)
 # See the "java_pkg_setup" function for detail.
 JAVA_IS_DISABLING_NETWORK_SANDBOXING=
 
-# Set, if installing javadoc. (This is set for you if and only if "doc" is
-# enabled for this exheres.)
-JAVA_IS_INSTALLING_JAVADOC=
-
 # Set, if recursively deleting all class files from "${WORK}" immediately after
 # extracting source tarballs. Such class files are often bundled with tarballs
 # to avoid the need for user recompilation. Make them suffer; oh, yes.
@@ -123,17 +125,6 @@ JAVA_IS_CLEANING_CLASS_FILES=1
 #
 # Defaults to set.
 JAVA_IS_CLEANING_JAR_FILES=1
-
-# Absolute path to which this exheres installs output jar files.
-#
-# Avoid changing this global unless you absolutely must, as that probably breaks
-# things elsewhere (e.g., other exheres trying to import these jar files).
-#
-# This defaults to the empty string; if still the empty string during the
-# "pkg_setup" phase, then that phase resets this to a proper default. We wait
-# until that phase as the proper default depends on exheres globals (e.g.,
-# ${SLOT}) that will only be set after the exheres requires this exlib.
-JAVA_SRC_INSTALL_JARS_IMAGE_DIR=
 
 # Bash pattern matching the version suffix commonly appended to jar filenames.
 # This pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
@@ -149,22 +140,6 @@ JAVA_JAR_VERSION_PATTERN='-[[:digit:].]+(rc[[:digit:].]+)?\.jar'
 #    JAR_FILE=harhar-5.62.951.jar && \
 #        echo ${JAR_FILE/${JAVA_JAR_PARAMETER_VERSION_PATTERN}/.jar}
 JAVA_JAR_PARAMETER_VERSION_PATTERN='%-+([[:digit:].])*(rc+([[:digit:].]))\.jar'
-
-# Sed pattern matching the version suffix commonly appended to jar filenames.
-# The pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
-# unconventional revisioned versions (e.g., "jarjar-1.0rc8.jar"). Note that, due
-# to simplicity, the pattern may ocassionally match more than you want!
-#JAVA_JAR_SED_VERSION_PATTERN='-[0-9].*\.jar'
-
-# ....................{ EXHERES GLOBALS                    }....................
-# Add a buildtime dependency on "app-arch/zip" to all Ant exheres. The
-# "replace_jar_manifest" function implicitly requires this binary. While many
-# Java exheres do not call this function, many others do; as this is a common
-# dependency of other core exheres, our adding it here should do little harm.
-DEPENDENCIES+="
-    build:
-        app-arch/zip
-"
 
 # ....................{ PHASES                             }....................
 javafix_pkg_setup() {
@@ -190,23 +165,6 @@ javafix_pkg_setup() {
         ewarn "violates sydbox network sandboxing by attempting to open spurious DNS requests."
         ewarn "Consider installing and enabling a better supported Java compiler: e.g., \"icedtea6\"."
         JAVA_IS_DISABLING_NETWORK_SANDBOXING=1
-    fi
-
-    # Establish the system directory to which we're installing output jar files.
-    if [[ -z "${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}" ]]; then
-        # Output jar files for slotted exheres must be installed to a slotted
-        # subdirectory of this directory. (Exheres for which [[ ${SLOT} -eq 0 ]]
-        # are unslotted exheres; all other exheres are slotted.)
-        if [[ -z "${SLOT}" ]] || [[ "${SLOT}" -eq 0 ]]
-        then JAVA_SRC_INSTALL_JARS_IMAGE_DIR=$(which_installed_jar_dir_nonfatal "${PN}")
-        else JAVA_SRC_INSTALL_JARS_IMAGE_DIR=$(which_installed_jar_dir_nonfatal "${PN}:${SLOT}")
-        fi
-    fi
-
-    # Establish whether we want javadoc installed or not via the "doc" option.
-    # Do this in "pkg_setup" as that is the earliest time we may test options.
-    if has doc ${MYOPTIONS} && option doc; then
-        JAVA_IS_INSTALLING_JAVADOC=1
     fi
 }
 
@@ -242,8 +200,8 @@ javafix_src_prepare() {
 
     if [[ -n "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
         echo ">>> Linking external jar files"
-        set_symlink_jar_dir "${JAVA_SRC_PREPARE_SYMLINK_DIR}"
-        symlink_jars        "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}"
+        symlink_jars "${JAVA_SRC_PREPARE_SYMLINK_DIR}" \
+                     "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}"
     fi
 }
 
@@ -265,11 +223,7 @@ javafix_src_install() {
     echo ">>> Installing documents"
     emagicdocs
 
-    # Also ensure we generate javadoc if the user enabled the "doc" option and
-    # this exheres specified a directory having generated javadoc. (That's a few
-    # ifs.)
-    if [[ -n "${JAVA_IS_INSTALLING_JAVADOC}" ]] &&
-       [[ -n "${JAVA_SRC_INSTALL_JAVADOC_DIR}" ]]; then
+    if [[ -n "${JAVA_SRC_INSTALL_JAVADOC_DIR}" ]]; then
         echo ">>> Installing javadoc"
         docinto "html/javadoc"
         dodoc "${JAVA_SRC_INSTALL_JAVADOC_DIR}"/*
@@ -358,72 +312,31 @@ deversion_java_files() {
 }
 
 # ....................{ SYMLINKERS                         }....................
-# The following convenience functions symbolically link external Java libraries
-# into the current exhere's work directory prior to compilation of that exheres.
-
-# void set_symlink_jar_dir(char *pathname)
+# void symlink_jars(char *symlink_dir, char *jar_spec1, char *jar_spec2, ...)
 #
-# Set the path of the directory into which external jar files should be
-# symbolically linked for this exheres. The "build.xml" file for this exheres
-# presumably requires these external jar files to be present in this directory
-# prior to operation. The "prepare_jar*" family of functions, below, operate on
-# this directory until the next invocation of this function.
+# Symlink the passed jar specificiers to relative filenames having the same
+# basename in the passed absolute or relative path under ${WORK} to the symlink
+# directory. If the path already exists, this function kills all jar files that
+# may still exist in it; if it does not, this function creates it. Killing jars
+# may be necessary for exheres disabling jar file cleaning and, in any case,
+# never hurts. (They are external dependencies, after all.)
 #
-# If absolute, no path processing is performed upon the filename aside from
-# ensuring that this path resides under "${WORK}/"; if relative, the absolute
-# path "${WORK}/" is prepended to this path.
+# "Jar specificiers" are compact strings uniquely identifying external jar
+# files already installed to the current system by one or more exheres on which
+# this exheres depends. In their simplest form, jar specifiers are merely paths:
 #
-# By convention, this is usually just "lib". Most Java libraries are different,
-# of course.
-set_symlink_jar_dir() {
-    illegal_in_global_scope
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one and only one argument needed"
-
-    JAVA_SRC_PREPARE_SYMLINK_DIR="${1}"
-
-    # If we were passed an absolute path, test it.
-    if [[ ${JAVA_SRC_PREPARE_SYMLINK_DIR:0:1} == / ]]; then
-        [[ "${JAVA_SRC_PREPARE_SYMLINK_DIR}" == "${WORK}"* ]] ||
-            die_unless_nonfatal "${JAVA_SRC_PREPARE_SYMLINK_DIR} not under ${WORK}"
-    # If we were passed a relative path, canonicalize it.
-    else
-        JAVA_SRC_PREPARE_SYMLINK_DIR="${WORK}/${JAVA_SRC_PREPARE_SYMLINK_DIR}"
-    fi
-
-    # If the path exists, remove all jar files the archive extracted into it.
-    # This provides a convenient alternative to the rather cumbersome
-    # "${JAVA_BUNDLED_LIBSDIR}" array.
-    if [[ -d "${JAVA_SRC_PREPARE_SYMLINK_DIR}" ]]; then
-        edo rm -f "${JAVA_SRC_PREPARE_SYMLINK_DIR}"/*.jar
-    # Otherwise create the path. It should already be, in general.
-    else
-        edo install -d "${JAVA_SRC_PREPARE_SYMLINK_DIR}"
-    fi
-
-    # Notify the world!
-    export JAVA_SRC_PREPARE_SYMLINK_DIR
-}
-
-# void symlink_jars(char *jar_spec1, char *jar_spec2, ...)
-#
-# Symbolically link jar specificiers to relative filenames having same basename
-# under the above directory, where "jar specificiers" are strings specifying
-# external jar files already installed to the local system by another exheres
-# on which this exheres depends. These strings are usually, but not always,
-# absolute or relative paths:
-#
-# * If an absolute path, that path is symlinked as is without modification.
+# * If an absolute path, the path is symlinked as is without modification.
 # * If a string having no whitespace, this string signifies both the exheres
 #   name (and optional slot) and jar filename. The slot, if present, is
 #   demarcated via a colon. (See below.) Then, the absolute path
 #   "/usr/share/${exheres_name}/${slot}" is prepended to the string, the type
-#   ".jar" is appended to the string, and the final path symlinked. Example:
+#   ".jar" is appended to the string, and the final path is symlinked. Example:
 #
 #    # Symbolically links "/usr/share/ecocide/ecocide.jar" into "lib/".
-#    symlink_jars("ecocide")
+#    symlink_jars("lib" "ecocide")
 #
 #    # Symbolically links "/usr/share/ecocide/4/ecocide.jar" into "lib/".
-#    symlink_jars("ecocide:4")
+#    symlink_jars("lib" "ecocide:4")
 #
 #   If the resultant absolute path is not found, this also tries
 #   "/usr/share/$(basename ${jar_spec%%-*})/". This is the first part of the
@@ -432,30 +345,34 @@ set_symlink_jar_dir() {
 #    # Tries "/usr/share/moa-core/moa-core.jar", which is not found. Then
 #    # tries "/usr/share/moa/moa-core.jar", which is found. Finally,
 #    # symbolically links "/usr/share/moa/moa-core.jar" into "lib/".
-#    symlink_jars("moa-core")
-#
+#    symlink_jars("lib" "moa-core")
 # * If a string having whitespace, the string is first split on the first
 #   whitespace in that string. The first half of the string signifies the
 #   exheres name (and optional slot), while the second half signifies the
 #   jar filename as above. The slot, if present, is demarcated from the
 #   exheres name via a colon. (See below.) Then, the absolute path
 #   "/usr/share/${exheres_name}/${slot}" is prepended to the string, the type
-#   ".jar" is appended to the string, and the final path symlinked. Example:
+#   ".jar" is appended to the string, and the final path is symlinked. Example:
 #
 #    # Symbolically links "/usr/share/ecocide/1080.jar" into "lib/".
-#    symlink_jars("ecocide" "1080")
+#    symlink_jars("lib" "ecocide" "1080")
 #
 #    # Symbolically links "/usr/share/ecocide/1.2/1080.jar" into "lib/".
-#    symlink_jars("ecocide:1.2" "1080")
+#    symlink_jars("lib" "ecocide:1.2" "1080")
 #
 # This function is usually clever enough to suss out the absolute path to
 # whatever you pass it. When it doesn't, simply pass the absolute path.
 symlink_jars() {
     illegal_in_global_scope
-    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
-    [[ -d "${JAVA_SRC_PREPARE_SYMLINK_DIR}" ]] ||
-        die_unless_nonfatal "${JAVA_SRC_PREPARE_SYMLINK_DIR} not found or not set"
+    [[ ${#} -ge 2 ]] || die_unless_nonfatal "at least two arguments needed"
 
+    local SYMLINK_DIR=${1}
+    if [[ -d "${SYMLINK_DIR}" ]]
+    then edo rm -f "${SYMLINK_DIR}"/*.jar
+    else edo install -d "${SYMLINK_DIR}"
+    fi
+
+    shift
     local JAR_SPEC EXHERES_NAME JAR_FILENAME
     for   JAR_SPEC in ${*}; do
         # If an absolute path, use as is.
@@ -481,7 +398,7 @@ symlink_jars() {
 
         [[ -f "${INSTALLED_JAR_FILE}" ]] ||
             die_unless_nonfatal "${INSTALLED_JAR_FILE} not found"
-        edo ln -s "${INSTALLED_JAR_FILE}" "${JAVA_SRC_PREPARE_SYMLINK_DIR}"/
+        edo ln -s "${INSTALLED_JAR_FILE}" "${SYMLINK_DIR}"/
     done
 }
 
@@ -501,9 +418,8 @@ symlink_jars() {
 install_jars() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
-    install_jar_preamble
 
-    insinto "${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}"
+    insinto $(which_installed_jar_dir_for_this_exheres)
 
     local INSTALL_JAR_FILE
     for   INSTALL_JAR_FILE in ${*}; do
@@ -512,7 +428,7 @@ install_jars() {
         # shell option be enabled, which it is under exheres-0.
         #
         # See "man bash" for details.
-        newins ${INSTALL_JAR_FILE} \
+        newins "${INSTALL_JAR_FILE}" \
             $(basename "${INSTALL_JAR_FILE/${JAVA_JAR_PARAMETER_VERSION_PATTERN}/.jar}")
     done
 }
@@ -526,32 +442,29 @@ install_jars() {
 install_jar_as() {
     illegal_in_global_scope
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
-    install_jar_preamble
 
-    local JAR_FILE_IN="${1}"
-    local JAR_FILE_OUT="${2}"
-    [[ "${JAR_FILE_OUT}" =~ ${JAVA_JAR_VERSION_PATTERN}$ ]] &&
-        ewarn "${JAR_FILE_OUT} contains a version specifier"
+    local JAR_FILE_SOURCE="${1}"
+    local JAR_FILE_TARGET="${2}"
 
-    insinto "${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}"
-    newins "${JAR_FILE_IN}" "${JAR_FILE_OUT}"
+    # Ignore absolute paths and version specifiers in target jar filenames.
+    if [[ ${JAR_FILE_TARGET:0:1} = / ]]; then
+        JAR_FILE_TARGET="${JAR_FILE_TARGET##*/}"
+    fi
+    if [[ "${JAR_FILE_TARGET}" =~ ^(.+)${JAVA_JAR_VERSION_PATTERN}$ ]]; then
+        JAR_FILE_TARGET="${BASH_REMATCH[1]}"
+    fi
+
+    echo "installing ${JAR_FILE_SOURCE} to $(which_installed_jar_dir_for_this_exheres)/${JAR_FILE_TARGET}"
+    insinto $(which_installed_jar_dir_for_this_exheres)
+    newins "${JAR_FILE_SOURCE}" "${JAR_FILE_TARGET}"
 }
 
-# void install_jar_preamble(char *filename1, char *filename2)
-#
-# Ensures sanity when calling "install_jar*" functions.
-install_jar_preamble() {
-    illegal_in_global_scope
-    [[ -n "${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}" ]] ||
-        die_unless_nonfatal "\"JAVA_SRC_INSTALL_JARS_IMAGE_DIR not set\"; was \"javafix_pkg_setup\" called?"
-    [[ "${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}" =~ ^/(usr|opt)/ ]] ||
-        die_unless_nonfatal "\"${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}\" not under /usr or /opt"
-}
-
+# ....................{ LOCATERS                           }....................
 # char *which_installed_jar_dir(char *exheres_name)
 #
-# Given an exheres name and optional slot, returns the absolute path to the
-# installed directory having jar files for that exheres: e.g.,
+# Given a passed exheres name (with optional slot appended to that name),
+# returns the absolute path to the directory into which jar files were earlier
+# installed for that exheres: e.g.,
 #
 #     # Echoes "/usr/share/turkish_dream".
 #     echo $(which_installed_jar_dir "turkish_dream")
@@ -559,25 +472,43 @@ install_jar_preamble() {
 #     echo $(which_installed_jar_dir "british_moors:2.5")
 #
 # Append the exheres slot to the exheres name as in "DEPENDENCIES": e.g.,
-# "${PN}:${SLOT}". A slot need not be specified, of course. See examples.
+# "${PN}:${SLOT}". A slot need not be specified, of course.
 #
 # For safety, this function dies when the path does not exist.
 which_installed_jar_dir() {
-    local    JAR_DIR=$(which_installed_jar_dir_nonfatal ${*})
-    [[ -d "${JAR_DIR}" ]] || die_unless_nonfatal "${JAR_DIR} not found"
-    echo  "${JAR_DIR}"
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
+
+    local    INSTALLED_JAR_DIR=$(which_installed_jar_dir_nonfatal ${*})
+    [[ -d "${INSTALLED_JAR_DIR}" ]] ||
+        die_unless_nonfatal "${INSTALLED_JAR_DIR} not found"
+    echo  "${INSTALLED_JAR_DIR}"
+}
+
+# char *which_installed_jar_dir_for_this_exheres(void)
+#
+# Returns the absolute path to the directory into which jar files will be
+# installed for the current exheres:
+#
+#     # Echoes "/usr/share/clathrate_gun/1" assuming this exheres is named
+#     # "clathrate_gun" and slotted with 1.
+#     echo $(which_installed_jar_dir_for_this_exheres)
+#
+# This function does not die when the path does not exist, since this function
+# is usually called from the "src_install" phase prior to creation of the path.
+which_installed_jar_dir_for_this_exheres() {
+    [[ ${#} -eq 0 ]] || die_unless_nonfatal "no arguments needed"
+    which_installed_jar_dir_nonfatal $(get_java_exheres_name_for_this_exheres)
 }
 
 # char *which_installed_jar_dir_nonfatal(char *exheres_name)
 #
-# Identical to "which_installed_jar_dir" but does not ensure the path exists.
+# Like "which_installed_jar_dir" but does not die when the path does not exist.
+# Avoid calling this function; it is unsafe, and intended only as a utility.
 which_installed_jar_dir_nonfatal() {
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
-    [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one arguments needed"
 
-    # Bash regex matching trailing slot number. Note hardcoded jar file
-    # installation to subdirectories of "/usr/share", which is always where we
-    # want them so that other exheres may find them.
+    # Install jar files to possibly slotted subdirectories under "/usr/share".
+    # Exheres matching this Bash regex are slotted exheres.
     if [[ "${1}" =~ ^(.+):([^:]+)$ ]]
     then echo "/usr/share/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}"
     else echo "/usr/share/${1}"
@@ -607,18 +538,38 @@ which_installed_jar_dir_nonfatal() {
 # establishing the expected parent directory. As above, for safety, this
 # function dies when the file does not exist.
 which_installed_jar_file() {
-    local    JAR_FILE=$(which_installed_jar_file_nonfatal ${*})
-    [[ -f "${JAR_FILE}" ]] || die_unless_nonfatal "${JAR_FILE} not found"
-    echo  "${JAR_FILE}"
+    local    INSTALLED_JAR_FILE=$(which_installed_jar_file_nonfatal ${*})
+    [[ -f "${INSTALLED_JAR_FILE}" ]] ||
+        die_unless_nonfatal "${INSTALLED_JAR_FILE} not found"
+    echo  "${INSTALLED_JAR_FILE}"
+}
+
+# char *which_installed_jar_file_for_this_exheres(void)
+#
+# Returns the absolute path to the jar file to be installed for the current
+# exheres: e.g.,
+#
+#     # Echoes "/usr/share/clathrate_gun/1/clathrate_gun.jar" assuming this
+#     # exheres is named "clathrate_gun" and slotted with 1.
+#     echo $(which_installed_jar_file_for_this_exheres)
+#
+# This function should only be called from exheres installing a jar file having
+# the same name as the exheres name. (Coveniently, this is most of them.)
+#
+# This function does not die when the file does not exist, since this function
+# is usually called from the "src_install" phase prior to creation of the file.
+which_installed_jar_file_for_this_exheres() {
+    [[ ${#} -eq 0 ]] || die_unless_nonfatal "no arguments needed"
+    which_installed_jar_file_nonfatal $(get_java_exheres_name_for_this_exheres)
 }
 
 # char *which_installed_jar_file_nonfatal(char *jar_file)
 # --OR--
 # char *which_installed_jar_file_nonfatal(char *exheres_name, char *jar_file)
 #
-# Identical to "which_installed_jar_file" but does not ensure the file exists.
+# Like "which_installed_jar_file" but does not die when the file does not exist.
+# Avoid calling this function; it is unsafe, and intended only as a utility.
 which_installed_jar_file_nonfatal() {
-    illegal_in_global_scope
     [[ ${#} -eq 1 ]] ||
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
@@ -637,94 +588,19 @@ which_installed_jar_file_nonfatal() {
     then EXHERES_NAME="${JAR_ROOTNAME}"
     fi
 
-    # "JAR_ROOTNAME" could still contain a suffixing ":" slot number, however;
-    # as no jar file should, cut that if found.
+    # ${JAR_ROOTNAME} could still contain a ':'-suffixed slot number. (Cut that.)
     local JAR_TRUENAME="${JAR_ROOTNAME%:*}"    # filename sans path, type, slot
     echo $(which_installed_jar_dir_nonfatal "${EXHERES_NAME}")"/${JAR_TRUENAME}.jar"
 }
 
-# ....................{ MANIFEST.MF                        }....................
-# void replace_jar_manifest(char *jar_filename, char *manifest_filename)
+# char *get_java_exheres_name_for_this_exheres(void)
 #
-# Replace "META-INF/MANIFEST.MF" in the passed jar filename with the passed
-# manifest filename. Also, substitute placeholder variables with their current
-# Bash values as performed by the "rectify_jar_manifest" function.
-#
-# Exheres usually call this function from "${PN}_src_install", often overriding
-# exheres globals with jar file-specific locals: e.g.,
-#
-#     local PV=0.8.1   # ...hides the global ${PV}
-#     replace_jar_manifest "dist/${PN}.jar" "${FILES}/${PN}-MANIFEST.MF"
-replace_jar_manifest() {
-    illegal_in_global_scope
-    [[ ${#} -eq 2        ]] || die_unless_nonfatal "exactly two arguments needed"
-    [[ -x "/usr/bin/zip" ]] || die_unless_nonfatal "zip not installed"
-
-    local      JAR_FILE="${1}"
-    local MANIFEST_FILE="${2}"
-
-    # Copy the source to target manifest file, and patch placeholders.
-    edo mkdir -p              "${TEMP}/META-INF"
-    edo cp "${MANIFEST_FILE}" "${TEMP}/META-INF/MANIFEST.MF"
-    rectify_jar_manifest      "${TEMP}/META-INF/MANIFEST.MF"
-
-    # Move the jar file to the temporary path having the target manifest,
-    # temporarily renaming it for convenience.
-    edo mv "${JAR_FILE}" "${TEMP}/jar.jar"
-
-    # The activated JDK necessarily installs a "jar" binary. This binary permits
-    # updating, but not replacement, of existing jar file manifest files. That's
-    # not what we want; so, unfortunately, we depend on the "zip" binary. This
-    # binary is not guaranteed to be installed; when installed, it requires we
-    # we change directories.
-    edo pushd "${TEMP}"
-    edo zip -q "jar.jar" "META-INF/MANIFEST.MF"
-
-    # Get us home, Commander Gaeta.
-    edo popd
-
-    # Move the jar file to its original path.
-    edo mv "${TEMP}/jar.jar" "${JAR_FILE}"
+# Return this exheres name optionally suffixed by this exheres slot, if given.
+# This is a utility function called by the "*_for_this_exheres" functions above.
+get_java_exheres_name_for_this_exheres() {
+    # Exheres having no slot or a zero slot are unslotted exheres.
+    if [[ -z "${SLOT}" ]] || [[ "${SLOT}" -eq 0 ]]
+    then echo "${PN}"
+    else echo "${PN}:${SLOT}"
+    fi
 }
-
-# void rectify_jar_manifest(char *manifest_filename)
-#
-# Patch contents of the passed manifest filename or "META-INF/MANIFEST.MF" from
-# the current directory, if no manifest filename is passed. In particular,
-# substitute placeholder variables in the manifest with their current values.
-# Recognized placeholders are:
-#
-# * __PV__, which will be substituted with ${PV}.
-# * %bundleName, which will be substituted with ${BUNDLE_NAME}
-# * %providerName, which will be substituted with ${PROVIDER_NAME}
-#
-# Placeholder variables prefixed by '%' are specific to the Java OSGI standard.
-# Placeholder variables enclosed by '__' are specific to this function, and
-# chosen so as to avoid conflicting with existing manifest file text.
-#
-# Exheres usually call this function from "${PN}_src_prepare", often overriding
-# exheres globals with jar file-specific locals: e.g.,
-#
-#     local PV=3.0.2                   # ...hides the global ${PV}
-#     local BUNDLE_NAME="SAT4J Core"   # ...hides the global ${BUNDLE_NAME}
-#     rectify_jar_manifest "${WORK}/build/META-INF/MANIFEST.MF"
-#
-# !!!!!IMPORTANT!!!!! strings substituted into placeholder variables must not
-# contain backtick characters '`', as the sed expressions performing these
-# substitutions use that character to delimit themselves. Since this would be a
-# strange character for a string to contain, this is generally "safe."
-rectify_jar_manifest() {
-    illegal_in_global_scope
-    [[ ${#} -le 1 ]] || die_unless_nonfatal "zero or one arguments needed"
-
-    local MANIFEST_FILE="${1:-META-INF/MANIFEST.MF}"
-    local PROVIDER_NAME="${PROVIDER_NAME:-Exherbo!}"
-
-    # Substitute placeholder variables, with undefined variables simply
-    # expanding to the empty string.
-    edo sed -i "${MANIFEST_FILE}" \
-        -e "s\`__PV__\`${PV}\`" \
-        -e "s\`%bundleName\`${BUNDLE_NAME}\`" \
-        -e "s\`%providerName\`${PROVIDER_NAME}\`"
-}
-
