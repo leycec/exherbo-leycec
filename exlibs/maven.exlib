@@ -22,21 +22,118 @@
 # permits dynamic creation of fake "build.xml" files, which assists with
 # cobbling together a build process for Java exheres shipping no build process.
 #
+# --------------------( DEPENDENCIES                       )--------------------
+# This exlib depends on the command-line XML swiss army knife, "xmlstarlet", for
+# both grepping and munging XML files. It could have also used "xmlgawk"; both
+# are actively maintained (though "xmlstarlet" is a bit more active), and both
+# have grepping and munging capability based on underlying C libraries. However,
+# arbor doesn't have an "xmlgawk" exheres at the moment.
+#
+# This exlib could, hypothetically speaking, have unrolled custom sed or awk
+# scripts to effect a simulacrum of the same thing. It didn't. Because that
+# would only be.... a simulacrum! Doing XML without an underlying parser is like
+# doing a scree run blind-folded. Sure, you could. But you shouldn't.
+#
 # --------------------( SEE ALSO                           )--------------------
-# * "Maven Lifecycle, Phase, and Goal Reference."
+# * "Maven Central." (This is a central repository having all dependencies.)
+#   http://repo1.maven.org/maven2/
+# * "POM Reference."
+#   http://maven.apache.org/pom.html
+# * "Settings Reference."
+#   http://maven.apache.org/settings.html
+# * "Properties Reference."
+#   http://docs.codehaus.org/display/MAVENUSER/MavenPropertiesGuide
+# * "Dependencies Reference."
+#   http://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html
+# * "Lifecycle, Phase, and Goal Reference."
 #   http://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
+#
+# --------------------( TODO                               )--------------------
+# This exlib is currently in a fairly broken state due to the overwhelming
+# complexity of source-based offline Maven installations. The following needs
+# fixing, in no particular order:
+#
+# * Complete the "create_maven_repository" function by symlinking in external
+#   jar files to a local temporary repository. This may or may not be the
+#   easiest solution. It requires no XML munging but, instead, filesystem
+#   munging. This may actually be more fragile than XML munging as it
+#   necessitates that non-Maven exheres install Maven-specific files. It needs:
+#   * Each dependency to have an installed "${PNV}.pom" file; thus, all Java
+#     exheres must install exheres-bundled "pom.xml" files during the
+#     "src_install" phase. Hopefully, this can be automated.
+#   * Each dependency to have ".sha1" files for each such jar and pom file;
+#     these may also be dynamically produced by running "sha1sum", which
+#     necessitates that be added as a buildtime dependency.
+#   * Each dependency to be symlinked into the local repository as a versioned
+#     pair of jar and pom files under the proper paths. By "proper paths", we
+#     mean a path conforming to something like
+#     "${MAVEN_REPOSITORY}/${DEPENDENCY_GROUP_ID}/${DEPENDENCY_ARTIFACT_ID}/${DEPENDENCY_VERSION}/".
+#     The group ID, artifact ID, and version can be programmatically parsed from
+#     the dependency's "${PNV}.pom" file. Still, this could be painful.
+#   Under this scenario, also consider a local repository defined like so in the
+#   "settings.xml" file we dynamically create:
+#     <repositories>
+#       <repository>
+#         <releases/>
+#         <id>offline-repository</id>
+#         <name>local offline build libs</name>
+#         <url>file:///var/tmp/repo/offline-repo-5/</url>
+#       </repository>
+#     </repositories> 
+# * A simpler solution is simply to munge XML. Maven dependencies are listed as
+#   <dependency>...</dependency> specifiers in exheres "pom.xml" files. By
+#   adding two lines resembling:
+#     <scope>system</scope>
+#     <systemPath>/usr/share/${DEPENDENCY_NAME}/${DEPENDENCY_SLOT}/${DEPENDENCY_NAME}.jar</systemPath>
+#   to each such dependency via "xmlstarlet" XSLT transformations, we force
+#   Maven to use system-installed rather than local repository-installed
+#   dependencies. This avoids symlinking, POM installation, and SHA1
+#   generation... This should be automateable as well via a two-pass parser: in 
+#   the first pass, use an XPATH query resembling:
+#     # Produces a newline-delimited list of all required artifact dependencies.
+#     ARTIFACTS=$(xmlstarlet sel -m '/dependencies/dependency/' -v 'artifactId' -n "${MAVEN_POM_XML}")
+#   Then search the system for absolute paths to all such artifacts. In the
+#   second pass, update this "pom.xml" with the above system scope declarations.
+#   See this Stackoverflow question on Maven system scope for details:
+#   http://stackoverflow.com/questions/364114/can-i-add-jars-to-maven-2-build-classpath-without-installing-them
+#   Wait: on second thought, just implement a one-pass parser initially. This
+#   requires Maven exheres to explicitly specify their dependencies with the
+#   ${JAVA_SRC_PREPARE_SYMLINK_JARS} global just as in Ant exheres. The parser
+#   creates an associative array from jar file basename to absolute path: e.g.,
+#   JAR_FILE_MAP[commons-codec]=$(which_installed_jar_file "commons-codec")
+#   JAR_FILE_MAP[commons-logging]=$(which_installed_jar_file "commons-logging")
+#   Then, it iterates over the map and for each jar file basename adds
+#   appropriate entries to the "pom.xml" file having the absolute path as above.
+#   A one-pass parser circumvents slot and version issues as well as other
+#   ambiguities and could certainly be replaced by a more automated two-pass
+#   parser down the road. Best just to get it working simply, first.
+# * 
+# * More work than I want to contemplate, for the moment. So it stays broken.
 
 # ....................{ EXHERES                            }....................
 # All Maven exheres are, by assumption, Java exheres. See the "antefix.exlib"
 # header for commentary as to why this exlib requires "javafix".
 require javafix
-export_exlib_phases src_prepare src_compile src_test src_install
+export_exlib_phases pkg_setup \
+    src_unpack src_prepare src_compile src_test src_install
+
+# True if enabling Maven's "offline mode" and thus preventing download of Maven
+# dependencies. By default, Maven operates in online mode; it downloads this
+# Maven project's transitive dependencies from remote repositories into this
+# user's local repository, where "transitive" implies this project's immediate
+# dependencies as explicitly listed by its "pom.xml" file as well as all
+# dependencies on which those dependencies depend.
+#
+# Defaults to true, and should only ever be disabled during exheres testing.
+myexparam -b is_offline=true
+  exparam -b is_offline && MAVEN_IS_OFFLINE=1
 
 # ....................{ CONFIGURATION                      }....................
 # Absolute or relative path under ${WORK} to the "pom.xml" for this exheres.
 MAVEN_POM_XML="pom.xml"
 
-# Maven parameters to be passed to all command-line Maven invocations. Example:
+# Maven parameters to be passed to all command-line Maven invocations. Note the
+# "exmaven" function also passes a set of default mandatory parameters. Example:
 #     MAVEN_PARAMS=( -Dproject.classpath=/usr/share/elephantdog/ )
 MAVEN_PARAMS=( )
 
@@ -53,6 +150,9 @@ MAVEN_SRC_COMPILE_PARAMS=( compile )
 # Maven tasks to be run against ${MAVEN_POM_XML} during the "src_test" phase.
 MAVEN_SRC_TEST_PARAMS=( test )
 
+# FIXME leycec: install files as follows to ensure generating of a local
+# "pom.xml" for the generated jar files:
+#     mvn install:install-file -DgroupId=%GROUP_ID% -DartifactId=%ARTIFACT_ID% -Dversion=%VERSION% -Dfile=%COMPONENT%.jar -Dpackaging=jar -DgeneratePom=true
 # Maven tasks to be run against ${MAVEN_POM_XML} during the "src_install" phase.
 MAVEN_SRC_INSTALL_PARAMS=( package )
 
@@ -63,23 +163,82 @@ if [[ -z "${M2_HOME}" ]]; then
 fi
 
 # Absolute path to the "mvn" binary. ${M2_HOME} is an environment variable set
-# by "/etc/env.d/*maven", itself installed by the Maven exheres. It usually
+# by "/etc/env.d/*maven", which is installed by the Maven exheres. It usually
 # points to "/usr/share/maven/".
 MAVEN="${M2_HOME}/bin/mvn"
+
+# Absolute path to the "settings.xml" file for the current build process. The
+# "exmaven" function passes this file to the above "mvn" binary, thus preventing
+# Maven from reading system-wide or user-specific "settings.xml" files. This is
+# absolutely necessary; it sandboxes the build process against capricious users
+# and, more importantly, enforces exlib-specific settings.
+#
+# See the "create_settings_xml" function.
+MAVEN_SETTINGS_XML="${TEMP}/settings.xml"
+
+# Absolute path to the local Maven repository housing exheres dependencies. As
+# the location suggests, this is a repository temporarily created by this exlib
+# housing symlinks to exheres dependencies. Such dependencies are externally
+# installed jar files and the "pom.xml" accompanying those jar files listing
+# immediate jar file dependencies, Maven properties, and other Maven artifacts
+# required to access those jar files.
+#
+# Due to the complexity of the repository's directory structure, this exlib
+# cannot use the JAVA_SRC_PREPARE_SYMLINK_* globals to make this structure.
+#
+# See the "create_maven_repository" function.
+MAVEN_REPOSITORY_DIR="${TEMP}/repository"
 
 # ....................{ EXHERES                            }....................
 DEPENDENCIES+="
     build:
+        app-text/xmlstarlet
         dev-java/apache-maven
 "
 
 # ....................{ PHASES                             }....................
+maven_pkg_setup() {
+    javafix_pkg_setup
+
+    if [[ -n "${MAVEN_IS_OFFLINE}" ]]; then
+        ewarn "This exheres has enabled online mode. This disables network sandboxing,"
+        ewarn "permitting Maven to download transitive binary dependencies of this exheres."
+        ewarn "If you are the author of this exheres, disable this as soon as possible."
+        ewarn
+        ewarn "You have been warned."
+        JAVA_IS_DISABLING_NETWORK_SANDBOXING=1
+    fi
+}
+
+# "maven_src_unpack" function is a placeholder phase function abstracting
+# function dependencies from calling exheres. Without this function, exheres
+# call "maven_src_configure", et al. but not "maven_src_unpack"; with this
+# function, all parent phase functions called by calling exheres are prefixed by
+# "maven".
+#
+# This additionally lets us add functionality to these functions without
+# modifying calling exheres.
+maven_src_unpack() {
+   javafix_src_unpack
+}
+
+maven_src_prepare() {
+   javafix_src_prepare
+
+   echo ">>> Creating settings.xml"
+   create_settings_xml "${MAVEN_SETTINGS_XML}"
+
+   echo ">>> Creating repository"
+   create_maven_repository "${MAVEN_REPOSITORY_DIR}"
+}
+
 maven_src_configure() {
     javafix_src_configure
 
     if [[ -n "${MAVEN_SRC_CONFIGURE_PARAMS[@]}" ]]; then
         echo ">>> Configuring source files"
-        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_CONFIGURE_PARAMS[@]}"
+        exmaven "${MAVEN_POM_XML}" \
+            "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_CONFIGURE_PARAMS[@]}"
     fi
 }
 
@@ -88,7 +247,8 @@ maven_src_compile() {
 
     if [[ -n "${MAVEN_SRC_COMPILE_PARAMS[@]}" ]]; then
         echo ">>> Compiling source files"
-        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_COMPILE_PARAMS[@]}"
+        exmaven "${MAVEN_POM_XML}" \
+            "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_COMPILE_PARAMS[@]}"
     fi
 }
 
@@ -97,38 +257,109 @@ maven_src_test() {
 
     if [[ -n "${MAVEN_SRC_TEST_PARAMS[@]}" ]]; then
         echo ">>> Testing compiled files"
-        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_TEST_PARAMS[@]}"
+        exmaven "${MAVEN_POM_XML}" \
+            "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_TEST_PARAMS[@]}"
     fi
 }
 
 maven_src_install() {
-    # Invoke Maven, which probably generates jar files, prior to calling the
-    # parent "src_install" function, which actually install these files.
+    # Invoke Maven, which probably generates jar files prior to calling the
+    # parent "src_install" function that actually installs these files.
     if [[ -n "${MAVEN_SRC_INSTALL_PARAMS[@]}" ]]; then
         echo ">>> Packaging jar files"
-        emaven "${MAVEN_BUILD_XML}" "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_INSTALL_PARAMS[@]}"
+        exmaven "${MAVEN_POM_XML}" \
+            "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_INSTALL_PARAMS[@]}"
     fi
 
     javafix_src_install
 }
 
-# ....................{ EMAVEN                             }....................
-# void emaven(char *pom_xml_filename, char *param1, char *param2, ...)
+# ....................{ EXMAVEN                            }....................
+# void exmaven(char *pom_xml_filename, char *param1, char *param2, ...)
 #
-# Call "maven" with the passed absolute or relative path to a "pom.xml" file and
+# Call "maven" with a passed absolute or relative path to a "pom.xml" file and
 # zero or more command-line parameters to be passed to this "pom.xml" file.
 # These parameters must be either: {a} Maven properties of the form
 # "-Dkey=value" (e.g., "-Dmaven.test.skip=false") or {b} Maven tasks of the form
 # "task" (e.g., "install").
-emaven() {
+exmaven() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
 
-    local MAVEN_POM_XML="${1}"
+    local EXMAVEN_POM_XML="${1}"
     shift
+    local EXMAVEN_PARAMS=(
+        --file "${EXMAVEN_POM_XML}"
 
-    # Always pass the "--offline" option when invoking Maven. As the name
-    # suggests, this prevents Maven from downloading dependencies or updates.
-    edo "${MAVEN}" --file "${MAVEN_POM_XML}" --offline "${@}"
+        # Prevent Maven from reading system-wide or user-specific "settings.xml"
+        # files by requiring it read instead from this exlib-made "settings.xml"
+        # file.
+        --settings        "${MAVEN_SETTINGS_XML}"
+        --global-settings "${MAVEN_SETTINGS_XML}"
+
+        # Force Maven to always produce jar files.
+        -Dpackaging=jar
+
+        # Force Maven to always produce "pom.xml" files.
+        -DgeneratePom=true
+    )
+
+    # The "settings.xml" file created by "create_settings_xml" also passes this
+    # setting. Pass it again (just to be sure).
+    if [[ -n "${MAVEN_IS_OFFLINE}" ]]; then
+        EXMAVEN_PARAMS+=( --offline )
+    fi
+
+    edo "${MAVEN}" "${EXMAVEN_PARAMS}" "${@}"
+    edo "${MAVEN}" "${EXMAVEN_PARAMS}" "${@}"
+}
+
+# ....................{ POM.XML                            }....................
+# void deversion_pom_xml(char *settings_xml_path)
+#
+# Create a new "settings.xml" file appropriate for building this exheres at
+# the passed absolute path.
+deversion_pom_xml() {
+    illegal_in_global_scope
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
+}
+
+# ....................{ SETTINGS.XML                       }....................
+# void create_settings_xml(char *settings_xml_path)
+#
+# Create a new "settings.xml" file appropriate for building this exheres at
+# the passed absolute path.
+create_settings_xml() {
+    illegal_in_global_scope
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
+
+    cat <<EOF > "${1}" 
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                        http://maven.apache.org/xsd/settings-1.0.0.xsd">
+    <localRepository>${MAVEN_REPOSITORY_DIR}</localRepository>
+    <-- Always disable interactive mode; exheres are strictly hands-off. -->
+    <interactiveMode>false</interactiveMode>
+    <-- Conditionally disable offline mode, but should usually be true. -->
+    <offline>$(MAVEN_IS_OFFLINE && echo true || echo false)</offline>
+</settings>
+EOF
+}
+
+# ....................{ REPOSITORY                         }....................
+# void create_maven_repository(char *maven_repository_path)
+#
+# Create a new local Maven repository appropriate for building this exheres at
+# the passed absolute path.
+create_maven_repository() {
+    illegal_in_global_scope
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
+
+    eerror "This function has not been implemented, yet. See the TODO section of \"maven.exlib\""
+    eerror "for proposals under consideration."
+
+    local MAVEN_REPOSITORY_DIR="${1}"
+    edo install -d "${MAVEN_REPOSITORY_DIR}"
 }
 
