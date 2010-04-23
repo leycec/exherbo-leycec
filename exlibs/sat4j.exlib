@@ -14,7 +14,11 @@
 #     # SAT4J 2.1.1 was completed on August 26th, 2009 and requires
 #     # "build-2.4.xml" for building.
 #     require sat4j [ build_date=20090826 build_version=2.4 ]
-require antefix
+require antefix java-manifest
+
+# SAT4J bundles its source as a jar file within its archive. Do not delete it!
+disable_jar_file_cleaning
+
 export_exlib_phases src_unpack src_prepare src_install
 
 # Get the suffix for this subcomponent: e.g., for "sat4j-core" this is "core".
@@ -63,6 +67,7 @@ SAT4J_PN_CASED=${SAT4J_PN^}
 # Simply append file type to this name to get the full basename. (In most cases,
 # but not all, the file type is ".jar".)
 SAT4J_JAR_PN="org.sat4j.${SAT4J_PN}"
+SAT4J_JAR_FILENAME="${SAT4J_JAR_PN}.jar"
 
 # Absolute path to the work directory. SAT4J tarballs extract into the current
 # directory, so... this is it.
@@ -85,7 +90,7 @@ SAT4J_SRC_DIR_CORE="core/src"
 SAT4J_LIB_DIR_CORE="core/lib"
 SAT4J_SRC_DIR="${SAT4J_PN}/src"
 SAT4J_MANIFEST_DIR="${SAT4J_PN}/META-INF"
-SAT4J_MANIFEST_FILE="${MANIFEST_DIR}/MANIFEST.MF"
+SAT4J_MANIFEST_FILE="${SAT4J_MANIFEST_DIR}/MANIFEST.MF"
 
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
@@ -116,7 +121,7 @@ DEPENDENCIES+="
 # symlink that external jar file for core into their "lib/" directory.
 if [[ "${SAT4J_PN}" != "core" ]]; then
     JAVA_SRC_PREPARE_SYMLINK_DIR="${SAT4J_LIB_DIR}"
-    JAVA_SRC_PREPARE_SYMLINK_JARS=( $(which_install_jar_file "sat4j-core") )
+    JAVA_SRC_PREPARE_SYMLINK_JARS=( $(which_installed_jar_file "sat4j-core") )
 
     DEPENDENCIES+="
     build+run:
@@ -132,14 +137,13 @@ fi
 # Thus, there's no prepare or jar tasks. One shot for glory, baby.
 ANT_SRC_COMPILE_PARAMS=( "${SAT4J_BUILD_TASK}" )
 
-JAVA_SRC_INSTALL_JARS=( "dist/CUSTOM/${SAT4J_JAR_PN}.jar" )
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "overview.html" )
 
 # Each SAT4J tarball comes bundled with two jar files: one ending in "-src.jar"
 # and the other in ".jar". The former has .java files; the latter has .class
 # files. Unpack the former and delete both.
 sat4j_src_unpack() {
-    default
+    antefix_src_unpack
 
     echo ">>> Unpacking sources jar file"
     SAT4J_JAR_FILE_SOURCES="${SAT4J_JAR_PN}-src.jar"
@@ -147,6 +151,7 @@ sat4j_src_unpack() {
     edo mkdir -p "${SAT4J_SRC_DIR}" "${SAT4J_LIB_DIR}" "${SAT4J_MANIFEST_DIR}" \
                  "${SAT4J_SRC_DIR_CORE}" "${SAT4J_LIB_DIR_CORE}"
     edo unzip -q "${SAT4J_JAR_FILE_SOURCES}" -d "${SAT4J_SRC_DIR}"
+    edo rm       "${SAT4J_JAR_FILE_SOURCES}" "${SAT4J_JAR_FILENAME}"
 
     # A few SAT4J jar files bundle a version file, which the SAT4J launcher and
     # presumably other files read to version themselves. The version file
@@ -166,8 +171,7 @@ sat4j_src_unpack() {
     # "${SAT4J_PN}/src/META-INF/" directory. The build file expects it in the
     # "${SAT4J_PN}/META-INF/" directory, however. Move it. /me sighs
     echo ">>> Structuring directory tree"
-    edo rm "${SAT4J_JAR_FILE_SOURCES}" "${SAT4J_JAR_FILE_CLASSES}"
-    edo mv "${SRC_DIR}/META-INF/MANIFEST.MF" "${SAT4J_MANIFEST_FILE}"
+    edo mv "${SAT4J_SRC_DIR}/META-INF/MANIFEST.MF" "${SAT4J_MANIFEST_FILE}"
     edo cp "${FETCHEDDIR}/build.xml" .
 }
 
@@ -188,14 +192,21 @@ sat4j_src_prepare() {
     echo ">>> Patching jar file manifest"
     local BUNDLE_NAME="SAT4J ${SAT4J_PN_CASED}"
     local PROVIDER_NAME="CRIL CNRS UMR 8188 - Universite d'Artois"
-    patch_jar_manifest "${SAT4J_MANIFEST_FILE}"
+    rectify_jar_manifest "${SAT4J_MANIFEST_FILE}"
 }
 
 sat4j_src_install() {
-    # Other exheres often expect SAT4J jar filenames to be named as follows.
-    echo ">>> Installing jar file symlinks"
-    dosym \
-        $(which_installed_jar_file_nonfatal "sat4j") \
-        $(which_installed_jar_dir_nonfatal  "sat4j")/"${SAT4J_JAR_PN}"
+    antefix_src_install
+
+    echo ">>> Installing jar file"
+    local SAT4J_INSTALLED_JAR_DIR=$( which_installed_jar_dir_for_this_exheres)
+    local SAT4J_INSTALLED_JAR_FILE=$(which_installed_jar_dir_for_this_exheres)
+    install_jar_as "dist/CUSTOM/${SAT4J_JAR_FILENAME}" \
+          "${SAT4J_INSTALLED_JAR_FILE}"
+
+    # Other exheres often expect SAT4J jar filenames to be named according the
+    # reverse domain name.
+    dosym "${SAT4J_INSTALLED_JAR_FILE}" \
+          "${SAT4J_INSTALLED_JAR_DIR}/${SAT4J_JAR_FILENAME}"
 }
 
