@@ -38,14 +38,15 @@
 #     require antefix
 #     disable_jar_file_cleaning
 require javafix
-export_exlib_phases \
+export_exlib_phases pkg_setup \
     src_unpack src_prepare src_configure src_compile src_test src_install
 
 # ....................{ SETTINGS                           }....................
 # Absolute or relative path under ${WORK} to the "build.xml" for this exheres.
 ANT_BUILD_XML="build.xml"
 
-# Ant parameters to be passed to all command-line invocations of Ant. Example:
+# Ant parameters to be passed to all command-line invocations of Ant. There is
+# no default due to lack of enforced conformity in "build.xml" files. Example:
 #     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
 ANT_PARAMS=( )
 
@@ -158,10 +159,14 @@ antefix_src_unpack() {
     fi
 }
 
+# This is a placeholder phase function abstracting function dependencies from
+# calling exheres. Without this, calling exheres call "antefix_src_configure",
+# et al. but not "antefix_src_unpack"; with these, all parent phase functions
+# called by calling exheres are prefixed by "antefix".
+#
+# This additionally lets us add functionality to this functions without
+# modifying calling exheres.
 antefix_src_prepare() {
-    # Patch build files prior to invoking Ant.
-    javafix_src_prepare
-
     # Do not invoke Ant here! The reasons are subtle. The calling exheres must
     # have the opportunity to patch files in its "src_prepare" function prior
     # to invoking Ant. Hypothetically, if this function invoked Ant, that
@@ -180,14 +185,15 @@ antefix_src_prepare() {
     # overwrite file changes with patched content. So we can't reliably do the
     # above. Instead, we need to partition file patching and Ant invocation
     # into two phases. Do this by pushing Ant invocation into the next stage,
-    # "src_compile", even though tasks run by this invocation of Ant are
-    # probably not analogous to "econfigure". Then the above example becomes:
+    # "src_configure", even though Ant tasks run by this invocation are
+    # probably not analogous to "econfigure". Thus, the above example becomes:
     #
     #     # This is better!
     #     exheres_src_prepare() {
     #         antefix_src_prepare
     #         edo sed -e 's~bad~good~' -i "${ANT_BUILD_XML}"
     #     }
+    javafix_src_prepare
 }
 
 antefix_src_configure() {
@@ -204,7 +210,7 @@ antefix_src_configure() {
     # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_CONFIGURE_PARAMS[@]}" ]]; then
         echo ">>> Configuring source files"
-        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_CONFIGURE_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_CONFIGURE_PARAMS[@]}"
     fi
 }
 
@@ -213,7 +219,7 @@ antefix_src_compile() {
 
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
         echo ">>> Compiling source files"
-        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_COMPILE_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_COMPILE_PARAMS[@]}"
     fi
 }
 
@@ -222,23 +228,23 @@ antefix_src_test() {
 
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
         echo ">>> Testing compiled files"
-        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_TEST_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_TEST_PARAMS[@]}"
     fi
 }
 
 antefix_src_install() {
-    # Invoke Ant, which probably generates jar files, prior to calling the
-    # parent "src_install" function, which actually install these files.
+    # Invoke Ant, which probably generates jar files prior to calling the parent
+    # "src_install" function that actually installs these files.
     if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
         echo ">>> Packaging jar files"
-        eant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
     fi
 
     javafix_src_install
 }
 
-# ....................{ EANT                               }....................
-# void eant(char *build_xml_filename, char *param1, char *param2, ...)
+# ....................{ EXANT                              }....................
+# void exant(char *build_xml_filename, char *param1, char *param2, ...)
 #
 # Call "ant" with the passed absolute or relative path to a "build.xml" file and
 # zero or more command-line parameters to be passed to this "build.xml" file.
@@ -250,7 +256,7 @@ antefix_src_install() {
 # function, may be explicitly called by exheres operating on multiple
 # "build.xml" files. (Exheres not operating on multiple "build.xml" files should
 # avoid calling this function explicitly.)
-eant() {
+exant() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
 
@@ -266,14 +272,21 @@ eant() {
 # ....................{ BUILD.XML                          }....................
 # void enable_build_xml_creation(void)
 #
-# Enables "build.xml" creation. This function should only be called in global
-# exheres scope, as it provides exheres globals, Ant tasks, et al.
+# Enable "build.xml" creation. This must only be called in global exheres scope;
+# it provides exheres globals, Ant tasks, et al.
 enable_build_xml_creation() {
     # Ensure the appropriate global boolean is also enabled.
     ANT_IS_CREATING_BUILD_XML=1
 
     # The created "build.xml" is guaranteed to support these options.
     MYOPTIONS+="debug doc"
+
+    ANT_SRC_CONFIGURE_PARAMS=( )
+    ANT_SRC_COMPILE_PARAMS=( compile )
+
+    # Note: the "javadoc" task will be conditionally appended to this array,
+    # later, if and only if the caller has enabled the exheres "doc" option.
+    ANT_SRC_INSTALL_PARAMS=( jar )
 
     # Absolute or relative path under "${WORK}" from which sources files (e.g.,
     # .java files) will be read during compilation. You'll probably need to
@@ -301,15 +314,8 @@ enable_build_xml_creation() {
     # need to, you're probably better off writing your own "build.xml".
     ANT_SRC_INSTALL_JARS_DIR="dist"
 
-    ANT_SRC_CONFIGURE_PARAMS=( )
-    ANT_SRC_COMPILE_PARAMS=( compile )
-
-    # Note: the "javadoc" task will be conditionally appended to this array,
-    # later, if and only if the caller has enabled the exheres "doc" option.
-    ANT_SRC_INSTALL_PARAMS=( jar )
-
     JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
-    JAVA_SRC_INSTALL_JARS=( "${ANT_SRC_INSTALL_JARS_DIR}/${PN}.jar" )
+    JAVA_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
 }
 
 # void create_build_xml(char *filename)
@@ -339,8 +345,10 @@ create_build_xml() {
         fi
     fi
 
-    # Also ensure we generate javadoc if that option is enabled.
-    if [[ -n "${JAVA_IS_INSTALLING_JAVADOC}" ]]; then
+    # Also ensure we generate javadoc if that option is enabled. Do this here
+    # rather than in the "enable_build_xml_creation" function as we call that
+    # function in global scope, at which point we have cannot check options.
+    if option doc; then
         JAVA_SRC_INSTALL_JAVADOC_DIR="javadoc"
         JAVA_SRC_INSTALL_PARAMS+=( javadoc )
     fi
@@ -397,7 +405,7 @@ create_build_xml_file() {
     local BUILD_XML_JAVADOC_DIR="${ANT_SRC_INSTALL_JAVADOC_DIR:-javadoc}"
 
     # Exheres calling this function always have a "debug" option.
-    local BUILD_XML_DEBUG=$(option debug && echo true || echo false)
+    local BUILD_XML_IS_DEBUGGING=$(option debug && echo true || echo false)
 
     cat <<EOF > "${1}" 
 <?xml version="1.0" encoding="utf-8"?>
@@ -408,7 +416,7 @@ create_build_xml_file() {
     <property name="dist"    location="${BUILD_XML_DIST_DIR}"/>
     <property name="javadoc" location="${BUILD_XML_JAVADOC_DIR}"/>
     <property name="jar"     value="${BUILD_XML_JAR_FILE}"/>
-    <property name="debug"   value="${BUILD_XML_DEBUG}"/>
+    <property name="debug"   value="${BUILD_XML_IS_DEBUGGING}"/>
 
     <path id="lib.classpath">
         <fileset dir="\${lib}">

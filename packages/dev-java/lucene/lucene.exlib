@@ -4,7 +4,7 @@
 #     Copyright 1999-2010 Gentoo Foundation
 
 # Lucene extracts to the usual directory -- not the usual Apache directory.
-require antefix apache [ download_subdir="java" work="${PNV}" ]
+require antefix apache [ download_subdir="java" work="${PNV}" ] java-manifest
 export_exlib_phases src_prepare src_compile src_install
 
 BUGS_TO="leycec@gmail.com"
@@ -25,7 +25,7 @@ SLOT="0"
 
 #FIXME: Couldn't get SUBOPTIONS to work for the life of me; I suspect it
 #requires physical modification to "arbor/profiles/options.conf". That would be
-#rather unhelpful, if true. For the meantime, we could use simple options. But
+#rather unhelpful, if true. For the mexantime, we could use simple options. But
 #that would require users explicitly enable:
 #    "dev-java/lucene lucene_contribs_analyzers"
 #as a dependency to building Eclipse, which is fairly lame. Thus, let's always
@@ -124,7 +124,7 @@ lucene_src_compile() {
     # Compile subprojects after compiling Lucene itself. (Important!)
     if [[ -n "${IS_BUILDING_CONTRIB_ANALYZERS}" ]]; then
         echo ">>> Compiling contrib/analyzers"
-        eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" compile-core
+        exant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" compile-core
     fi
 }
 
@@ -138,7 +138,7 @@ lucene_src_install() {
     # James Gosling, I'm not happy with you.
     if [[ -n "${IS_BUILDING_CONTRIB_ANALYZERS}" ]]; then
         echo ">>> Collecting contrib/analyzers jar files"
-        eant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" default
+        exant "${ANT_CONTRIB_ANALYZERS_BUILD_XML}" default
 
         # Eclipse needs "lucene-analyzers" to have an OSGI manifest. Make it so!
         # Replace the manifest auto-generated for this jar file with our own.

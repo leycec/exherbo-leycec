@@ -51,7 +51,7 @@ DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "DEPENDENCIES" )
 MAVEN_DIST_DIR="${WORK}/dist"
 
 # Absolute path to the system-wide directory to which Maven will be installed.
-MAVEN_HOME=$(which_installed_jar_dir_nonfatal "maven")
+MAVEN_HOME=$(which_installed_jar_dir_for_this_exheres)
 
 # Maven's "build.xml" requires it be installed to a subdirectory named ${PNV}.
 # Accomodate its wish during the Ant build process; then, during installation,
@@ -70,10 +70,11 @@ MAVEN_REPO_WORK="${MAVEN_DIST_DIR}/repository"
 # intended for developer testing, at the moment.
 MAVEN_REPO_SOURCE="/tmp/maven/${PNV}/repository"
 
-# If non-zero, enables offline mode (i.e., prevent download of Maven
-# dependencies); otherwise, performs dependency downloading.
+# Set if enabling offline mode and thus preventing download of Maven
+# dependencies; otherwise, offline mode is disabled and needed Maven
+# dependencies will be downloaded.
 #
-# Defaults to zero, at the moment. This will be flipped to non-zero... sometime.
+# Defaults to unset at the moment. This will be flipped to set at some point.
 #MAVEN_IS_OFFLINE=1
 MAVEN_IS_OFFLINE=
 

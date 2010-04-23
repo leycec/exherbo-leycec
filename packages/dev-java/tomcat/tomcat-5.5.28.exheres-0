@@ -32,7 +32,7 @@ src_install() {
     #     /usr/share/tomcat/5/jsr152/dist/lib/jsp-api.jar
     #     /usr/share/tomcat/5/jsr154/dist/lib/servlet-api.jar
     echo ">>> Installing canonical symlinks"
-    local TOMCAT_JAR_DIR=$(which_installed_jar_dir_nonfatal "tomcat:${SLOT}")
+    local TOMCAT_JAR_DIR=$(which_installed_jar_dir_for_this_exheres)
     local TOMCAT_JSP_DIR="${TOMCAT_JAR_DIR}/jsr152/dist/lib/"
     local TOMCAT_SERVLET_DIR="${TOMCAT_JAR_DIR}/jsr154/dist/lib/"
     dodir "${TOMCAT_JSP_DIR}" "${TOMCAT_SERVLET_DIR}"

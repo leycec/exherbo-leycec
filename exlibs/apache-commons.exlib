@@ -16,7 +16,6 @@
 # This exlib also does not require the "ant" or "java" exlibs. It probably
 # could, as all Apache Commons exheres are Ant exheres; however, that would
 # prevent these exheres from passing parameters to these exlibs.
-
 export_exlib_phases src_prepare src_install
 
 # Subdirectory under "mirror://apache/commons/${PN}" from which source tarballs
@@ -41,7 +40,7 @@ exparam -v APACHE_COMMONS_PNV pnv
 myexparam suffix="tar.gz"
 exparam -v APACHE_COMMONS_SUFFIX suffix
 
-# ....................{ EXHERES GLOBALS                    }....................
+# ....................{ EXHERES                            }....................
 HOMEPAGE="http://commons.apache.org/${APACHE_COMMONS_PN}"
 DOWNLOADS="mirror://apache/commons/${APACHE_COMMONS_PN}/$(exparam download_subdir)/${APACHE_COMMONS_PNV}.${APACHE_COMMONS_SUFFIX}"
 
@@ -74,11 +73,12 @@ WORK="${WORKBASE}/${APACHE_COMMONS_PNV}"
 # by passing it as an Ant property.
 APACHE_COMMONS_DIST_DIR="dist"
 
+# ....................{ PHASES                             }....................
 apache-commons_src_prepare() {
     antefix_src_prepare
 
     ANT_PARAMS+=(
-        # We can't call the "option" function in global scope above. Do it now!
+        # We can't call the "option" function in global scope above. Do it now.
         "-Dcompile.debug="$(option debug && echo true || echo false)
 
         # The "build.xml" file for most Apache Commons exheres accepts this
