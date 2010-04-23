@@ -1,0 +1,52 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# This project officially changed name from "commons-httpclient" to
+# "httpcomponents-client" under HttpClient 4.x.x.
+require antefix httpcomponents-client [ pn="commons-httpclient" ]
+
+# HttpClient 3.x.x is legacy, and thus no longer maintained. However, due to
+# HttpClient 4.x.x requiring Maven for building and other exheres requiring
+# HttpClient 3.x.x (e.g., Eclipse), it stays around.
+SLOT="3"
+PLATFORMS="~amd64 ~x86"
+
+DEPENDENCIES+="
+    build+run:
+        dev-java/commons-codec[>=1.4]
+        dev-java/commons-logging[>=1.1.1]
+    test:
+        dev-java/junit:3
+"
+
+JAVA_SRC_LIBRARY_DIR="lib"
+JAVA_SRC_PREPARE_JARS=( "commons-codec" "commons-logging" )
+JAVA_SRC_TEST_JARS=( "junit:3" )
+JAVA_SRC_INSTALL_JARS=( "dist/${HTTP_PN}.jar" )
+
+ANT_SRC_CONFIGURE_PARAMS=( static )
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_TEST_PARAMS=( test )
+ANT_SRC_INSTALL_PARAMS=( dist )
+
+src_prepare() {
+    antefix_src_prepare
+
+    # HttpClient 3.x.x ships a sample "build.properties" file that is,
+    # astonishingly, exactly what we require. Copy this file rather than moving
+    # it as the "dist" task in build.xml" requires this file. (Yes; it's absurd.)
+    echo ">>> Creating build.properties"
+    edo cp "build.properties.sample" "build.properties"
+
+    # Prevent the "dist" target from unconditionally generating Javadoc.
+    echo ">>> Patching build.xml"
+    edo sed -i "${ANT_BUILD_XML}" -e 's~\(depends="compile\),doc"~\1"~'
+}
+
+src_test() {
+    ewarn "Disabling network sandboxing"
+    sydboxcmd 'sandunbox/net'
+
+    antefix_src_test
+}
+
