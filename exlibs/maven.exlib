@@ -98,7 +98,7 @@
 #   http://stackoverflow.com/questions/364114/can-i-add-jars-to-maven-2-build-classpath-without-installing-them
 #   Wait: on second thought, just implement a one-pass parser initially. This
 #   requires Maven exheres to explicitly specify their dependencies with the
-#   ${JAVA_SRC_PREPARE_SYMLINK_JARS} global just as in Ant exheres. The parser
+#   ${JAVA_SRC_PREPARE_JARS} global just as in Ant exheres. The parser
 #   creates an associative array from jar file basename to absolute path: e.g.,
 #   JAR_FILE_MAP[commons-codec]=$(which_installed_jar_file "commons-codec")
 #   JAR_FILE_MAP[commons-logging]=$(which_installed_jar_file "commons-logging")

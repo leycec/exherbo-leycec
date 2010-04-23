@@ -314,7 +314,7 @@ enable_build_xml_creation() {
     # need to, you're probably better off writing your own "build.xml".
     ANT_SRC_INSTALL_JARS_DIR="dist"
 
-    JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
+    JAVA_SRC_LIBRARY_DIR="lib"
     JAVA_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
 }
 
@@ -378,7 +378,7 @@ create_build_xml() {
 #   directory (i.e., the directory having symlinks to external dependencies).
 #   Defaults to "${WORK}/lib/". (This exlib ensures that these dependencies will
 #   be symlinked into this directory, when specified via the
-#   ${ANT_SRC_PREPARE_SYMLINK_DIR} global.)
+#   ${ANT_SRC_LIBRARY_DIR} global.)
 # * "build", an absolute or relative path to the root of the classes directory.
 #   Defaults to "${WORK}/build/".
 # * "dist", an absolute or relative path to the root of the output jar file
@@ -399,7 +399,7 @@ create_build_xml_file() {
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
 
     local BUILD_XML_SRC_DIR="${ANT_SRC_COMPILE_SOURCE_DIR:-src}"
-    local BUILD_XML_LIB_DIR="${ANT_SRC_PREPARE_SYMLINK_DIR:-lib}"
+    local BUILD_XML_LIB_DIR="${ANT_SRC_LIBRARY_DIR:-lib}"
     local BUILD_XML_DIST_DIR="${ANT_SRC_INSTALL_JARS_DIR:-dist}"
     local BUILD_XML_JAR_FILE="${ANT_SRC_INSTALL_JARS[1]:-${BUILD_XML_DIST_DIR}/${PN}.jar}"
     local BUILD_XML_JAVADOC_DIR="${ANT_SRC_INSTALL_JAVADOC_DIR:-javadoc}"

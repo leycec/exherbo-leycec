@@ -26,8 +26,6 @@ UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/RELEASE-NOTES.txt"
 DEPENDENCIES+="
     build+run:
         dev-java/tomcat:5
-    build+test:
-        dev-java/junit:4
 "
 
 # Commons El refuses to build under JDK >= 1.5. Patch that.

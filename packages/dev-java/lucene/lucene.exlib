@@ -48,7 +48,7 @@ IS_BUILDING_CONTRIB_ANALYZERS=1
 DEPENDENCIES+="
     build:
         dev-java/javacc[>=5.0]
-    build+test:
+    test:
         dev-java/junit:4
 "
 
@@ -70,9 +70,9 @@ ANT_CONTRIB_BUILD_DIR="build/contrib"
 ANT_CONTRIB_ANALYZERS_BUILD_XML="contrib/analyzers/build.xml"
 ANT_CONTRIB_ANALYZERS_BUILD_DIR="${ANT_CONTRIB_BUILD_DIR}/analyzers/common"
 
-JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
-JAVA_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
+JAVA_SRC_LIBRARY_DIR="lib"
 JAVA_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
+JAVA_SRC_TEST_JARS=( "junit:4" )
 JAVA_SRC_INSTALL_JARS=(
     "build/${PN}-core-${PV}.jar"
     "build/${PN}-demos-${PV}.jar"

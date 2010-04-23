@@ -120,8 +120,8 @@ DEPENDENCIES+="
 # Non-core subcomponents depend upon core of the exact same version, and must
 # symlink that external jar file for core into their "lib/" directory.
 if [[ "${SAT4J_PN}" != "core" ]]; then
-    JAVA_SRC_PREPARE_SYMLINK_DIR="${SAT4J_LIB_DIR}"
-    JAVA_SRC_PREPARE_SYMLINK_JARS=( $(which_installed_jar_file "sat4j-core") )
+    JAVA_SRC_LIBRARY_DIR="${SAT4J_LIB_DIR}"
+    JAVA_SRC_PREPARE_JARS=( $(which_installed_jar_file "sat4j-core") )
 
     DEPENDENCIES+="
     build+run:

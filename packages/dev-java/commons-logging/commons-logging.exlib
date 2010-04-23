@@ -34,8 +34,6 @@ DEPENDENCIES+="
     build+run:
         log4j?  ( dev-java/log4j:1.2[>=1.2.16] )
         dev-java/tomcat:6[>=6.0.26]
-    build+test:
-        dev-java/junit:4
 "
 
 # Common Logging's "build.xml" appends "-SNAPSHOT" to its version numbers. Noo!

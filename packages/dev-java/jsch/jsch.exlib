@@ -49,8 +49,8 @@ jsch_src_unpack() {
     # patched "build.xml" file above handles the rest.
     if option jzlib; then
         einfo "Enabling packet compression..."
-        JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
-        JAVA_SRC_PREPARE_SYMLINK_JARS=( jzlib )
+        JAVA_SRC_LIBRARY_DIR="lib"
+        JAVA_SRC_PREPARE_JARS=( jzlib )
     fi
 }
 

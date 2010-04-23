@@ -44,24 +44,28 @@ JAVA_CLEAN_JAR_FILES_PARAMS=( )
 # Absolute or relative path under ${WORK} into which external jar files will
 # be symlinked. Though this path is usually "lib" for most exheres, you must
 # still explicitly specify it to have symlinking performed for you. Example:
-#     JAVA_SRC_PREPARE_SYMLINK_DIR="lib"
-JAVA_SRC_PREPARE_SYMLINK_DIR=""
+#     JAVA_SRC_LIBRARY_DIR="lib"
+JAVA_SRC_LIBRARY_DIR=""
 
 # Array of absolute paths to or relative names of external jar files to be
-# symlinked into ${JAVA_SRC_PREPARE_SYMLINK_DIR} during the "src_prepare" phase. External jar files should
-# generally be buildtime dependencies of this exheres. Example mixing both
-# absolute paths to and relative names of external jar files:
-#     JAVA_SRC_PREPARE_SYMLINK_JARS=( jarjar qdox "/usr/share/asm/asm.jar" )
+# symlinked into ${JAVA_SRC_LIBRARY_DIR} during the "src_prepare" phase.
+# External jar files should be buildtime dependencies of this exheres. An
+# example mixing both absolute paths to and relative names of external files:
+#     JAVA_SRC_PREPARE_JARS=( jarjar qdox "/usr/share/asm/asm.jar" )
 #
 # If filenames are not known until install time, leave this array blank and
-# call "symlink_jars" within your "${PN}_src_prepare" function.
-JAVA_SRC_PREPARE_SYMLINK_JARS=( )
+# call "symlink_jars" within your "src_prepare" function.
+JAVA_SRC_PREPARE_JARS=( )
 
-# Absolute or relative path under "${WORK}" into which external jar files will
-# be symlinked for the "src_test" phase. This is usually, but not always, the
-# same path as ${JAVA_SRC_PREPARE_SYMLINK_DIR}. Example:
-#     JAVA_SRC_TEST_SYMLINK_DIR="lib"
-JAVA_SRC_TEST_SYMLINK_DIR=""
+# Array of absolute paths to or relative names of external jar files to be
+# symlinked into ${JAVA_SRC_LIBRARY_DIR} during the "src_test" phase.
+# External jar files should be test-time dependencies of this exheres. An
+# example with slotted dependencies:
+#     JAVA_SRC_TEST_JARS=( "junit:4" )
+#
+# If filenames are not known until install time, leave this array blank and
+# call "symlink_jars" within your "src_test" function.
+JAVA_SRC_TEST_JARS=( )
 
 # Array of absolute paths to text files to be "deversion"-ated. Ant "build.xml"
 # files often hardcode references to pre-bundled jar files with names suffixed
@@ -198,10 +202,21 @@ javafix_src_prepare() {
         deversion_java_files "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}"
     fi
 
-    if [[ -n "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
-        echo ">>> Linking external jar files"
-        symlink_jars "${JAVA_SRC_PREPARE_SYMLINK_DIR}" \
-                     "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}"
+    if [[ -n "${JAVA_SRC_PREPARE_JARS[@]}" ]]; then
+       [[ -n "${JAVA_SRC_LIBRARY_DIR}" ]] ||
+            die_unless_nonfatal "\$JAVA_SRC_LIBRARY_DIR not set; cannot link external jar files"
+
+        # Clean the library directory of all jar files regardless of whether 
+        # ${JAVA_IS_CLEANING_JAR_FILES} is disabled or not. These jar files
+        # should be replaced by symlinks in the call to "symlink_jars".
+        if [[ -d "${JAVA_SRC_LIBRARY_DIR}" ]]; then
+            echo ">>> Culling library directory"
+            edo rm -f "${JAVA_SRC_LIBRARY_DIR}"/*.jar
+        fi
+
+        echo ">>> Linking library jar files"
+        symlink_jars "${JAVA_SRC_LIBRARY_DIR}" \
+                     "${JAVA_SRC_PREPARE_JARS[@]}"
     fi
 }
 
@@ -215,6 +230,14 @@ javafix_src_compile() {
 
 javafix_src_test() {
     javafix_src_preamble
+
+    if [[ -n "${JAVA_SRC_TEST_JARS[@]}" ]]; then
+       [[ -n "${JAVA_SRC_LIBRARY_DIR}" ]] ||
+            die_unless_nonfatal "\$JAVA_SRC_LIBRARY_DIR not set; cannot link external jar files"
+        echo ">>> Linking test jar files"
+        symlink_jars "${JAVA_SRC_LIBRARY_DIR}" \
+                     "${JAVA_SRC_TEST_JARS[@]}"
+    fi
 }
 
 javafix_src_install() {
@@ -300,8 +323,8 @@ deversion_java_files() {
         #
         # Do not remove version specifiers from other jar filenames as those
         # filenames may not actually exist. As we can't be sure, we don't.
-        if [[ -n "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}" ]]; then
-            for EPN in "${JAVA_SRC_PREPARE_SYMLINK_JARS[@]}"; do
+        if [[ -n "${JAVA_SRC_PREPARE_JARS[@]}" ]]; then
+            for EPN in "${JAVA_SRC_PREPARE_JARS[@]}"; do
                 if [[ "${EPN:0:1}" != / ]]; then  # ignore absolute paths
                     edo sed -i "${DEVERSION_JAVA_FILE}" \
                         -r -e "s~${EPN}${JAVA_JAR_VERSION_PATTERN}~${EPN}.jar~"
@@ -366,11 +389,8 @@ symlink_jars() {
     illegal_in_global_scope
     [[ ${#} -ge 2 ]] || die_unless_nonfatal "at least two arguments needed"
 
-    local SYMLINK_DIR=${1}
-    if [[ -d "${SYMLINK_DIR}" ]]
-    then edo rm -f "${SYMLINK_DIR}"/*.jar
-    else edo install -d "${SYMLINK_DIR}"
-    fi
+    local SYMLINK_DIR="${1}"
+    [[ -d "${SYMLINK_DIR}" ]] || edo install -d "${SYMLINK_DIR}"
 
     shift
     local JAR_SPEC EXHERES_NAME JAR_FILENAME

@@ -48,8 +48,8 @@ WORK="${WORKBASE}/${PN}"
 # bootstrap compile a new JavaCC parser given this bundle. This is odd, but
 # there's not much we can do.
 JAVA_CLEAN_JAR_FILES_PARAMS=( -not -name 'javacc.jar' )
-JAVA_SRC_PREPARE_SYMLINK_DIR="lib/junit"
-JAVA_SRC_PREPARE_SYMLINK_JARS=( "junit:4" )
+JAVA_SRC_LIBRARY_DIR="lib/junit"
+JAVA_SRC_PREPARE_JARS=( "junit:4" )
 JAVA_SRC_INSTALL_JARS=( "bin/lib/${PN}.jar" )
 
 # Note that, though the "compile" task compiles "*Test.java" files the "jar"
