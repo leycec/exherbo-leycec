@@ -3,41 +3,78 @@
 # Based in part upon 'eclipse-sdk-3.5.1-r1.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 #
+# --------------------( SYNOPSIS                           )--------------------
+# This exlib builds Eclipse from source -- with exception of two dependencies,
+# Tomcat Jasper and Jetty, whose builds themselves depend on a convoluted
+# pyramid of other dependencies and are therefore left as binary dependencies,
+# for the moment.
+#
+# This exlib is resource intensive, typically allocating between 1GB to 4GB of
+# memory and an indeterminate amount of disk space. Such is life, Exherbo-style. 
+#
+# --------------------( SEE ALSO                           )--------------------
+# * "Eclipse Build Wiki."
+#   http://wiki.eclipse.org/Linux_Tools_Project/Eclipse_Build
+#
 # --------------------( THANKS                             )--------------------
 # The maintainers of this exlib appreciatively thank the Gentoo Eclipse team for
 # their tremendous effort in modularizing this build process, without which this
-# exheres probably would not be.
+# exheres wouldn't be.
 #
 # Thanks, guys.
-
-# --------------------( EXHERES                            )--------------------
-#FIXME: Add support for a new "machine_tester.exlib" exlib, ensuring the
-#current machine has sufficient capability to make Eclipse.
-require antefix
-export_exlib_phases src_prepare
-
-# --------------------( VERSIONING                         )--------------------
-# Eclipse uses a unique versioning scheme: "${MAJOR}_${MINOR}_${REVISION}". This
-# global gives this version, where the "F" in "FV" refers to "fetched" and the
-# "V" to "version".
-FV=$(ever replace_all _ $PV)
-
-# Eclipse archives its source to a file with basename as below, which unpacks to
-# a path of same name. This global gives the basename.
-FNV="eclipse-R${FV}-fetched-src"
-
-# Eclipse builds from source via the "eclipse-build" framework. We declare three
-# globals describing this framework paralleling the "PV", "PN", and "PNV"
-# globals from typical exheres:
+ 
+# ....................{ EXLIB                              }....................
+# Eclipse exheres must pass the mandatory "bv" exparam when requiring this
+# exlib. All other exparams are optional and generally need not be passed.
 #
-# * "BV", the version of this framework needed to build this version of Eclipse.
-# * "BN", the name of this framework.
-# * "BNV", the name and version of this framework.
-BV="0_4_0"
-BN="eclipse-build"
-BNV="${BN}-R${BV}"
+# See "Eclipse Build Wiki" above to map Eclipse versions to "bv" versions.
 
-# --------------------( CONFIGURATION                      )--------------------
+require antefix java-manifest
+export_exlib_phases src_unpack src_prepare src_install
+
+# Eclipse distributes source via a customary tarball, identified as:
+#
+# * "fn", this source tarball's prefix.
+# * "fv", this source tarball's version.
+# * "fnv", this source tarball's prefix and version.
+# * "fnv_archive", this source tarball's basename.
+myexparam fn="${PN}"
+  exparam -v FN fn
+myexparam fv="${PV}"
+  exparam -v FV fv
+myexparam fnv="${FN}-${FV}-src"
+  exparam -v FNV fnv
+myexparam fnv_archive="${FNV}.tar.bz2"
+  exparam -v FNV_ARCHIVE fnv_archive
+
+# Eclipse builds from source via the "eclipse-build" framework, identified as:
+#
+# * "bn", the name of this framework.
+# * "bv", the version of this framework needed to build this Eclipse version.
+#   This must include version prefixes like "R" or suffixes like "_RC6".
+# * "bnv", the name and version of this framework.
+# * "bnv_archive", this framework tarball's basename.
+#
+# Note -- the source and framework tarballs use different compression schemes.
+myexparam bn="eclipse-build"
+  exparam -v BN bn
+myexparam bv=    # you must pass this exparam!
+  exparam -v BV bv
+myexparam bnv="${BN}-${BV}"
+  exparam -v BNV bnv
+myexparam bnv_archive="${BNV}.tar.bz2"
+  exparam -v BNV_ARCHIVE bnv_archive
+
+# ....................{ MAGIC STRINGS                      }....................
+# Eclipse analogue to $(uname --operating-system).
+OS="Linux"
+
+# Eclipse requires an external "windowing system" against which to build GUI
+# widgets. Technically, Eclipse supports a variety of windowing systems: Carbon,
+# Cocoa, GTK, Motif, Photon, Win32, and WPF. Force GTK, for the moment.
+WS="gtk"
+
+# ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
 
 SUMMARY="A multi-language integrated development environment (IDE)"
@@ -53,23 +90,34 @@ Eclipse PDT for PHP.
 
 #FIXME: Define additional mirrors.
 DOWNLOADS="
-http://download.eclipse.org/technology/linuxtools/${BN}/${FNV}.tar.bz2
-http://download.eclipse.org/technology/linuxtools/${BN}/${BNV}.tar.gz
+http://download.${PN}.org/technology/linuxtools/${BN}/${FNV_ARCHIVE}
+http://download.${PN}.org/technology/linuxtools/${BN}/${BNV_ARCHIVE}
 "
-HOMEPAGE="http://www.eclipse.org"
+HOMEPAGE="http://www.${PN}.org"
 REMOTE_IDS=""
 
-UPSTREAM_DOCUMENTATION="http://help.eclipse.org/galileo/index.jsp [[ lang = en ]]"
-UPSTREAM_RELEASE_NOTES="http://www.eclipse.org/eclipse/development/readme_${PN}_${FV}.html"
+#FIXME: Refers to the most recent documentation, only.
+UPSTREAM_DOCUMENTATION="http://help.${PN}.org/galileo/index.jsp [[ lang = en ]]"
+UPSTREAM_RELEASE_NOTES="http://www.${PN}.org/${PN}/development/readme_${PN}_${FV}.html"
 
 SLOT="3.5"
 LICENCES="EPL-1.0"
-MYOPTIONS+=""
 
+MYOPTIONS+="
+    gnome
+    platform:
+        amd64
+        x86
+"
+
+#FIXME: "libgnome" and "libgnomeui" are deprecated. Where do we go from here?
 # Eclipse comes bundled with both the 3.x.x. and 4.x.x series of JUnit.
 # Therefore, so do we.
 DEPENDENCIES+="
-    build+run:
+    build:
+        app-arch/bzip2
+        dev-util/pkg-config
+     build+run:
         dev-java/asm[>=3.2]
         dev-java/commons-codec[>=1.4]
         dev-java/commons-el[>=1.0]
@@ -83,14 +131,109 @@ DEPENDENCIES+="
         dev-java/sat4j-pb[>=2.1.1]
         dev-java/swt:${SLOT}[>=${PV}]
         dev-java/tomcat:6[>=6.0.26]
+        x11-libs/gtk+:2
+        gnome? (
+            gnome-platform/libgnome:2
+            gnome-platform/libgnomeui:2
+            gnome-platform/gnome-vfs[>=2]
+        )
 "
 
-WORK="${WORKBASE}"/${BNV}
+WORK="${WORKBASE}/${BNV}"
 
-# --------------------( PHASES                             )--------------------
+# Absolute path to the directory into which "build.xml" assembles the final
+# Eclipse distribution.
+ECLIPSE_BUILD_DIR="${WORK}/build/${FNV}"
+
+# Absolute path to the directory having patch files for this slot.
+ECLIPSE_FILES_DIR="${FILES}/${SLOT}"
+
+ANT_SRC_UNPACK_PARAMS=( unpack )
+ANT_SRC_PREPARE_PARAMS=( applyPatches )
+ANT_SRC_COMPILE_PARAMS=( compile )
+ANT_SRC_INSTALL_PARAMS=( jar )
+
+# ....................{ PHASES                             }....................
+# Do not call the "default_src_unpack" function. Eclipse bundles itself in
+# an odd manner; we have to unpack it ourselves.
+enable_manual_java_unpacking
+
+eclipse_src_unpack() {
+    antefix_src_unpack
+
+    # Extract the "eclipse-build" tarball but not the source tarball. The former
+    # extracts the latter itself, during invocation of . 
+    echo ">>> Unpacking ${BNV_ARCHIVE} to ${PWD}"
+    unpack "${BNV_ARCHIVE}"
+
+    echo ">>> Checking architecture"
+    if   option platform:amd64; then MODEL="x86_64"
+    elif option platform:x86;   then MODEL="x86"
+    fi
+
+    ANT_PARAMS+=( "-DbuildArch=${MODEL}" )
+
+    echo ">>> Creating directory tree"
+    edo ln -s "${FETCHEDDIR}/${FNV_ARCHIVE}" "${WORK}"/
+}
+
 eclipse_src_prepare() {
-    eerror "This exheres is still unfinished. Patience, young padawan."
-    die
+    antefix_src_prepare
+
+    # Apply exheres-specific patches after applying standard Eclipse patches,
+    # above. (Force this odd calling order by doing it ourselves rather than
+    # relying on the ${DEFAULT_SRC_PREPARE_PATCHES} array.)
+    echo ">>> Patching source files..."
+    expatch "${ECLIPSE_FILES_DIR}/gtk-make_linux_mak.patch"
+
+    # Convert hardcoded library paths to Exherbo-specific library paths.
+    edo sed -i {pde,}build.properties \
+        -e "s~/.+/rt\.jar:.+$~${JAVA_JRE_LIBRARY_DIR}/rt.jar:${JAVA_JRE_LIBRARY_DIR}/jce.jar~"
+}
+
+eclipse_src_install() {
+    antefix_src_install
+
+    local ECLIPSE_ENVIRO_FILENAME="60eclipse"
+    local ECLIPSE_CONFIG_FILENAME="eclipse"
+    local ECLIPSE_LAUNCH_FILENAME="eclipse-${SLOT}"
+    local ECLIPSE_ENVIRO_FILE="/etc/env.d/${ECLIPSE_ENVIRO_FILENAME}"
+    local ECLIPSE_CONFIG_FILE="/etc/conf.d/${ECLIPSE_CONFIG_FILENAME}"
+    local ECLIPSE_LAUNCH_FILE="/usr/bin/${ECLIPSE_LAUNCH_FILENAME}"
+    local ECLIPSE_HOME="/usr/$(get_libdir)/eclipse-${SLOT}"
+#   local ECLIPSE_BIN="${ECLIPSE_HOME}/eclipse"
+
+    #FIXME leycec: needed?
+#   edo chmod +x "${ECLIPSE_BUILD_DIR}/installation/eclipse"
+#   edo rm "${ECLIPSE_BUILD_DIR}/installation/libcairo-swt.so"
+
+    echo ">>> Installing distribution tree..."
+    insinto "${ECLIPSE_HOME}"
+    doins -r "${ECLIPSE_BUILD_DIR}/installation"/*
+
+    echo ">>> Installing launcher files..."
+
+    # Install the launcher script as "/usr/bin/eclipse-${SLOT}".
+    edo cp "${ECLIPSE_FILES_DIR}/eclipse.bash" "${TEMP}"/
+    edo sed -i "${TEMP}/eclipse.bash" \
+        -e "s~__ECLIPSE_CONFIG_FILE__~${ECLIPSE_CONFIG_FILE}"
+        -e "s~__ECLIPSE_ENVIRO_FILE__~${ECLIPSE_ENVIRO_FILE}"
+    newbin "${TEMP}/eclipse.bash" "eclipse-${SLOT}"
+
+    # Install the launcher configuration files.
+    hereenvd "${ECLIPSE_ENVIRO_FILENAME}" <<EOF
+ECLIPSE_HOME="${ECLIPSE_HOME}"
+EOF
+
+    # FIXME leycec: also set "VMARGS_XX_PERMSIZE" and "VMARGS_XX_PERMSIZE". I
+    # can't be bothered, at the moment.
+    hereconfd "${ECLIPSE_CONFIG_FILENAME}" <<EOF
+# Require Eclipse to allocate at least VMARGS_XMS much memory but no more than
+# VMARGS_XMX much memory, where the 'm' refers to megabyte and 'g' to gigabyte.
+# If you receive "OutOfMemory" exceptions, double these values until you don't.
+VMARGS_XMS=256m
+VMARGS_XMX=512m
+EOF
 }
 
 #FIXME leycec: A promising post I pounced upon, online.

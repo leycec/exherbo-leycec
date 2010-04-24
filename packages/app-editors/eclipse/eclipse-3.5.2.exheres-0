@@ -1,6 +1,6 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
-require eclipse
+require eclipse [ bv="0.5.0" ]
 
 PLATFORMS="~amd64 ~x86"
