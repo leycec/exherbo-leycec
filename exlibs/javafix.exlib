@@ -106,8 +106,12 @@ JAVA_SRC_INSTALL_JARS=( )
 # Scratch that -- don't even read them. If you access these constants in any
 # exheres, you're doing something wrong. :)
 
-# Set to the currently selected Java compiler as reported by...
+# Exheres name of the currently selected Java compiler.
 JAVA_JDK=$(eclectic java-jdk show)
+
+# Absolute path to the directory having JDK jar files for the above compiler:
+# e.g., "rt.jar", "jce.jar".
+JAVA_JRE_LIBRARY_DIR="/usr/$(get_libdir)/jre/lib/"
 
 # Set, if disabling sydbox's network sandboxing. At the moment, this is only
 # enabled when "gcj" is the currently selected Java compiler. This additionally
@@ -129,6 +133,14 @@ JAVA_IS_CLEANING_CLASS_FILES=1
 #
 # Defaults to set.
 JAVA_IS_CLEANING_JAR_FILES=1
+
+# Set, if calling "default_src_unpack" to perform automated unpacking of
+# downloaded archives. Most exheres want this; those that do not (e.g., Eclipse,
+# Eclipse SWT) require sufficiently complex unpacking to warrant their doing it
+# themselves. (This is not recommended.)
+#
+# Defaults to unset.
+JAVA_IS_UNPACKING_MANUALLY=
 
 # Bash pattern matching the version suffix commonly appended to jar filenames.
 # This pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
@@ -173,7 +185,10 @@ javafix_pkg_setup() {
 }
 
 javafix_src_unpack() {
-    default
+    # Call "default_src_unpack", unless the calling exheres has other plans.
+    if [[ -z "${JAVA_IS_UNPACKING_MANUALLY}" ]]; then
+        default
+    fi
 
     # The "ant_src_unpack" function recursively destroys the contents of all
     # paths in "${ANT_BUNDLED_LIBSDIR}". Now, we must not destroy the "${WORK}"
@@ -265,7 +280,7 @@ javafix_src_preamble() {
     fi
 }
 
-# ....................{ CLEANERS                           }....................
+# ....................{ SETTERS                            }....................
 # void disable_class_file_cleaning(void)
 #
 # Disable recursive deletion of all class files under ${WORK} in "src_unpack".
@@ -282,6 +297,15 @@ disable_jar_file_cleaning() {
     unset JAVA_IS_CLEANING_JAR_FILES
 }
 
+# void enable_manual_java_unpacking(void)
+#
+# Prevent calling the "default_src_unpack" function in the "src_unpack" phase.
+# Calling this function is preferable to explicitly setting the global.
+enable_manual_java_unpacking() {
+    JAVA_IS_UNPACKING_MANUALLY=1
+}
+
+# ....................{ CLEANERS                           }....................
 # void clean_jar_files(void)
 #
 # Recursively remove all jar files under ${WORK}. (Fairly destructive!)

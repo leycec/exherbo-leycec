@@ -3,7 +3,7 @@
 # Based in part upon 'swt-3.5.2.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix multilib
+require antefix
 export_exlib_phases src_unpack src_compile src_install
 
 # SWT's "build.xml" is Eclipse-specific, and in fact both assumes and requires
@@ -44,7 +44,8 @@ MYOPTIONS+="
 "
 
 #FIXME: The soft "opengl" dependency should probably be "virtual/opengl"
-#instead. Unfortunately, that doesn't exist yet. :)
+#instead. Unfortunately, that doesn't exist yet. Also, is this the most
+#concise way to depend on "gnome"?
 DEPENDENCIES+="
     build:
         app-arch/unzip
@@ -71,29 +72,10 @@ DEPENDENCIES+="
 # The above archive extracts to the current directory. (Odd, but acceptable...)
 WORK="${WORKBASE}"
 
-#FIXME: Pass these to "build.xml" as "-D"-style parameters when invoking ant.
-# Absolute path to the root of the Java source tree for SWT.
-ANT_SRC_DIR="src"
-ANT_SRC="${WORK}/${ANT_SRC_DIR}"
-
-# Absolute path to the root of the Java build tree having class files.
-ANT_BUILD_DIR="build"
-ANT_BUILD="${WORK}/${ANT_BUILD_DIR}"
-
-# Absolute path to the root of the Java distribution tree having jar files.
-ANT_DIST_DIR="dist"
-ANT_DIST="${WORK}/${ANT_DIST_DIR}"
-
-# Relative name of this machine's "lib/" directory. (This global is exported to
-# the SWT shell script, but otherwise unused by this exheres.)
-MULTILIB_DIR=$(get_libdir)
-
 DEFAULT_SRC_PREPARE_PATCHES=(
     "${FILES}/make_linux_mak-fix.patch"
     "${FILES}/build_sh-fix.patch"
 )
-
-JAVA_SRC_INSTALL_JARS=( "${ANT_DIST}/${PN}.jar" )
 
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
@@ -102,11 +84,21 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 # OSGI "MANIFEST.MF" that SWT bundles. The particular manifest below is copied
 # from "${FILES}/MANIFEST.MF" during the "src_install" phase. (Below!)
 ANT_SRC_INSTALL_MANIFEST_MF="${WORK}/MANIFEST.MF"
+JAVA_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
+
+# Do not call the "default_src_unpack" function. Eclipse SWT bundles itself in
+# an odd manner; we have to unpack it ourselves.
+enable_manual_java_unpacking
 
 swt_src_unpack() {
-    # Do not call the parent "src_unpack" function. SWT bundles itself in a
-    # rather odd manner, and we'd prefer to handle it ourselves.
-    #
+    antefix_src_unpack
+
+    # Absolute path to the root of the SWT's source tree.
+    SWT_SRC_DIR="${WORK}/src"
+
+    # Absolute path to the root of the SWT's build tree having class files.
+    SWT_BUILD_DIR="${WORK}/build"
+
     # Extract the "src.zip" archive from the fetched compressed archive, then
     # extract the contents of that archive to ${WORK}. 
     echo ">>> Unpacking ${ARCHIVES} to ${PWD}"
@@ -121,15 +113,15 @@ swt_src_unpack() {
     # "files/build.xml", however, expects this tree to be found at
     # "src/org/" per the Ant standard. We ensure this now.
     echo ">>> Creating directory tree"
-    edo mkdir -p "${ANT_SRC}" "${ANT_BUILD}"
-    edo mv "${WORK}/org" "${ANT_SRC}"
+    edo mkdir -p "${SWT_SRC_DIR}" "${SWT_BUILD_DIR}"
+    edo mv "${WORK}/org" "${SWT_SRC_DIR}"
 
     # Copy Java files from the source to build directory.
     echo ">>> Creating required files"
-    edo mkdir -p "${ANT_BUILD}/org/eclipse/swt/internal/"
-    edo cp "${ANT_SRC}/org/eclipse/swt/internal/SWTMessages.properties" \
-           "${ANT_BUILD}/org/eclipse/swt/internal/"
-    edo cp "${WORK}/version.txt" "${ANT_BUILD}/version.txt"
+    edo mkdir -p "${SWT_BUILD_DIR}/org/eclipse/swt/internal/"
+    edo cp "${SWT_SRC_DIR}/org/eclipse/swt/internal/SWTMessages.properties" \
+           "${SWT_BUILD_DIR}/org/eclipse/swt/internal/"
+    edo cp "${WORK}/version.txt" "${SWT_BUILD_DIR}/version.txt"
 
     echo ">>> Creating ${ANT_BUILD_XML}"
     edo rm "${ANT_BUILD_XML}"
@@ -147,19 +139,19 @@ swt_src_compile() {
     # desynchronization of this script and this function when bumping versions.
 
     # Export environment variables to be inherited by "build.sh".
-    OS="Linux"
+    export OS="Linux"
 
-    if   option platform:amd64; then MODEL="x86_64"
-    elif option platform:x86;   then MODEL="i386"
+    if   option platform:amd64; then export MODEL="x86_64"
+    elif option platform:x86;   then export MODEL="i386"
     fi
 
-    if option cairo;     then OPTION_CAIRO=1; fi
-    if option gnome;     then OPTION_GNOME=1; fi
-    if option opengl;    then OPTION_OPENGL=1; fi
-    if option xulrunner; then OPTION_XULRUNNER=1; fi
+    # Relative name of this machine's "lib/" directory.
+    export MULTILIB_DIR=$(get_libdir)
 
-    export OS MODEL OPTION_CAIRO OPTION_GNOME OPTION_OPENGL OPTION_XULRUNNER \
-        MULTILIB_DIR
+    if option cairo;     then export OPTION_CAIRO=1; fi
+    if option gnome;     then export OPTION_GNOME=1; fi
+    if option opengl;    then export OPTION_OPENGL=1; fi
+    if option xulrunner; then export OPTION_XULRUNNER=1; fi
 
     # So say we all!
     echo ">>> Compiling C and C++ libraries"

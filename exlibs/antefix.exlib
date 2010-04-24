@@ -50,16 +50,39 @@ ANT_BUILD_XML="build.xml"
 #     ANT_PARAMS=( -Dproject.classpath=/usr/share/zebrapig/ )
 ANT_PARAMS=( )
 
-# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_configure" phase.
-# This is empty by default, implying no Ant tasks will be run for configuration.
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_unpack" phase.
+# This is empty by default, implying no Ant tasks will be run for unpacking.
 # Example:
-#     ANT_SRC_CONFIGURE_PARAMS=( init )
+#     ANT_SRC_UNPACK_PARAMS=( init )
 #
 # This and all other Ant task arrays below are empty by default, as Ant is by
 # design unable to force task names to adhere to ISO standards. In other words,
 # any "build.xml" file can name its tasks anything and they do. As there's no
 # sensible way of predicting this, or programmatically safe way of extracting
 # this from "build.xml" files, Ant exheres must manually list tasks.
+#
+# Note, few "build.xml" files provide unpack tasks. Avoid assigning tasks to
+# this array unless you pretend to know what you're doing.
+ANT_SRC_UNPACK_PARAMS=( )
+
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_prepare" phase.
+# This is empty by default, implying no Ant tasks will be run for preparation.
+# Example:
+#     ANT_SRC_PREPARE_PARAMS=( init )
+#
+# Note, it is almost always better to assign preparatory Ant tasks to the
+# ${ANT_SRC_CONFIGURE_PARAMS} array rather than to this array. The reasons are
+# subtle but discussed in full in comments for the "antefix_src_prepare"
+# function. The only tasks that should be assigned to this array are those
+# doing genuine file patching. See "eclipse.exlib" for a valid example. As most
+# "build.xml" files do no such patching, most exheres should leave this array
+# empty. You have been warned, Exherbon! *tsk* *tsk*
+ANT_SRC_PREPARE_PARAMS=( )
+
+# Ant tasks to be run against ${ANT_BUILD_XML} during the "src_configure" phase.
+# This is empty by default, implying no Ant tasks will be run for configuration.
+# Example:
+#     ANT_SRC_CONFIGURE_PARAMS=( init )
 ANT_SRC_CONFIGURE_PARAMS=( )
 
 # Ant tasks to be run against ${ANT_BUILD_XML} during the "src_compile" phase.
@@ -128,9 +151,6 @@ DEPENDENCIES+="
 antefix_pkg_setup() {
     javafix_pkg_setup
 
-    if [[ -n "${ANT_SRC_PREPARE_PARAMS}" ]]; then
-        ewarn "${PN} sets the depcrecated \$ANT_SRC_PREPARE_PARAMS global."
-    fi
     if [[ -n "${ANT_BUNDLED_LIBSDIR}" ]]; then
         ewarn "${PN} sets the depcrecated \$ANT_BUNDLED_LIBSDIR global."
     fi
@@ -157,57 +177,56 @@ antefix_src_unpack() {
             fi
         done
     fi
+
+    # Never invoke Ant unless you have a task with which to invoke it, since
+    # "build.xml" files often supply a default task performing all relevant
+    # tasks when passed no explicit task. (This is rarely what we want.)
+    if [[ -n "${ANT_SRC_UNPACK_PARAMS[@]}" ]]; then
+        echo ">>> Unpacking source files"
+        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_UNPACK_PARAMS[@]}"
+    fi
 }
 
-# This is a placeholder phase function abstracting function dependencies from
-# calling exheres. Without this, calling exheres call "antefix_src_configure",
-# et al. but not "antefix_src_unpack"; with these, all parent phase functions
-# called by calling exheres are prefixed by "antefix".
+# Avoid invoking Ant here! The reasons are subtle. The calling exheres must
+# have the opportunity to patch files in its "src_prepare" function prior
+# to invoking Ant. Hypothetically, if this function invoked Ant, that
+# exheres would need to delay calling this function until after it had
+# already patched files: e.g., something like
 #
-# This additionally lets us add functionality to this functions without
-# modifying calling exheres.
+#     # This is subtly bad.
+#     ANT_SRC_PREPARE_PARAMS=( static )
+#     exheres_src_prepare() {
+#         edo sed -e 's~bad~good~' -i "${ANT_BUILD_XML}"
+#         antefix_src_prepare
+#     }
+#
+# But the "antefix_src_prepare" function calls the "javafix_src_prepare"
+# function that calls "expatch" to patch files. But "expatch" should be
+# called //before// performing any such sedding, as "expatch" tends to
+# overwrite file changes with patched content. So we can't reliably do the
+# above. Instead, we need to partition file patching and Ant invocation
+# into two phases. Do this by pushing Ant invocation into the next stage,
+# "src_configure", even though Ant tasks run by this invocation are
+# probably not analogous to "econfigure". Thus, the above example becomes:
+#
+#     # This is better!
+#     ANT_SRC_CONFIGURE_PARAMS=( static )
+#     exheres_src_prepare() {
+#         antefix_src_prepare
+#         edo sed -e 's~bad~good~' -i "${ANT_BUILD_XML}"
+#     }
 antefix_src_prepare() {
-    # Do not invoke Ant here! The reasons are subtle. The calling exheres must
-    # have the opportunity to patch files in its "src_prepare" function prior
-    # to invoking Ant. Hypothetically, if this function invoked Ant, that
-    # exheres would need to delay calling this function until after it had
-    # already patched files: e.g., something like
-    #
-    #     # This is subtly bad.
-    #     exheres_src_prepare() {
-    #         edo sed -e 's~bad~good~' -i "${ANT_BUILD_XML}"
-    #         antefix_src_prepare
-    #     }
-    #
-    # But the "antefix_src_prepare" function calls the "javafix_src_prepare"
-    # function that calls "expatch" to patch files. But "expatch" should be
-    # called //before// performing any such sedding, as "expatch" tends to
-    # overwrite file changes with patched content. So we can't reliably do the
-    # above. Instead, we need to partition file patching and Ant invocation
-    # into two phases. Do this by pushing Ant invocation into the next stage,
-    # "src_configure", even though Ant tasks run by this invocation are
-    # probably not analogous to "econfigure". Thus, the above example becomes:
-    #
-    #     # This is better!
-    #     exheres_src_prepare() {
-    #         antefix_src_prepare
-    #         edo sed -e 's~bad~good~' -i "${ANT_BUILD_XML}"
-    #     }
     javafix_src_prepare
+
+    if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
+        echo ">>> Preparing source files"
+        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_PREPARE_PARAMS[@]}"
+    fi
 }
 
 antefix_src_configure() {
     javafix_src_configure
 
-    # If the deprecated ${ANT_SRC_PREPARE_PARAMS} is set, append its values to
-    # the nondeprecated ${ANT_SRC_CONFIGURE_PARAMS}.
-    if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
-        ANT_SRC_CONFIGURE_PARAMS+=( "${ANT_SRC_PREPARE_PARAMS[@]}" )
-    fi
-
-    # Never invoke Ant unless you have a task with which to invoke it, since
-    # "build.xml" files often supply a default task performing all relevant
-    # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_CONFIGURE_PARAMS[@]}" ]]; then
         echo ">>> Configuring source files"
         exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_CONFIGURE_PARAMS[@]}"
