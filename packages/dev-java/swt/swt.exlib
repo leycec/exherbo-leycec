@@ -4,7 +4,16 @@
 #     Copyright 1999-2010 Gentoo Foundation
 
 require antefix multilib
-export_exlib_phases src_unpack src_prepare src_compile src_install
+export_exlib_phases src_unpack src_compile src_install
+
+# SWT's "build.xml" is Eclipse-specific, and in fact both assumes and requires
+# Eclipse be already installed. This is an obvious problem for source-based
+# distributions, since the Eclipse exheres depends on the SWT exheres. (Ergo,
+# the SWT exheres cannot itself depend on the Eclipse exheres.)
+# 
+# To circumvent this circular dependency, replace SWT's "build.xml" with a new
+# "build.xml" just performing compilation and jaring.
+enable_build_xml_creation
 
 BUGS_TO="leycec@gmail.com"
 
@@ -76,7 +85,7 @@ ANT_DIST_DIR="dist"
 ANT_DIST="${WORK}/${ANT_DIST_DIR}"
 
 # Relative name of this machine's "lib/" directory. (This global is exported to
-# the SWT shell script, but otherwise never used by this exheres.)
+# the SWT shell script, but otherwise unused by this exheres.)
 MULTILIB_DIR=$(get_libdir)
 
 DEFAULT_SRC_PREPARE_PATCHES=(
@@ -89,47 +98,54 @@ JAVA_SRC_INSTALL_JARS=( "${ANT_DIST}/${PN}.jar" )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
-# Extract the "src.zip" archive from the fetched compressed archive, then
-# extract the contents of that archive to ${WORK}.
+# Other exheres requiring SWT require an OSGI "MANIFEST.MF" rather than the non-
+# OSGI "MANIFEST.MF" that SWT bundles. The particular manifest below is copied
+# from "${FILES}/MANIFEST.MF" during the "src_install" phase. (Below!)
+ANT_SRC_INSTALL_MANIFEST_MF="${WORK}/MANIFEST.MF"
+
 swt_src_unpack() {
+    # Do not call the parent "src_unpack" function. SWT bundles itself in a
+    # rather odd manner, and we'd prefer to handle it ourselves.
+    #
+    # Extract the "src.zip" archive from the fetched compressed archive, then
+    # extract the contents of that archive to ${WORK}. 
     echo ">>> Unpacking ${ARCHIVES} to ${PWD}"
     edo unzip -joq "${FETCHEDDIR}/${ARCHIVES}" "src.zip"
     unpack "./src.zip"   # note: the prefixing "./" is important!
 
     # Delete the resultant "about_files/" path and original "src.zip" archive.
+    echo ">>> Cleaning extraneous files"
     edo rm -rf "about_files/" "src.zip"
-}
-
-swt_src_prepare() {
-    echo ">>> Preparing Java libraries"
-
-    # See comments in "files/build.xml" for details.
-    edo cp "${FILES}/build.xml" "${WORK}/build.xml"
 
     # "src.zip" unpacks the Java tree into "org/". The replacement
     # "files/build.xml", however, expects this tree to be found at
     # "src/org/" per the Ant standard. We ensure this now.
-    edo mkdir "${ANT_SRC}"
-    edo mkdir "${ANT_BUILD}"
+    echo ">>> Creating directory tree"
+    edo mkdir -p "${ANT_SRC}" "${ANT_BUILD}"
     edo mv "${WORK}/org" "${ANT_SRC}"
 
-    antefix_src_prepare
+    # Copy Java files from the source to build directory.
+    echo ">>> Creating required files"
+    edo mkdir -p "${ANT_BUILD}/org/eclipse/swt/internal/"
+    edo cp "${ANT_SRC}/org/eclipse/swt/internal/SWTMessages.properties" \
+           "${ANT_BUILD}/org/eclipse/swt/internal/"
+    edo cp "${WORK}/version.txt" "${ANT_BUILD}/version.txt"
+
+    echo ">>> Creating ${ANT_BUILD_XML}"
+    edo rm "${ANT_BUILD_XML}"
+    create_build_xml
 }
 
 # SWT comes as underlying C and C++ libraries and frontfacing Java JNI
 # libraries accessing the C and C++ libraries. We build the former first.
 swt_src_compile() {
-    swt_src_compile_build_sh
-    swt_src_compile_ant
-}
+    # Compile underlying C and C++ libraries. The "eclipse-build" framework
+    # supplies a "build.sh" script, with which to automate this compilation. We
+    # patch that script in "src_prepare" so as to interface with Exherbo-aware
+    # exheres functions. This is preferable to redefining the contents of this
+    # script in this function as a pure exheres function since that encourages
+    # desynchronization of this script and this function when bumping versions.
 
-# Compile underlying C and C++ libraries. The "eclipse-build" framework
-# supplies a "build.sh" script, with which to automate this compilation. We
-# patch that script in "src_prepare" so as to interface with Exherbo-aware
-# exheres functions. This is preferable to redefining the contents of this
-# script in this function as a pure exheres function since that encourages
-# desynchronization of this script and this function when bumping versions.
-swt_src_compile_build_sh() {
     # Export environment variables to be inherited by "build.sh".
     OS="Linux"
 
@@ -142,26 +158,21 @@ swt_src_compile_build_sh() {
     if option opengl;    then OPTION_OPENGL=1; fi
     if option xulrunner; then OPTION_XULRUNNER=1; fi
 
-    export OS MODEL OPTION_CAIRO OPTION_GNOME OPTION_OPENGL OPTION_XULRUNNER MULTILIB_DIR
+    export OS MODEL OPTION_CAIRO OPTION_GNOME OPTION_OPENGL OPTION_XULRUNNER \
+        MULTILIB_DIR
 
     # So say we all!
     echo ">>> Compiling C and C++ libraries"
     edo sh "${WORK}/build.sh"
-}
 
-# Compile underlying Java libraries.
-swt_src_compile_ant() {
-    echo ">>> Copying absent Java files"
-    edo mkdir -p "${ANT_BUILD}/org/eclipse/swt/internal/"
-    edo cp "${ANT_SRC}/org/eclipse/swt/internal/SWTMessages.properties" \
-           "${ANT_BUILD}/org/eclipse/swt/internal/"
-    edo cp "${WORK}/version.txt" "${ANT_BUILD}/version.txt"
-
-    echo ">>> Compiling Java libraries"
+    # Compile underlying Java libraries.
     antefix_src_compile
 }
 
 swt_src_install() {
+    echo ">>> Installing C and C++ libraries"
+    dolib.so "${WORK}"/*.so
+
     echo ">>> Preparing Java manifest"
 
     # Set "SWT_ARCH" according to the architecture being built against. The
@@ -171,15 +182,12 @@ swt_src_install() {
     elif option platform:x86;   then SWT_ARCH="x86"
     fi
 
-    edo cp "${FILES}/MANIFEST.MF" "${WORK}/MANIFEST.MF"
-    edo sed \
+    edo cp "${FILES}/MANIFEST.MF" "${ANT_SRC_INSTALL_MANIFEST_MF}"
+    edo sed -i "${ANT_SRC_INSTALL_MANIFEST_MF}" \
         -e "s:__SWT_ARCH__:${SWT_ARCH}:" \
         -e "s:__PV__:${PV}:" \
-        -i "${WORK}/MANIFEST.MF"
 
+    # Install underlying Java libraries.
     antefix_src_install
-
-    echo ">>> Installing C and C++ libraries"
-    dolib.so "${WORK}"/*.so
 }
 

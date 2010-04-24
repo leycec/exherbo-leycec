@@ -314,6 +314,13 @@ enable_build_xml_creation() {
     # need to, you're probably better off writing your own "build.xml".
     ANT_SRC_INSTALL_JARS_DIR="dist"
 
+    # Absolute or relative path to some custom "MANIFEST.MF" file to be
+    # installed into the output jar file.
+    #
+    # Defaults to none. This implies a default "MANIFEST.MF" file will be
+    # installed into the output jar file, which is fine for most exheres.
+    ANT_SRC_INSTALL_MANIFEST_MF=""
+
     JAVA_SRC_LIBRARY_DIR="lib"
     JAVA_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
 }
@@ -407,6 +414,12 @@ create_build_xml_file() {
     # Exheres calling this function always have a "debug" option.
     local BUILD_XML_IS_DEBUGGING=$(option debug && echo true || echo false)
 
+    # Install a custom "MANIFEST.MF" if provided by this exheres.
+    local BUILD_XML_MANIFEST_MF=""
+    if [[ -n "${ANT_SRC_INSTALL_MANIFEST_MF}" ]]; then
+          BUILD_XML_MANIFEST_MF="manifest=\"${ANT_SRC_INSTALL_MANIFEST_MF}\""
+    fi
+
     cat <<EOF > "${1}" 
 <?xml version="1.0" encoding="utf-8"?>
 <project name="${PN}" default="jar" basedir=".">
@@ -438,7 +451,7 @@ create_build_xml_file() {
     </target>
 
     <target name="jar" depends="compile">
-        <jar jarfile="\${jar}" basedir="\${build}"/>
+        <jar jarfile="\${jar}" basedir="\${build}" ${BUILD_XML_MANIFEST_MF}/>
     </target>
 
     <target name="javadoc" depends="init">
