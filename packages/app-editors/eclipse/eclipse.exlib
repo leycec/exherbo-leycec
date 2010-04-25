@@ -67,12 +67,16 @@ myexparam bnv_archive="${BNV}.tar.bz2"
 
 # ....................{ MAGIC STRINGS                      }....................
 # Eclipse analogue to $(uname --operating-system).
-OS="Linux"
+ECLIPSE_OS="linux"
+
+# Eclipse analogue to $(uname --machine). The "src_unpack" phase sets this
+# constant as this requires inspection of exheres options.
+ECLIPSE_BUILD_ARCH=
 
 # Eclipse requires an external "windowing system" against which to build GUI
 # widgets. Technically, Eclipse supports a variety of windowing systems: Carbon,
 # Cocoa, GTK, Motif, Photon, Win32, and WPF. Force GTK, for the moment.
-WS="gtk"
+ECLIPSE_WS="gtk"
 
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
@@ -88,7 +92,8 @@ to as Eclipse ADT for Ada, Eclipse CDT for C, Eclipse JDT for Java, and
 Eclipse PDT for PHP.
 "
 
-#FIXME: Define additional mirrors.
+#FIXME: Define additional mirrors. Also fetch jasper-5.5.*, jetty-6.1.*, and
+# jetty-util-6.1.*.
 DOWNLOADS="
 http://download.${PN}.org/technology/linuxtools/${BN}/${FNV_ARCHIVE}
 http://download.${PN}.org/technology/linuxtools/${BN}/${BNV_ARCHIVE}
@@ -103,8 +108,12 @@ UPSTREAM_RELEASE_NOTES="http://www.${PN}.org/${PN}/development/readme_${PN}_${FV
 SLOT="3.5"
 LICENCES="EPL-1.0"
 
+# Building Eclipse documentation plugins consumes, on rough average, twice the
+# computational resources as not doing so and is thus discouraged.
 MYOPTIONS+="
     gnome
+    doc    [[ description = [ build eclipse documentation plugins (not recommended) ] ]]
+    source [[ description = [ build eclipse source plugins ] ]]
     platform:
         amd64
         x86
@@ -113,11 +122,16 @@ MYOPTIONS+="
 #FIXME: "libgnome" and "libgnomeui" are deprecated. Where do we go from here?
 # Eclipse comes bundled with both the 3.x.x. and 4.x.x series of JUnit.
 # Therefore, so do we.
+#
+# Eclipse installation requires XML munging, and thus a sufficiently capable
+# command-line XML parser. This exlib depends on that XML jack-of-all-trades,
+# "xmlstarlet". (See discussion in "exlib/maven.exlib" for the justification.)
 DEPENDENCIES+="
     build:
         app-arch/bzip2
+        app-text/xmlstarlet
         dev-util/pkg-config
-     build+run:
+    build+run:
         dev-java/asm[>=3.2]
         dev-java/commons-codec[>=1.4]
         dev-java/commons-el[>=1.0]
@@ -145,13 +159,32 @@ WORK="${WORKBASE}/${BNV}"
 # Eclipse distribution.
 ECLIPSE_BUILD_DIR="${WORK}/build/${FNV}"
 
-# Absolute path to the directory having patch files for this slot.
-ECLIPSE_FILES_DIR="${FILES}/${SLOT}"
+# Eclipse comes bundled with the kitchen sink. We want that sink.
+JAVA_IS_CLEANING_JAR_FILES=
 
+# The "unpack" task in the top-level "build.xml" file unpacks the
+# "${FNV_ARCHIVE}" archive.
 ANT_SRC_UNPACK_PARAMS=( unpack )
+
+# The "applyPatches" task in the top-level "build.xml" file applies patches (as
+# the name suggests) as well as copying
+# "eclipse-build-config/build.properties.in" to
+# "eclipse-build-config/build.properties". Thus, build files cannot be assumed
+# to exist until after invoking this task.
 ANT_SRC_PREPARE_PARAMS=( applyPatches )
-ANT_SRC_COMPILE_PARAMS=( compile )
+
+# The "symlinkDeps" task the top-level "build.xml" file symlinks exheres-
+# installed external jar files into the "plugins/" directory. Due to the
+# difficulty of doing this by hand, this is probably the most helpful Ant task
+# anyone ever wrote. (Thanks, guys!)
+ANT_SRC_CONFIGURE_PARAMS=( symlinkDeps )
+ANT_SRC_COMPILE_PARAMS=( build )
 ANT_SRC_INSTALL_PARAMS=( jar )
+
+# Eclipse features are bundles of Eclipse plugins as described by a
+# "feature.xml" file under the root directory for each feature. This array
+# remains empty until the "src_prepare" phase for reasons discussed there.
+FEATURE_XML_FILES=( )
 
 # ....................{ PHASES                             }....................
 # Do not call the "default_src_unpack" function. Eclipse bundles itself in
@@ -159,7 +192,9 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 JAVA_IS_UNPACKING_MANUALLY=1
 
 eclipse_src_unpack() {
-    antefix_src_unpack
+#   which_installed_jar_file_from_spec "ant lib/ant-trax"
+#   which_installed_jar_file_from_spec "tomcat:6 servlet-api"
+#   which_installed_jar_file "swt:${SLOT}"
 
     # Extract the "eclipse-build" tarball but not the source tarball. The former
     # extracts the latter itself, during invocation of . 
@@ -167,14 +202,30 @@ eclipse_src_unpack() {
     unpack "${BNV_ARCHIVE}"
 
     echo ">>> Checking architecture"
-    if   option platform:amd64; then MODEL="x86_64"
-    elif option platform:x86;   then MODEL="x86"
+    if   option platform:amd64; then ECLIPSE_BUILD_ARCH="x86_64"
+    elif option platform:x86;   then ECLIPSE_BUILD_ARCH="x86"
     fi
 
-    ANT_PARAMS+=( "-DbuildArch=${MODEL}" )
+    # Notify Ant of our target architecture.
+    ANT_PARAMS+=( "-DbuildArch=${ECLIPSE_BUILD_ARCH}" )
+
+    # Notify Ant of whether or not we're building "gnome" support.
+    ANT_PARAMS+=( "-Dbuild.libgnomeproxy="$(option gnome && echo true || echo false) )
 
     echo ">>> Creating directory tree"
     edo ln -s "${FETCHEDDIR}/${FNV_ARCHIVE}" "${WORK}"/
+
+    # Patch the top-level "build.xml" file prior to invoking Ant, below. Note
+    # that, as the current directory is not ${WORK} but as all patches assume
+    # that is this current directory, pushd there prior to patching.
+    echo ">>> Patching build.xml"
+    pushd "${WORK}"
+    eclipse_patch "build_xml.patch"
+    popd
+
+    # Call the parent "src_unpack" last, as this invokes Ant with the "unpack"
+    # task and thus requires Ant parameters to have been established, above.
+    antefix_src_unpack
 }
 
 eclipse_src_prepare() {
@@ -183,12 +234,77 @@ eclipse_src_prepare() {
     # Apply exheres-specific patches after applying standard Eclipse patches,
     # above. (Force this odd calling order by doing it ourselves rather than
     # relying on the ${DEFAULT_SRC_PREPARE_PATCHES} array.)
-    echo ">>> Patching source files..."
-    expatch "${ECLIPSE_FILES_DIR}/gtk-make_linux_mak.patch"
+    #
+    # These patches are against files residing under ${ECLIPSE_BUILD_DIR} so as
+    # to prevent us from having to rewrite all patch files for minor version
+    # bumps. Without this, we would have to hardcode paths starting with
+    # "build/eclipse-3.5.2-src/" in each patch header. With this, we don't.
+    echo ">>> Patching source files"
+    pushd "${ECLIPSE_BUILD_DIR}"
+    eclipse_patch "gtk-make_linux_mak.patch"
+    popd
 
     # Convert hardcoded library paths to Exherbo-specific library paths.
-    edo sed -i {pde,}build.properties \
+    echo ">>> Patching build files"
+    edo sed -i {pde,}build.properties -r \
         -e "s~/.+/rt\.jar:.+$~${JAVA_JRE_LIBRARY_DIR}/rt.jar:${JAVA_JRE_LIBRARY_DIR}/jce.jar~"
+
+    echo ">>> Creating dependency properties"
+
+    # OSGI jar files.
+    set_osgi_dependency_property "com.ibm.icu"                   "icu4j"
+    set_osgi_dependency_property "com.jcraft.jsch"               "jsch"
+    set_osgi_dependency_property "javax.servlet"                 "tomcat:6 servlet-api"
+    set_osgi_dependency_property "javax.servlet.jsp"             "tomcat:6 jsp-api"
+    set_osgi_dependency_property "org.apache.commons.codec"      "commons-codec"
+    set_osgi_dependency_property "org.apache.commons.el"         "commons-el"
+    set_osgi_dependency_property "org.apache.commons.httpclient" "httpcomponents-client:3"
+    set_osgi_dependency_property "org.apache.commons.logging"    "commons-logging"
+    set_osgi_dependency_property "org.apache.lucene"             "lucene-core"
+    set_osgi_dependency_property "org.apache.lucene.analysis"    "lucene-analyzers"
+    set_osgi_dependency_property "org.hamcrest.core"             "hamcrest-core"
+    set_osgi_dependency_property "org.objectweb.asm"             "asm"
+    set_osgi_dependency_property "org.sat4j.core"                "sat4j-core"
+    set_osgi_dependency_property "org.sat4j.pb"                  "sat4j-pb"
+
+    # Non-OSGI jar files.
+    set_nonosgi_dependency_property "org.junit"                  "junit:3"
+    set_nonosgi_dependency_property "org.junit4"                 "junit:4"
+    add_nonosgi_dependency_property \
+        "org.eclipse.swt.${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}.jar" \
+        $(which_installed_jar_file "swt:${SLOT}")
+
+    # Non-OSGI jar files, Ant-specific.
+    local ANT_JAR_ROOTNAME
+    for   ANT_JAR_ROOTNAME in \
+        ant ant-jmf ant-junit ant-launcher ant-nodeps ant-swing ant-trax ; do
+        # This three parameter version of "set_nonosgi_dependency_property"
+        # gets these parameters:
+        #
+        # {1} "dependencies.properties" jar package.
+        # {2} "dependencies.properties" jar pattern.
+        # {3} Exherbo-specific jar specifier. The
+        #     "which_installed_jar_file_from_spec" function expands this
+        #     parameter into an absolute path: e.g.,
+        #     "/usr/share/ant/lib/ant-trax.jar".
+        set_nonosgi_dependency_property "org.apache.ant" \
+                "lib/${ANT_JAR_ROOTNAME}\\.jar" \
+            "ant lib/${ANT_JAR_ROOTNAME}"
+    done
+
+    # Glob the set of all "feature.xml" files now; calls to the
+    # "eclipse_remove_plugins_containing" function require this set.
+    FEATURE_XML_FILES=( **/feature.xml )
+
+#   if ! option doc; then
+#       echo ">>> Removing Eclipse documentation plugins from ${FEATURE_XML_FILES[@]}"
+#       eclipse_remove_plugins_containing '.doc'
+#   fi
+
+#   if ! option source; then
+#       echo ">>> Removing Eclipse source plugins"
+#       eclipse_remove_plugins_containing '.source'
+#   fi
 }
 
 eclipse_src_install() {
@@ -234,6 +350,92 @@ EOF
 VMARGS_XMS=256m
 VMARGS_XMX=512m
 EOF
+}
+
+# ....................{ PATCHES                            }....................
+# void eclipse_patch(char *file1, char *file2, ...)
+#
+# Mimic the "expatch" function by patching the passed relative filenames under
+# ${ECLIPSE_FILES_DIR}. The "expatch" function refuses to run from any phase
+# except "src_prepare", which is fairly silly. Call "patch" instead, and shrug.
+eclipse_patch() {
+    illegal_in_global_scope
+    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at one argument needed"
+
+    local PATCH_FILENAME PATCH_FILE
+    for   PATCH_FILENAME in "${@}"; do
+          PATCH_FILE="${FILES}/${SLOT}/${PATCH_FILENAME}"
+          echo "cat -- '${PATCH_FILE}' | patch -s -f -p1"
+                cat -- "${PATCH_FILE}" | patch -s -f -p1
+          paludis_assert_unless_nonfatal "applying \"${PATCH_FILE}\" failed"
+    done
+}
+
+# ....................{ DEPENDENCIES                       }....................
+set_osgi_dependency_property() {
+    set_dependency_property "dependencies.properties" "${@}"
+}
+set_nonosgi_dependency_property() {
+    set_dependency_property "nonosgidependencies.properties" "${@}"
+}
+
+set_dependency_property() {
+    illegal_in_global_scope
+    [[ ${#} -eq 3 ]] ||
+    [[ ${#} -eq 4 ]] || die_unless_nonfatal "three or four arguments needed"
+
+    local DEPENDENCIES_PROPERTIES_FILE="${1}"
+    local ECLIPSE_JAR_PACKAGE="${2}"
+    local ECLIPSE_JAR_FILENAME
+
+    if [[ ${#} -eq 3 ]]
+    then ECLIPSE_JAR_FILENAME='\.jar'
+    else ECLIPSE_JAR_FILENAME="${3}"; shift
+    fi
+
+    local EXHERBO_JAR_FILE=$(which_installed_jar_file_from_spec "${3}")
+    edo sed -i "${DEPENDENCIES_PROPERTIES_FILE}" -r \
+        -e "s~^(${ECLIPSE_JAR_PACKAGE}.+${ECLIPSE_JAR_FILENAME}=).+$~\\1${EXHERBO_JAR_FILE}~"
+}
+
+add_osgi_dependency_property() {
+    add_dependency_property "dependencies.properties" "${@}"
+}
+add_nonosgi_dependency_property() {
+    add_dependency_property "nonosgidependencies.properties" "${@}"
+}
+
+add_dependency_property() {
+    illegal_in_global_scope
+    [[ ${#} -eq 3 ]] || die_unless_nonfatal "exactly three arguments needed"
+
+    local DEPENDENCIES_PROPERTIES_FILE="${1}"
+    local ECLIPSE_JAR_FILENAME="${2}"
+    local EXHERBO_JAR_FILE=$(which_installed_jar_file_from_spec "${3}")
+    edo cat <<EOF >> "${DEPENDENCIES_PROPERTIES_FILE}"
+${ECLIPSE_JAR_FILENAME}=${EXHERBO_JAR_FILE}
+EOF
+}
+
+# ....................{ PLUGINS                            }....................
+eclipse_remove_plugins_containing() {
+    illegal_in_global_scope
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
+    [[ -n "${FEATURE_XML_FILES[@]}" ]] ||
+        die_unless_nonfatal "\$FEATURE_XML_FILES not set"
+
+    local PLUGINS_PATTERN="${1}"
+
+    # Delete all plugin entries matching a fairly self-explanatory XPATH
+    # expression from all "feature.xml" files.
+    for FEATURE_XML_FILE in "${FEATURE_XML_FILES[@]}"; do
+        edo xmlstarlet ed --delete \
+            "/feature/plugin[contains(@id, '${PLUGINS_PATTERN}')]" \
+            "${FEATURE_XML_FILE}" > "${FEATURE_XML_FILE}"
+    done
+
+    # Delete the plugins themselves.
+    edo rm -rf "${ECLIPSE_BUILD_DIR}/plugins"/*${PLUGINS_PATTERN}{,.*}
 }
 
 #FIXME leycec: A promising post I pounced upon, online.
