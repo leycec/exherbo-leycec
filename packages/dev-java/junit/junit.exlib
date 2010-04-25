@@ -24,9 +24,6 @@ export_exlib_phases src_unpack
 myexparam archive_jar_file=
 JUNIT_ARCHIVE_JAR_FILE=$(exparam archive_jar_file)
 
-# JUnit ships its source in an embedded jar file. Thus, do not clean jar files.
-disable_jar_file_cleaning
-
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
 
@@ -54,6 +51,9 @@ DEPENDENCIES+="
     build:
         app-arch/unzip
 "
+
+# JUnit ships its source in an embedded jar file. Avoid cleaning jar files.
+JAVA_IS_CLEANING_JAR_FILES=
 
 # Absolute path to the root of the JUnit source tree.
 JUNIT_SRC_DIR="${WORK}/src/main/java"

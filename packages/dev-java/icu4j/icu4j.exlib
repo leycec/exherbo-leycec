@@ -1,14 +1,7 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
-# ICU4J comes bundled with two supplementary jar files needed for building:
-# "icudata.jar" and "testdata.jar". They contain .res files rather than
-# .class files; these files provide internationalization resources, and must
-# not be purged! Note that they need not be installed to the local system,
-# however, as the build process automatically adds their content to the output
-# ICU4J jar file.
 require antefix
-disable_jar_file_cleaning
 
 BUGS_TO="leycec@gmail.com"
 
@@ -37,6 +30,14 @@ LICENCES="ICU-1.8.1"
 
 WORK="${WORKBASE}"
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "APIChangeReport.html" )
+
+# ICU4J comes bundled with two supplementary jar files needed for building:
+# "icudata.jar" and "testdata.jar". They contain .res files rather than
+# .class files; these files provide internationalization resources, and must
+# not be purged! Note that they need not be installed to the local system,
+# however, as the build process automatically adds their content to the output
+# ICU4J jar file.
+JAVA_IS_CLEANING_JAR_FILES=
 
 # ICU4J does not compile under "gcj", currently.
 JAVA_RESTRICT_JAVA_JDK_PREFIXES=( gcj )

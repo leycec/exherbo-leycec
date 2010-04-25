@@ -15,10 +15,6 @@
 #     # "build-2.4.xml" for building.
 #     require sat4j [ build_date=20090826 build_version=2.4 ]
 require antefix java-manifest
-
-# SAT4J bundles its source as a jar file within its archive. Do not delete it!
-disable_jar_file_cleaning
-
 export_exlib_phases src_unpack src_prepare src_install
 
 # Get the suffix for this subcomponent: e.g., for "sat4j-core" this is "core".
@@ -72,6 +68,9 @@ SAT4J_JAR_FILENAME="${SAT4J_JAR_PN}.jar"
 # Absolute path to the work directory. SAT4J tarballs extract into the current
 # directory, so... this is it.
 WORK="${WORKBASE}"
+
+# SAT4J bundles its source as a jar file within its archive. Avoid culling it.
+JAVA_IS_CLEANING_JAR_FILES=
 
 # The build file expects a directory tree resembling:
 #

@@ -21,6 +21,7 @@ with common encodings.
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/api-release [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${HOMEPAGE}/changes-report.html#a${PV}"
 
+SLOT="0"
 DEPENDENCIES+="
     test:
         dev-java/junit:4

@@ -5,12 +5,6 @@
 require antefix apache [ work="${PNV}" ]
 export_exlib_phases pkg_setup src_prepare src_install
 
-# Maven's "build.xml" calls Ant tasks provided by the "artifact" namespace
-# (namely, "artifact:pom") dynamically defined by the "maven-artifact-ant.jar"
-# file bundled with its source tarball. We cannot indiscriminantly delete jar
-# files, therefore.
-disable_jar_file_cleaning
-
 BUGS_TO="leycec@gmail.com"
 
 SUMMARY="Java project management and build automation tool"
@@ -44,18 +38,24 @@ DEPENDENCIES+=""
 # Maven's "build.xml" performs automated integration testing. Naturally, this
 # breaks sydbox's path sandboxing. Patch it away, McCoy.
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
-
 DEFAULT_SRC_INSTALL_EXTRA_SUBDIRS="${PN}"
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "DEPENDENCIES" )
 
-MAVEN_DIST_DIR="${WORK}/dist"
+# Maven's "build.xml" calls Ant tasks provided by the "artifact" namespace
+# (namely, "artifact:pom") dynamically defined by the "maven-artifact-ant.jar"
+# file bundled with its source tarball. We cannot indiscriminantly delete jar
+# files, therefore.
+JAVA_IS_CLEANING_JAR_FILES=
 
 # Absolute path to the system-wide directory to which Maven will be installed.
 MAVEN_HOME=$(which_installed_jar_dir_for_this_exheres)
 
+# Absolute path to the directory to which Maven's "build.xml" installs files.
+MAVEN_DIST_DIR="${WORK}/dist"
+
 # Maven's "build.xml" requires it be installed to a subdirectory named ${PNV}.
 # Accomodate its wish during the Ant build process; then, during installation,
-# move this subdirectory to a proper versionless directory at ${MAVEN_HOME}.
+# move this subdirectory to a proper versionless directory under ${MAVEN_HOME}.
 #
 # Note: the "maven-compile" task recursively deletes "${WORK}/target/". As such,
 # neither this nor any directory below may be placed in this directory. Danger!

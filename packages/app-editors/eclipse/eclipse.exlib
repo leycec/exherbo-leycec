@@ -156,7 +156,7 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 # ....................{ PHASES                             }....................
 # Do not call the "default_src_unpack" function. Eclipse bundles itself in
 # an odd manner; we have to unpack it ourselves.
-enable_manual_java_unpacking
+JAVA_IS_UNPACKING_MANUALLY=1
 
 eclipse_src_unpack() {
     antefix_src_unpack

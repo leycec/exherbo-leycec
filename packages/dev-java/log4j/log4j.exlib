@@ -20,6 +20,8 @@ without touching the application binary.
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/${PV}/apidocs [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${HOMEPAGE}/${PV}/changes-report.html"
 
+SLOT="0"
+
 # Log4j supports the following optional dependencies. Sadly, we don't.
 #DEPENDENCIES+="
 #    javamail? ( dev-java/javamail )

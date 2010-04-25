@@ -30,6 +30,7 @@ MYOPTIONS+="
 # Commons Logging insists it requires Tomcat 4.1.xx (i.e., Servlet API 2.3).
 # Fortunately, it builds against all later slots as well. Thus, use the newest
 # working Tomcat slot as of this writing.
+SLOT="0"
 DEPENDENCIES+="
     build+run:
         log4j?  ( dev-java/log4j:1.2[>=1.2.16] )
