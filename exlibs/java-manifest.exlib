@@ -32,7 +32,7 @@ DEPENDENCIES+="
 #     replace_jar_manifest "dist/${PN}.jar" "${FILES}/${PN}-MANIFEST.MF"
 replace_jar_manifest() {
     illegal_in_global_scope
-    [[ ${#} -eq 2        ]] || die_unless_nonfatal "exactly two arguments needed"
+    [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
 
     local      JAR_FILE="${1}"
     local MANIFEST_FILE="${2}"

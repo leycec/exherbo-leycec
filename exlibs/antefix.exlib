@@ -182,7 +182,12 @@ antefix_src_unpack() {
     # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_UNPACK_PARAMS[@]}" ]]; then
         echo ">>> Unpacking source files"
-        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_UNPACK_PARAMS[@]}"
+
+        # All "build.xml" files reside under ${WORK}. Temporarily pushd there.
+        pushd "${WORK}"
+        exant "${ANT_BUILD_XML}" \
+              "${ANT_PARAMS[@]}" "${ANT_SRC_UNPACK_PARAMS[@]}"
+        popd
     fi
 }
 
@@ -219,7 +224,8 @@ antefix_src_prepare() {
 
     if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
         echo ">>> Preparing source files"
-        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_PREPARE_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" \
+              "${ANT_PARAMS[@]}" "${ANT_SRC_PREPARE_PARAMS[@]}"
     fi
 }
 
@@ -228,7 +234,8 @@ antefix_src_configure() {
 
     if [[ -n "${ANT_SRC_CONFIGURE_PARAMS[@]}" ]]; then
         echo ">>> Configuring source files"
-        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_CONFIGURE_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" \
+              "${ANT_PARAMS[@]}" "${ANT_SRC_CONFIGURE_PARAMS[@]}"
     fi
 }
 
@@ -237,7 +244,8 @@ antefix_src_compile() {
 
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
         echo ">>> Compiling source files"
-        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_COMPILE_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" \
+              "${ANT_PARAMS[@]}" "${ANT_SRC_COMPILE_PARAMS[@]}"
     fi
 }
 
@@ -246,7 +254,8 @@ antefix_src_test() {
 
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
         echo ">>> Testing compiled files"
-        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_TEST_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" \
+              "${ANT_PARAMS[@]}" "${ANT_SRC_TEST_PARAMS[@]}"
     fi
 }
 
@@ -255,7 +264,8 @@ antefix_src_install() {
     # "src_install" function that actually installs these files.
     if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
         echo ">>> Packaging jar files"
-        exant "${ANT_BUILD_XML}" "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
+        exant "${ANT_BUILD_XML}" \
+              "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
     fi
 
     javafix_src_install
