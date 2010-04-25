@@ -280,31 +280,6 @@ javafix_src_preamble() {
     fi
 }
 
-# ....................{ SETTERS                            }....................
-# void disable_class_file_cleaning(void)
-#
-# Disable recursive deletion of all class files under ${WORK} in "src_unpack".
-# Calling this function is preferable to explicitly unsetting the global.
-disable_class_file_cleaning() {
-    unset JAVA_IS_CLEANING_CLASS_FILES
-}
-
-# void disable_jar_file_cleaning(void)
-#
-# Disable recursive deletion of all jar files under ${WORK} in "src_unpack".
-# Calling this function is preferable to explicitly unsetting the global.
-disable_jar_file_cleaning() {
-    unset JAVA_IS_CLEANING_JAR_FILES
-}
-
-# void enable_manual_java_unpacking(void)
-#
-# Prevent calling the "default_src_unpack" function in the "src_unpack" phase.
-# Calling this function is preferable to explicitly setting the global.
-enable_manual_java_unpacking() {
-    JAVA_IS_UNPACKING_MANUALLY=1
-}
-
 # ....................{ CLEANERS                           }....................
 # void clean_jar_files(void)
 #

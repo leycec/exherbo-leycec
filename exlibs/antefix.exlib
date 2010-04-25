@@ -31,12 +31,11 @@
 # This exlib explicitly requires the "javafix" exlib so as to eliminate such
 # subtleties. This has the unfortunate effect, however, of preventing the
 # passing of parameters from exheres to the "javafix" exlib. Affected exheres 
-# should work around this by calling setter functions for the desired parameters
-# in global scope after requiring this exlib. Example:
+# should work around this by setting globals after requiring the exlib. Example:
 #
-#     # ...your exheres should do this.
+#     # ...exheres should do this.
 #     require antefix
-#     disable_jar_file_cleaning
+#     JAVA_IS_CLEANING_JAR_FILES=
 require javafix
 export_exlib_phases pkg_setup \
     src_unpack src_prepare src_configure src_compile src_test src_install
