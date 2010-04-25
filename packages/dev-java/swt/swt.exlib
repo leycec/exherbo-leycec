@@ -27,6 +27,22 @@ GUI toolkits provided by Sun Microsystems as part of the J2SE Platform.
 
 #FIXME: Define additional mirrors.
 DOWNLOAD_ROOT="http://download.eclipse.org/eclipse/downloads/drops/R-${PV}-201002111343"
+
+# Eclipse also bundles SWT source. That source, however, is 32-bit specific.
+# Its "build.xml" file resides at "plugins/org.eclipse.swt.gtk.linux.${ARCH}/build.xml",
+# and is tremendously more intricate than the fake "build.xml" created below.
+# For example, it declares an Ant task resembling:
+#
+# <target name="replace.64.to.32" depends="init">
+#    <echo>Converting java files to 32 bit in org.eclipse.swt project</echo>
+#    <!-- Convert SWT 64 bit java source to 32 bit  -->
+#    <replace dir="${plugindir}" includes="**/*.java" token="long /*int*/" value="int /*long*/" />
+#    <antcall target="refresh" />
+# </target>
+#
+# Nonetheless, our fake "build.xml" file seems to be sufficient. This suggests
+# the Eclipse team over-engineered their SWT build process.
+
 DOWNLOADS="
     platform:x86?   ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86.zip )
     platform:amd64? ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86_64.zip )
@@ -76,9 +92,6 @@ DEFAULT_SRC_PREPARE_PATCHES=(
     "${FILES}/make_linux_mak-fix.patch"
     "${FILES}/build_sh-fix.patch"
 )
-
-ANT_SRC_COMPILE_PARAMS=( compile )
-ANT_SRC_INSTALL_PARAMS=( jar )
 
 # Other exheres requiring SWT require an OSGI "MANIFEST.MF" rather than the non-
 # OSGI "MANIFEST.MF" that SWT bundles. The particular manifest below is copied

@@ -22,7 +22,6 @@ DEPENDENCIES+="
 JAVA_SRC_LIBRARY_DIR="lib"
 JAVA_SRC_PREPARE_JARS=( "commons-codec" "commons-logging" )
 JAVA_SRC_TEST_JARS=( "junit:3" )
-JAVA_SRC_INSTALL_JARS=( "dist/${HTTP_PN}.jar" )
 
 ANT_SRC_CONFIGURE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
@@ -48,5 +47,14 @@ src_test() {
     sydboxcmd 'sandunbox/net'
 
     antefix_src_test
+}
+
+src_install() {
+    antefix_src_install
+
+    # Install as "httpcomponents-client.jar" rather than
+    # "commons-httpclient.jar" as the former is what other exheres expect.
+    echo ">>> Installing jar files"
+    install_jar_as "dist/${HTTP_PN}.jar" "${PN}.jar"
 }
 
