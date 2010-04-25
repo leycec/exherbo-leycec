@@ -199,7 +199,7 @@ sat4j_src_install() {
 
     echo ">>> Installing jar file"
     local SAT4J_INSTALLED_JAR_DIR=$( which_installed_jar_dir_for_this_exheres)
-    local SAT4J_INSTALLED_JAR_FILE=$(which_installed_jar_dir_for_this_exheres)
+    local SAT4J_INSTALLED_JAR_FILE=$(which_installed_jar_file_for_this_exheres)
     install_jar_as "dist/CUSTOM/${SAT4J_JAR_FILENAME}" \
           "${SAT4J_INSTALLED_JAR_FILE}"
 
