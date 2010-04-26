@@ -29,7 +29,7 @@
 #
 # See "Eclipse Build Wiki" above to map Eclipse versions to "bv" versions.
 
-require antefix java-manifest
+require antefix
 export_exlib_phases src_unpack src_prepare src_install
 
 # Eclipse distributes source via a customary tarball, identified as:
@@ -263,7 +263,7 @@ eclipse_src_prepare() {
     set_osgi_dependency_property "org.apache.lucene"             "lucene-core"
     set_osgi_dependency_property "org.apache.lucene.analysis"    "lucene-analyzers"
     set_osgi_dependency_property "org.hamcrest.core"             "hamcrest-core"
-    set_osgi_dependency_property "org.objectweb.asm"             "asm"
+    set_osgi_dependency_property "org.objectweb.asm"             "asm-all"
     set_osgi_dependency_property "org.sat4j.core"                "sat4j-core"
     set_osgi_dependency_property "org.sat4j.pb"                  "sat4j-pb"
 
