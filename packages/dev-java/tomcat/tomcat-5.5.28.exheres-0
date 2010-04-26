@@ -38,15 +38,12 @@ src_prepare() {
 src_install() {
     antefix_src_install
 
-    # Install "servlet-api.jar" and "jsp-api.jar" with Eclipse-compatible OSGi
-    # manifests, and all others as is (as Eclipse does not require them).
-    #
-    # Do this here rather via the ${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS} array
-    # as API versions are not known until installation time.
-    echo ">>> Installing jar files with manifests"
-    install_jars_with_manifests \
-        "${TOMCAT_DIST_ROOT_DIR}"/servlet-api-*/"lib/servlet-api.jar" "${FILES}/${SLOT}/MANIFEST_servlet-api.MF" \
-        "${TOMCAT_DIST_ROOT_DIR}"/jsp-api-*/"lib/jsp-api.jar"         "${FILES}/${SLOT}/MANIFEST_jsp-api.MF"
+    # Do this here rather via the ${JAVA_SRC_INSTALL_JARS} array as API versions
+    # are not known until installation time.
+    echo ">>> Installing jar files"
+    install_jars \
+        "${TOMCAT_DIST_ROOT_DIR}"/servlet-api-*/"lib/servlet-api.jar" \
+        "${TOMCAT_DIST_ROOT_DIR}"/jsp-api-*/"lib/jsp-api.jar"
 
     # Other exheres requiring Tomcat 5 expect an installation tree resembling:
     #     /usr/share/tomcat/5/jsr152/dist/lib/jsp-api.jar

@@ -43,7 +43,16 @@ src_prepare() {
 src_install() {
     antefix_src_install
 
-    echo ">>> Installing jar files"
+    # Install "servlet-api.jar" and "jsp-api.jar" with Eclipse-compatible OSGi
+    # manifests, and all others as is (as Eclipse does not require them).
+    #
+    # Do this here rather via the ${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS} array
+    # for the sake of simplicity.
+    echo ">>> Correcting jar file manifests"
+    replace_jar_manifest "${TOMCAT_DIST_ROOT_DIR}/lib/servlet-api.jar" "${FILES}/${SLOT}/MANIFEST_servlet-api.MF"
+    replace_jar_manifest "${TOMCAT_DIST_ROOT_DIR}/lib/jsp-api.jar"     "${FILES}/${SLOT}/MANIFEST_jsp-api.MF"
+
+    echo ">>> Installing jar files with manifests"
     install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
 }
 

@@ -15,7 +15,7 @@ export_exlib_phases src_prepare
 # the path having: "build.xml", "build.properties", and 
 # "build.properties.default".
 #
-# This defaults to "${WORK}".
+# Defaults to "${WORK}".
 myexparam ant_dir=.
 exparam -v TOMCAT_ANT_DIR ant_dir
 
