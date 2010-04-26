@@ -39,10 +39,12 @@ JAVA_SRC_PREPARE_JARS=( asm asm-commons jarjar qdox )
 
 # Hamcrest's "build.xml" file references version-specific jar files. Cull!
 JAVA_SRC_PREPARE_DEVERSION_FILES=( "${ANT_BUILD_XML}" )
-JAVA_SRC_INSTALL_JARS=(
-    "build/${PN}-core-${PV}.jar"
-    "build/${PN}-library-${PV}.jar"
-)
+
+# Install "hamcrest-core.jar" with an Eclipse-compatible OSGi manifest. But
+# install "hamcrest-library.jar" as is, as Eclipse does not require it.
+JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=(
+    "build/${PN}-core-${PV}.jar" "${FILES}/MANIFEST.MF" )
+JAVA_SRC_INSTALL_JARS=( "build/${PN}-library-${PV}.jar" )
 
 # Notify Ant of the current Hamcrest version to ensure it names files properly.
 ANT_PARAMS=( -Dversion=${PV} )

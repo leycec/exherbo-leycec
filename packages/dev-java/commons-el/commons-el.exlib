@@ -40,6 +40,10 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "PROPOSAL.html" )
 
+# Install "commons-el.jar" with an Eclipse-compatible OSGi manifest.
+JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=(
+    "${APACHE_COMMONS_DIST_DIR}/${PN}.jar" "${FILES}/MANIFEST.MF" )
+
 commons-el_src_prepare() {
     apache-commons_src_prepare
 

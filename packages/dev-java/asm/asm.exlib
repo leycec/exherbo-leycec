@@ -37,10 +37,24 @@ ANT_PARAMS=( -Dobjectweb.ant.tasks.path=zebrapig )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
+# Absolute or relative path under ${WORK} to the directory to which the above
+# "jar" task generates output jar files.
+ASM_DIST_DIR="output/dist/lib"
+
+# Install "asm-all.jar" with an Eclipse-compatible OSGi manifest. Dynamically
+# install all remaining output jar files, which Eclipse does not require, in the
+# "src_install" phase. (There are a great many of them, and we'd rather glob
+# their names than explicitly list them.)
+JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=(
+    "${ASM_DIST_DIR}/all/${PN}-all-${PV}.jar" "${FILES}/MANIFEST.MF" )
+
 asm_src_install() {
     antefix_src_install
 
+    # Calling the parent "src_install" function above installs "asm-all.jar"
+    # with a custom manifest as described above. Now, install all remaining
+    # jars without custom manifests.
     echo ">>> Installing jar files"
-    install_jars "output/dist/lib"/*.jar
+    install_jars "${ASM_DIST_DIR}"/*.jar
 }
 

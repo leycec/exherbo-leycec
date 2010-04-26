@@ -16,7 +16,7 @@
 # This exlib also does not require the "ant" or "java" exlibs. It probably
 # could, as all Apache Commons exheres are Ant exheres; however, that would
 # prevent these exheres from passing parameters to these exlibs.
-export_exlib_phases src_prepare src_install
+export_exlib_phases src_prepare
 
 # Subdirectory under "mirror://apache/commons/${PN}" from which source tarballs
 # this exheres are fetched. For Apache Commons exheres, the default "source"
@@ -92,14 +92,5 @@ apache-commons_src_prepare() {
     # "build.xml", the bad defaults this file defines might conflict with those
     # this exheres defines.
     [[ -f "build.properties.sample" ]] && edo rm "build.properties.sample"
-}
-
-apache-commons_src_install() {
-    antefix_src_install
-
-    # We're guaranteed that all output jar files were placed in this directory.
-    # It is fairly safe to assume all such files must be installed.
-    echo ">>> Installing jar files"
-    install_jars "${APACHE_COMMONS_DIST_DIR}"/**/*.jar
 }
 

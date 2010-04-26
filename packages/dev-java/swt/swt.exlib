@@ -93,12 +93,6 @@ DEFAULT_SRC_PREPARE_PATCHES=(
     "${FILES}/build_sh-fix.patch"
 )
 
-# Other exheres requiring SWT require an OSGI "MANIFEST.MF" rather than the non-
-# OSGI "MANIFEST.MF" that SWT bundles. The particular manifest below is copied
-# from "${FILES}/MANIFEST.MF" during the "src_install" phase. (Below!)
-ANT_SRC_INSTALL_MANIFEST_MF="${WORK}/MANIFEST.MF"
-JAVA_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
-
 # Do not call the "default_src_unpack" function. Eclipse SWT bundles itself in
 # an odd manner; we have to unpack it ourselves.
 JAVA_IS_UNPACKING_MANUALLY=1
@@ -175,10 +169,14 @@ swt_src_compile() {
 }
 
 swt_src_install() {
+    antefix_src_install
+
     echo ">>> Installing C and C++ libraries"
     dolib.so "${WORK}"/*.so
 
-    echo ">>> Preparing Java manifest"
+    echo ">>> Correcting jar file manifest"
+    local MANIFEST_FILE="${TEMP}/MANIFEST.MF"
+    edo cp "${FILES}/MANIFEST.MF" "${MANIFEST_FILE}"
 
     # Set "SWT_ARCH" according to the architecture being built against. The
     # values for this variable follow from the variable of same name in the
@@ -186,13 +184,11 @@ swt_src_install() {
     if   option platform:amd64; then SWT_ARCH="x86_64"
     elif option platform:x86;   then SWT_ARCH="x86"
     fi
+    edo sed -i "${MANIFEST_FILE}" -e "s~x86~${SWT_ARCH}~"
 
-    edo cp "${FILES}/MANIFEST.MF" "${ANT_SRC_INSTALL_MANIFEST_MF}"
-    edo sed -i "${ANT_SRC_INSTALL_MANIFEST_MF}" \
-        -e "s:__SWT_ARCH__:${SWT_ARCH}:" \
-        -e "s:__PV__:${PV}:" \
-
-    # Install underlying Java libraries.
-    antefix_src_install
+    # Install "swt.jar" with an Eclipse-compatible OSGi manifest.
+    echo ">>> Installing jar file with manifest"
+    install_jars_with_manifests "dist/${PN}.jar" "${MANIFEST_FILE}"
+    die
 }
 

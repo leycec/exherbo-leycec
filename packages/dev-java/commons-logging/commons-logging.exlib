@@ -49,6 +49,15 @@ ANT_PARAMS=(
 ANT_SRC_CONFIGURE_PARAMS=( static )
 ANT_SRC_COMPILE_PARAMS=( compile )
 
+# Install "commons-logging.jar" with an Eclipse-compatible OSGi manifest. But
+# install the other two jar files as is -- Eclipse does not require them.
+JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=(
+    "${APACHE_COMMONS_DIST_DIR}/${PNV}.jar" "${FILES}/MANIFEST.MF" )
+JAVA_SRC_INSTALL_JARS=(
+    "${APACHE_COMMONS_DIST_DIR}/${PN}-adapters-${PV}.jar"
+    "${APACHE_COMMONS_DIST_DIR}/${PN}-api-${PV}.jar"
+)
+
 commons-logging_src_prepare() {
     apache-commons_src_prepare
 

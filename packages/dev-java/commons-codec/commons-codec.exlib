@@ -34,6 +34,10 @@ ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_TEST_PARAMS=( test )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
+# Install "commons-codec.jar" with an Eclipse-compatible OSGi manifest.
+JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=(
+    "${APACHE_COMMONS_DIST_DIR}/${PN}.jar" "${FILES}/MANIFEST.MF" )
+
 commons-codec_src_prepare() {
     apache-commons_src_prepare
 

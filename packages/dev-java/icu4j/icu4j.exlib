@@ -41,7 +41,11 @@ JAVA_IS_CLEANING_JAR_FILES=
 
 # ICU4J does not compile under "gcj", currently.
 JAVA_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
-JAVA_SRC_INSTALL_JARS=( "${PN}.jar" "${PN}-charsets.jar" )
+
+# Install "icu4j.jar" with an Eclipse-compatible OSGi manifest. However,
+# install "icu4j-charsets.jar" as is, as Eclipse does not require it.
+JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=( "${PN}.jar" "${FILES}/MANIFEST.MF" )
+JAVA_SRC_INSTALL_JARS=( "${PN}-charsets.jar" )
 
 # Strictly speaking, it's not necessary we pass the "env.COMPUTERNAME" property;
 # it just makes build output moderately prettier.

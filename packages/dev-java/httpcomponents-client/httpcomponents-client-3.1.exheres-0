@@ -53,8 +53,11 @@ src_install() {
     antefix_src_install
 
     # Install as "httpcomponents-client.jar" rather than
-    # "commons-httpclient.jar" as the former is what other exheres expect.
+    # "commons-httpclient.jar" as the former is what other exheres expect. Also,
+    # replace its manifest with an Eclipse-compatible OSGi manifest.
     echo ">>> Installing jar files"
-    install_jar_as "dist/${HTTP_PN}.jar" "${PN}.jar"
+    local JAR_FILE_SOURCE="dist/${HTTP_PN}.jar"
+    replace_jar_manifest "${JAR_FILE_SOURCE}" "${FILES}/${SLOT}/MANIFEST.MF"
+    install_jar_as       "${JAR_FILE_SOURCE}" "${PN}.jar"
 }
 

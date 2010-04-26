@@ -15,7 +15,7 @@ ANT_SRC_CONFIGURE_PARAMS=( init )
 
 # Tomcat's "build.xml" defines a "build" task building subcomponents for which
 # we do not have the requisite dependencies. Don't run that. It also defines
-# tasks building precisely the subcomponents we need. Run those instead.
+# tasks building precisely the subcomponents we need. Run those.
 ANT_SRC_COMPILE_PARAMS=( build-servletapi build-jspapi )
 
 # The above tasks actually do too much: they compile, build javadoc, and build
@@ -24,11 +24,31 @@ ANT_SRC_INSTALL_PARAMS=( )
 
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "BENCHMARKS.txt" )
 
+src_prepare() {
+    tomcat_src_prepare
+
+    # Prevent auto-generation of examples and javadoc files.
+    echo ">>> Patching build.xml files"
+    for TOMCAT_API_BUILD_XML in servletapi/*/build.xml; do
+        edo sed -i "${TOMCAT_API_BUILD_XML}" \
+            -e 's~\(depends="compile\),examples,javadoc~\1~'
+    done
+}
+
 src_install() {
-    tomcat_src_install
+    antefix_src_install
+
+    # Install "servlet-api.jar" and "jsp-api.jar" with Eclipse-compatible OSGi
+    # manifests, and all others as is (as Eclipse does not require them).
+    #
+    # Do this here rather via the ${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS} array
+    # as API versions are not known until installation time.
+    echo ">>> Installing jar files with manifests"
+    install_jars_with_manifests \
+        "${TOMCAT_DIST_ROOT_DIR}"/servlet-api-*/"lib/servlet-api.jar" "${FILES}/${SLOT}/MANIFEST_servlet-api.MF" \
+        "${TOMCAT_DIST_ROOT_DIR}"/jsp-api-*/"lib/jsp-api.jar"         "${FILES}/${SLOT}/MANIFEST_jsp-api.MF"
 
     # Other exheres requiring Tomcat 5 expect an installation tree resembling:
-    #
     #     /usr/share/tomcat/5/jsr152/dist/lib/jsp-api.jar
     #     /usr/share/tomcat/5/jsr154/dist/lib/servlet-api.jar
     echo ">>> Installing canonical symlinks"

@@ -40,3 +40,10 @@ src_prepare() {
     edo rm -rf "java/org/apache"/{catalina,coyote,jasper,jk,naming}
 }
 
+src_install() {
+    antefix_src_install
+
+    echo ">>> Installing jar files"
+    install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
+}
+

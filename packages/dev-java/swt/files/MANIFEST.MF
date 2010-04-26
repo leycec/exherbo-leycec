@@ -1,17 +1,19 @@
 Manifest-Version: 1.0
-Bundle-ManifestVersion: 2
-Bundle-Name: Standard Widget Toolkit for GTK 2.0
-Bundle-Vendor: Exherbo!
-Bundle-Localization: plugin
 Fragment-Host: org.eclipse.swt; bundle-version="[3.0.0,4.0.0)"
-Bundle-SymbolicName: org.eclipse.swt.gtk.linux.__SWT_ARCH__; singleton:=true
-Bundle-Version: __PV__
-Eclipse-PlatformFilter: (& (osgi.ws=gtk) (osgi.os=linux) (osgi.arch=__SWT_ARCH__))
-Export-Package: org.eclipse.swt.internal.accessibility.gtk; x-internal:=true,
+Bundle-Name: %fragmentName
+Bundle-Vendor: %providerName
+Bundle-SymbolicName: org.eclipse.swt.gtk.linux.x86; singleton:=true
+Bundle-Version: 3.5.2.qualifier
+Bundle-ManifestVersion: 2
+Bundle-Localization: fragment
+Export-Package: 
+ org.eclipse.swt.internal.accessibility.gtk; x-internal:=true,
  org.eclipse.swt.internal.cairo; x-internal:=true,
  org.eclipse.swt.internal.cde; x-internal:=true,
  org.eclipse.swt.internal.gnome; x-internal:=true,
  org.eclipse.swt.internal.gtk; x-internal:=true,
  org.eclipse.swt.internal.mozilla; x-internal:=true,
  org.eclipse.swt.internal.opengl.glx; x-internal:=true
-
+Eclipse-PlatformFilter: (& (osgi.ws=gtk) (osgi.os=linux) (osgi.arch=x86))
+Bundle-RequiredExecutionEnvironment: CDC-1.0/Foundation-1.0,
+ J2SE-1.3

@@ -9,7 +9,7 @@
 require antefix apache [ \
     download_subdir="tomcat-$(ever range 1)/v${PV}/src" \
     pnv="apache-${PNV}-src" ]
-export_exlib_phases src_prepare src_install
+export_exlib_phases src_prepare
 
 # Absolute or relative path to this Tomcat slot's "build.xml" directory. This is
 # the path having: "build.xml", "build.properties", and 
@@ -74,12 +74,5 @@ tomcat_src_prepare() {
         -e "s:^\(compile\.debug=\).*$:\1$(option debug && echo true || echo false):" \
         -e "s:^\(version\.suffix=\).*$:\1:" \
         -i "${TOMCAT_ANT_DIR}/build.properties"
-}
-
-tomcat_src_install() {
-    antefix_src_install
-
-    echo ">>> Installing jar files"
-    install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
 }
 
