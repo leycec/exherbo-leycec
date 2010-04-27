@@ -5,7 +5,7 @@
 
 # Lucene extracts to the usual directory -- not the usual Apache directory.
 require antefix apache [ download_subdir="java" work="${PNV}" ]
-export_exlib_phases src_prepare src_compile src_install
+export_exlib_phases pkg_setup src_prepare src_compile src_install
 
 BUGS_TO="leycec@gmail.com"
 
@@ -82,21 +82,6 @@ JAVA_SRC_INSTALL_JARS=( "build/${PN}-demos-${PV}.jar" )
 
 DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
 
-# Lucene requires "javacc.jar" to run the "javacc" task, which makes sense.
-# But it requires it under "/usr/share/javacc/bin/lib/", which doesn't. We
-# don't really feel like patching its "common-build.xml" file, however, so we'll
-# grudgingly accept that by setting "-Djavacc.home" to "/usr/share/javacc";
-# Lucene's "common-build.xml" will do the rest and pull the jar from there.
-#
-# Lucene often appends "-dev" to version strings, which produces jar files
-# resembling "${PN}-core-${PV}-dev.jar", which is not a recognizable
-# version suffix, which produces pain elsewhere. Work around by explicitly
-# setting the Ant "version" parameter.
-ANT_PARAMS=(
-    -Djavacc.home=$(which_installed_jar_dir "javacc")
-    -Dversion=${PV}
-)
-
 # Running the "javacc" task recompiles pre-compiled parser generators via
 # JavaCC. As discussed above, this task is optional but strongly recommended.
 #
@@ -111,6 +96,28 @@ ANT_SRC_TEST_PARAMS=( test-core )
 # Apache PDFBox requires both "lucene-core.jar" and "lucene-demos.jar". Most
 # other exheres require the former but not the latter. Make both, just in case.
 ANT_SRC_INSTALL_PARAMS=( jar-core jar-demo )
+
+lucene_pkg_setup() {
+    antefix_pkg_setup
+
+    # Lucene requires "javacc.jar" to run the "javacc" task, which makes sense.
+    # But it requires it under "/usr/share/javacc/bin/lib/", which doesn't. We
+    # don't really feel like patching its "common-build.xml" file, however, so we'll
+    # grudgingly accept that by setting "-Djavacc.home" to "/usr/share/javacc";
+    # Lucene's "common-build.xml" will do the rest and pull the jar from there.
+    #
+    # Lucene often appends "-dev" to version strings, which produces jar files
+    # resembling "${PN}-core-${PV}-dev.jar", which is not a recognizable
+    # version suffix, which produces pain elsewhere. Work around by explicitly
+    # setting the Ant "version" parameter.
+    #
+    # Delay setting Ant parameters until within an actual phase, as exheres
+    # dependencies *may* not be available in global scope.
+    ANT_PARAMS+=(
+        -Djavacc.home=$(which_installed_jar_dir "javacc")
+        -Dversion=${PV}
+    )
+}
 
 lucene_src_prepare() {
     antefix_src_prepare

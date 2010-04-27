@@ -155,7 +155,7 @@ apache-maven_src_install() {
     # Make the ${MAVEN_HOME} exheres global a system-wide environment variable
     # for subsequent access by other exlibs, exheres, and users.
     echo ">>> Installing environment files"
-    hereenvd 50maven <<EOF
+    hereenvd "50${PN}" <<EOF
 M2_HOME=${MAVEN_HOME}
 EOF
 }

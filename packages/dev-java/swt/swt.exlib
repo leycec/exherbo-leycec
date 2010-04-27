@@ -95,7 +95,7 @@ DEFAULT_SRC_PREPARE_PATCHES=(
 
 # Do not call the "default_src_unpack" function. Eclipse SWT bundles itself in
 # an odd manner; we have to unpack it ourselves.
-JAVA_IS_UNPACKING_MANUALLY=1
+JAVA_IS_UNPACKING_ARCHIVES=
 
 swt_src_unpack() {
     antefix_src_unpack
