@@ -9,7 +9,7 @@
 require antefix apache [ \
     download_subdir="tomcat-$(ever range 1)/v${PV}/src" \
     pnv="apache-${PNV}-src" ]
-export_exlib_phases src_prepare
+export_exlib_phases src_unpack src_prepare
 
 # Absolute or relative path to this Tomcat slot's "build.xml" directory. This is
 # the path having: "build.xml", "build.properties", and 
@@ -55,6 +55,15 @@ TOMCAT_DIST_ROOT_DIR="${WORK}/output/build"
 if [[ "${TOMCAT_ANT_DIR}" != . ]]; then
     DEFAULT_SRC_INSTALL_EXTRA_SUBDIRS+="${TOMCAT_ANT_DIR}"
 fi
+
+# Prevent the parent "src_unpack" from unpacking all downloaded archives, due
+# to download subtleties in Tomcat 6.x.x.
+JAVA_IS_UNPACKING_ARCHIVES=
+
+tomcat_src_unpack() {
+    antefix_src_unpack
+    unpack "${APACHE_ARCHIVE}"
+}
 
 tomcat_src_prepare() {
     antefix_src_prepare

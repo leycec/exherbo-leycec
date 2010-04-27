@@ -3,6 +3,15 @@
 
 require tomcat
 
+# Tomcat installs a Jasper subcompoment, as well, which other exheres require.
+# However, building Jasper is an entangling mess due to circular dependencies.
+# Simply download a pre-compiled jar file corresponding to this exheres version,
+# for the moment. (This will not be easy to fix: the dependency is Eclipse.)
+TOMCAT_JASPER_ARCHIVE="jasper-${PV}.jar"
+DOWNLOADS+="
+    ${HOMEPAGE}/dev/dist/m2-repository/org/apache/${PN}/jasper/${PV}/${TOMCAT_JASPER_ARCHIVE}
+"
+
 # Each major version of Apache Tomcat supports a different minor version of the
 # 2.x series of the Java Servlet API. We don't particularly care which version,
 # however; it's simply important we bump slots when bumping major versions
@@ -23,6 +32,9 @@ DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "RUNNING.txt" "STATUS.txt" )
 ANT_SRC_CONFIGURE_PARAMS=( build-prepare )
 ANT_SRC_COMPILE_PARAMS=( compile )
 ANT_SRC_INSTALL_PARAMS=( package )
+
+# Absolute or relative path under ${WORK} having output jar files.
+TOMCAT_DIST_LIB_DIR="${TOMCAT_DIST_ROOT_DIR}/lib/"
 
 src_prepare() {
     tomcat_src_prepare
@@ -49,10 +61,12 @@ src_install() {
     # Do this here rather via the ${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS} array
     # for the sake of simplicity.
     echo ">>> Correcting jar file manifests"
-    replace_jar_manifest "${TOMCAT_DIST_ROOT_DIR}/lib/servlet-api.jar" "${FILES}/${SLOT}/MANIFEST_servlet-api.MF"
-    replace_jar_manifest "${TOMCAT_DIST_ROOT_DIR}/lib/jsp-api.jar"     "${FILES}/${SLOT}/MANIFEST_jsp-api.MF"
+    edo cp "${FETCHEDDIR}/${TOMCAT_JASPER_ARCHIVE}" "${TOMCAT_DIST_LIB_DIR}"/
+    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/servlet-api.jar"          "${FILES}/${SLOT}/MANIFEST-servlet-api.MF"
+    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/jsp-api.jar"              "${FILES}/${SLOT}/MANIFEST-jsp-api.MF"
+    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/${TOMCAT_JASPER_ARCHIVE}" "${FILES}/${SLOT}/MANIFEST-jasper.MF"
 
-    echo ">>> Installing jar files with manifests"
+    echo ">>> Installing jar files"
     install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
 }
 
