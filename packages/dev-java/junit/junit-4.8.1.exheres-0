@@ -12,7 +12,7 @@ MYOPTIONS+="doc examples"
 # JUnit 4.x.x adds a dependency on Hamcrest. 
 DEPENDENCIES+="
     build+run:
-        dev-java/hamcrest[>=1.2]
+        dev-java/hamcrest:1[>=1.2]
 "
 
 # Numerous patches correcting compatibility with Hamcrest 1.2 are thanks to the
@@ -26,7 +26,7 @@ DEFAULT_SRC_PREPARE_PATCHES=(
 
 # Declare this prior to declaring "ANT_PARAMS" below.
 JAVA_SRC_LIBRARY_DIR="lib"
-JAVA_SRC_PREPARE_JARS=( hamcrest-core )
+JAVA_SRC_PREPARE_JARS=( "hamcrest:1 hamcrest-core" )
 
 # JUnit needs to be hand-held, a bit; explicitly tell it where hamcrest lives.
 ANT_PARAMS=(

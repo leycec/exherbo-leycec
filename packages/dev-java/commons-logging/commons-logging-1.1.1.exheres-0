@@ -3,5 +3,6 @@
 
 require commons-logging
 
+SLOT="1"
 PLATFORMS="~amd64 ~x86"
 

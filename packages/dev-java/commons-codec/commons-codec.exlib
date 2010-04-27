@@ -3,7 +3,7 @@
 # Based in part upon 'commons-codec-1.4.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix javafix apache-commons
+require antefix apache-commons
 export_exlib_phases src_prepare
 
 BUGS_TO="leycec@gmail.com"
@@ -21,7 +21,6 @@ with common encodings.
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/api-release [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${HOMEPAGE}/changes-report.html#a${PV}"
 
-SLOT="0"
 DEPENDENCIES+="
     test:
         dev-java/junit:4

@@ -23,7 +23,6 @@ UPSTREAM_DOCUMENTATION="${HOMEPAGE}/api [[ lang = en ]]"
 UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/RELEASE-NOTES.txt"
 
 # Commons El depends on the Tomcat 5 slot. It's rather old... but it works.
-SLOT="0"
 DEPENDENCIES+="
     build+run:
         dev-java/tomcat:5

@@ -22,48 +22,104 @@
 # exheres wouldn't be.
 #
 # Thanks, guys.
+#
+# That said, this exheres substantially differs from the ebuild on which it was
+# originally based. This is due, in large part, to substantial changes in the
+# Eclipse build framework introduced in Eclipse 3.5.2.
  
 # ....................{ EXLIB                              }....................
-# Eclipse exheres must pass the mandatory "bv" exparam when requiring this
+# Eclipse exheres must pass the mandatory "build_v" exparam when requiring this
 # exlib. All other exparams are optional and generally need not be passed.
 #
-# See "Eclipse Build Wiki" above to map Eclipse versions to "bv" versions.
+# See "Eclipse Build Wiki" above to map Eclipse versions to "build_v" versions.
 
 require antefix
 export_exlib_phases src_unpack src_prepare src_install
 
 # Eclipse distributes source via a customary tarball, identified as:
 #
-# * "fn", this source tarball's prefix.
-# * "fv", this source tarball's version.
-# * "fnv", this source tarball's prefix and version.
-# * "fnv_archive", this source tarball's basename.
-myexparam fn="${PN}"
-  exparam -v FN fn
-myexparam fv="${PV}"
-  exparam -v FV fv
-myexparam fnv="${FN}-${FV}-src"
-  exparam -v FNV fnv
-myexparam fnv_archive="${FNV}.tar.bz2"
-  exparam -v FNV_ARCHIVE fnv_archive
+# * "fetch_n", this source tarball's name.
+# * "fetch_v", this source tarball's version.
+# * "fetch_nv", this source tarball's name and version.
+# * "fetch_archive", this source tarball's basename.
+myexparam fetch_n="${PN}"
+  exparam -v ECLIPSE_FETCH_N fetch_n
+myexparam fetch_v="${PV}"
+  exparam -v ECLIPSE_FETCH_V fetch_v
+myexparam fetch_nv="${ECLIPSE_FETCH_N}-${ECLIPSE_FETCH_V}-src"
+  exparam -v ECLIPSE_FETCH_NV fetch_nv
+myexparam fetch_archive="${ECLIPSE_FETCH_NV}.tar.bz2"
+  exparam -v ECLIPSE_FETCH_ARCHIVE fetch_archive
 
 # Eclipse builds from source via the "eclipse-build" framework, identified as:
 #
-# * "bn", the name of this framework.
-# * "bv", the version of this framework needed to build this Eclipse version.
+# * "build_n", the name of this framework.
+# * "build_v", the version of this framework needed to build this Eclipse version.
 #   This must include version prefixes like "R" or suffixes like "_RC6".
-# * "bnv", the name and version of this framework.
-# * "bnv_archive", this framework tarball's basename.
+# * "build_nv", the name and version of this framework.
+# * "build_archive", this framework tarball's basename.
 #
 # Note -- the source and framework tarballs use different compression schemes.
-myexparam bn="eclipse-build"
-  exparam -v BN bn
-myexparam bv=    # you must pass this exparam!
-  exparam -v BV bv
-myexparam bnv="${BN}-${BV}"
-  exparam -v BNV bnv
-myexparam bnv_archive="${BNV}.tar.bz2"
-  exparam -v BNV_ARCHIVE bnv_archive
+myexparam build_n="eclipse-build"
+  exparam -v ECLIPSE_BUILD_N build_n
+myexparam build_v=    # you must pass this exparam!
+  exparam -v ECLIPSE_BUILD_V build_v
+myexparam build_nv="${ECLIPSE_BUILD_N}-${ECLIPSE_BUILD_V}"
+  exparam -v ECLIPSE_BUILD_NV build_nv
+myexparam build_archive="${ECLIPSE_BUILD_NV}.tar.bz2"
+  exparam -v ECLIPSE_BUILD_ARCHIVE build_archive
+
+# Eclipse requires optional Ant tasks, which Exherbo currently does not provide.
+# Instead, fetch a precompiled jar file for each task identified as:
+#
+# * "ant_n", the ant tarball's name.
+# * "ant_v", the ant tarball's version needed for this Eclipse version.
+# * "ant_nv", the ant tarball's name and version of this framework.
+# * "ant_archive", the ant tarball's basename.
+myexparam ant_n="apache-ant"
+  exparam -v ECLIPSE_ANT_N ant_n
+myexparam ant_v=    # you must pass this exparam!
+  exparam -v ECLIPSE_ANT_V ant_v
+myexparam ant_nv="${ECLIPSE_ANT_N}-${ECLIPSE_ANT_V}"
+  exparam -v ECLIPSE_ANT_NV ant_nv
+myexparam ant_archive="${ECLIPSE_ANT_NV}-bin.tar.bz2"
+  exparam -v ECLIPSE_ANT_ARCHIVE ant_archive
+
+#FIXME leycec: Obsolete. Remove when stable.
+# Eclipse requires Tomcat Jasper, which Exherbo currently does not provide due
+# to complexities of that build process. Instead, fetch a precompiled jar file
+# identified as:
+#
+# * "jasper_pn", the prefix for this jar file.
+# * "jasper_pv", the version of this jar file needed for this Eclipse version.
+# * "jasper_pnv", the name and version for this jar file.
+#myexparam jasper_pn="jasper"
+#  exparam -v JASPER_PN jasper_pn
+#myexparam jasper_pv=    # you must pass this exparam!
+#  exparam -v JASPER_PV jasper_pv
+#myexparam jasper_pnv="${JASPER_PN}-${JASPER_PV}"
+#  exparam -v JASPER_PNV jasper_pnv
+
+# Eclipse requires Apache Jetty, which Exherbo currently does not provide due
+# to complexities of that build process. Instead, fetch a precompiled jar file
+# identified as:
+#
+# * "jetty_pn", the prefix for this jar file.
+# * "jetty_pv", the version of this jar file needed for this Eclipse version.
+# * "jetty_pnv", the name and version for this jar file.
+#myexparam jetty_pn="jetty"
+#  exparam -v JETTY_PN jetty_pn
+#myexparam jetty_pv=    # you must pass this exparam!
+#  exparam -v JETTY_PV jetty_pv
+#myexparam jetty_pnv="${JETTY_PN}-${JETTY_PV}"
+#  exparam -v JETTY_PNV jetty_pnv
+
+# Eclipse requires Apache Jetty in two jar files: "jetty-${JETTY_PV}.jar" and
+# "jetty-util-${JETTY_PV}.jar". The above globals identify the former; these
+# globals identify the latter. (The defaults are fine, for now.)
+#JETTY_UTIL_PN="${JETTY_PN}-util"
+#JETTY_UTIL_PV="${JETTY_PV}"
+#JETTY_UTIL_PNV="${JETTY_UTIL_PN}-${JETTY_UTIL_PV}"
 
 # ....................{ MAGIC STRINGS                      }....................
 # Eclipse analogue to $(uname --operating-system).
@@ -94,16 +150,20 @@ Eclipse PDT for PHP.
 
 #FIXME: Define additional mirrors. Also fetch jasper-5.5.*, jetty-6.1.*, and
 # jetty-util-6.1.*.
+#http://repo2.maven.org/maven2/org/mortbay/${JETTY_PN}/${JETTY_UTIL_PN}/6.1.24/jetty-util-6.1.24.jar
+#http://maven.simexplorer.org/repo/org/apache/${JASPER_PN}/${JASPER_PV}/${JASPER_PNV}.jar
+#EXTRA_WGET+="-U NoSuchBrowser/1.0"
 DOWNLOADS="
-http://download.${PN}.org/technology/linuxtools/${BN}/${FNV_ARCHIVE}
-http://download.${PN}.org/technology/linuxtools/${BN}/${BNV_ARCHIVE}
+http://download.${PN}.org/technology/linuxtools/${ECLIPSE_BUILD_N}/${ECLIPSE_FETCH_ARCHIVE}
+http://download.${PN}.org/technology/linuxtools/${ECLIPSE_BUILD_N}/${ECLIPSE_BUILD_ARCHIVE}
+http://archive.apache.org/dist/ant/binaries/apache-ant-${ECLIPSE_ANT_V}-bin.tar.bz2
 "
 HOMEPAGE="http://www.${PN}.org"
 REMOTE_IDS=""
 
 #FIXME: Refers to the most recent documentation, only.
 UPSTREAM_DOCUMENTATION="http://help.${PN}.org/galileo/index.jsp [[ lang = en ]]"
-UPSTREAM_RELEASE_NOTES="http://www.${PN}.org/${PN}/development/readme_${PN}_${FV}.html"
+UPSTREAM_RELEASE_NOTES="http://www.${PN}.org/${PN}/development/readme_${PN}_${ECLIPSE_FETCH_V}.html"
 
 SLOT="3.5"
 LICENCES="EPL-1.0"
@@ -132,17 +192,20 @@ DEPENDENCIES+="
         app-text/xmlstarlet
         dev-util/pkg-config
     build+run:
-        dev-java/asm[>=3.2]
-        dev-java/commons-codec[>=1.4]
-        dev-java/commons-el[>=1.0]
-        dev-java/commons-logging[>=1.1.1]
+        dev-java/asm:3[>=3.2]
+        dev-java/commons-codec:1[>=1.4]
+        dev-java/commons-el:1[>=1.0]
+        dev-java/commons-logging:1[>=1.1.1]
+        dev-java/hamcrest:1[>=1.2]
         dev-java/httpcomponents-client:3[>=3.1]
-        dev-java/jsch[>=0.1.42]
+        dev-java/icu4j:4[=4.0.1]
+        dev-java/jsch:0[>=0.1.42]
+        dev-java/jetty:6[>=6.1.24]
         dev-java/junit:3[>=3.8.2]
         dev-java/junit:4[>=4.8.1]
-        dev-java/lucene[>=3.0.1]
-        dev-java/sat4j-core[>=2.1.1]
-        dev-java/sat4j-pb[>=2.1.1]
+        dev-java/lucene:1[>=1.9.1]
+        dev-java/sat4j-core:2[>=2.1.1]
+        dev-java/sat4j-pb:2[>=2.1.1]
         dev-java/swt:${SLOT}[>=${PV}]
         dev-java/tomcat:6[>=6.0.26]
         x11-libs/gtk+:2
@@ -153,17 +216,17 @@ DEPENDENCIES+="
         )
 "
 
-WORK="${WORKBASE}/${BNV}"
+WORK="${WORKBASE}/${ECLIPSE_BUILD_NV}"
 
 # Absolute path to the directory into which "build.xml" assembles the final
 # Eclipse distribution.
-ECLIPSE_BUILD_DIR="${WORK}/build/${FNV}"
+ECLIPSE_BUILD_DIR="${WORK}/build/${ECLIPSE_FETCH_NV}"
 
 # Eclipse comes bundled with the kitchen sink. We want that sink.
 JAVA_IS_CLEANING_JAR_FILES=
 
 # The "unpack" task in the top-level "build.xml" file unpacks the
-# "${FNV_ARCHIVE}" archive.
+# "${ECLIPSE_FETCH_ARCHIVE}" archive.
 ANT_SRC_UNPACK_PARAMS=( unpack )
 
 # The "applyPatches" task in the top-level "build.xml" file applies patches (as
@@ -186,22 +249,43 @@ ANT_SRC_INSTALL_PARAMS=( jar )
 # remains empty until the "src_prepare" phase for reasons discussed there.
 FEATURE_XML_FILES=( )
 
+# Absolute path to the directory to which the Ant tarball is unpacked.
+ECLIPSE_ANT_WORK="${WORKBASE}/${ECLIPSE_ANT_NV}"
+
+# Array of all optional Ant task names to be installed as precompiled jar files.
+# (This should eventually be reduced to none.)
+ECLIPSE_ANT_BINARY_TASKS=(
+    ant-antlr
+    ant-apache-bcel ant-apache-bsf ant-apache-log4j ant-apache-oro
+    ant-apache-regexp ant-apache-resolver
+    ant-commons-logging ant-commons-net
+    ant-javamail ant-jdepend ant-jsch
+)
+
+#FIXME leycec: Obsolete. Remove when stable.
+#for ECLIPSE_ANT_BINARY_TASK in "${ECLIPSE_ANT_BINARY_TASKS[@]}"; do
+#    DOWNLOADS+="
+#    http://repo2.maven.org/maven2/org/apache/ant/${ECLIPSE_ANT_BINARY_TASK}/${ECLIPSE_ANT_V}/${ECLIPSE_ANT_BINARY_TASK}-${ECLIPSE_ANT_V}.jar
+#"
+#done
+
 # ....................{ PHASES                             }....................
 # Do not call the "default_src_unpack" function. Eclipse bundles itself in
 # an odd manner; we have to unpack it ourselves.
-JAVA_IS_UNPACKING_MANUALLY=1
+JAVA_IS_UNPACKING_ARCHIVES=
 
 eclipse_src_unpack() {
-#   which_installed_jar_file_from_spec "ant lib/ant-trax"
-#   which_installed_jar_file_from_spec "tomcat:6 servlet-api"
-#   which_installed_jar_file "swt:${SLOT}"
-
     # Extract the "eclipse-build" tarball but not the source tarball. The former
-    # extracts the latter itself, during invocation of . 
-    echo ">>> Unpacking ${BNV_ARCHIVE} to ${PWD}"
-    unpack "${BNV_ARCHIVE}"
+    # extracts the latter itself, during the "unpack" Ant task. 
+    unpack "${ECLIPSE_BUILD_ARCHIVE}"
 
-    echo ">>> Checking architecture"
+    # Extract all precompiled Ant task jar files from its binary tarball into
+    # ${TEMP}, so as to avoid overwriting files extracted above.
+    echo ">>> Unpacking ${ECLIPSE_BUILD_ARCHIVE} to ${PWD}"
+    edo tar xvjf "${FETCHEDDIR}/${ECLIPSE_ANT_ARCHIVE}" \
+        --anchored --wildcards "${ECLIPSE_ANT_NV}/lib/*.jar"
+
+    echo ">>> Checking build architecture"
     if   option platform:amd64; then ECLIPSE_BUILD_ARCH="x86_64"
     elif option platform:x86;   then ECLIPSE_BUILD_ARCH="x86"
     fi
@@ -213,7 +297,7 @@ eclipse_src_unpack() {
     ANT_PARAMS+=( "-Dbuild.libgnomeproxy="$(option gnome && echo true || echo false) )
 
     echo ">>> Creating directory tree"
-    edo ln -s "${FETCHEDDIR}/${FNV_ARCHIVE}" "${WORK}"/
+    edo ln -s "${FETCHEDDIR}/${ECLIPSE_FETCH_ARCHIVE}" "${WORK}"/
 
     # Patch the top-level "build.xml" file prior to invoking Ant, below. Note
     # that, as the current directory is not ${WORK} but as all patches assume
@@ -249,34 +333,36 @@ eclipse_src_prepare() {
     edo sed -i {pde,}build.properties -r \
         -e "s~/.+/rt\.jar:.+$~${JAVA_JRE_LIBRARY_DIR}/rt.jar:${JAVA_JRE_LIBRARY_DIR}/jce.jar~"
 
-    echo ">>> Creating dependency properties"
-
-    # OSGI jar files.
-    set_osgi_dependency_property "com.ibm.icu"                   "icu4j"
-    set_osgi_dependency_property "com.jcraft.jsch"               "jsch"
+    echo ">>> Creating OSGi dependency properties"
+    set_osgi_dependency_property "com.ibm.icu"                   "icu4j:4"
+    set_osgi_dependency_property "com.jcraft.jsch"               "jsch:0"
     set_osgi_dependency_property "javax.servlet"                 "tomcat:6 servlet-api"
     set_osgi_dependency_property "javax.servlet.jsp"             "tomcat:6 jsp-api"
-    set_osgi_dependency_property "org.apache.commons.codec"      "commons-codec"
-    set_osgi_dependency_property "org.apache.commons.el"         "commons-el"
+    set_osgi_dependency_property "org.apache.commons.codec"      "commons-codec:1"
+    set_osgi_dependency_property "org.apache.commons.el"         "commons-el:1"
     set_osgi_dependency_property "org.apache.commons.httpclient" "httpcomponents-client:3"
-    set_osgi_dependency_property "org.apache.commons.logging"    "commons-logging"
-    set_osgi_dependency_property "org.apache.lucene"             "lucene-core"
-    set_osgi_dependency_property "org.apache.lucene.analysis"    "lucene-analyzers"
-    set_osgi_dependency_property "org.hamcrest.core"             "hamcrest-core"
-    set_osgi_dependency_property "org.objectweb.asm"             "asm-all"
-    set_osgi_dependency_property "org.sat4j.core"                "sat4j-core"
-    set_osgi_dependency_property "org.sat4j.pb"                  "sat4j-pb"
+    set_osgi_dependency_property "org.apache.commons.logging"    "commons-logging:1"
+    set_osgi_dependency_property "org.apache.jasper"             "tomcat:6 jasper"
+    set_osgi_dependency_property "org.apache.lucene"             "lucene:1 lucene-core"
+    set_osgi_dependency_property "org.apache.lucene.analysis"    "lucene:1 lucene-analyzers"
+    set_osgi_dependency_property "org.hamcrest.core"             "hamcrest-core:1"
+    set_osgi_dependency_property "org.mortbay.jetty.server"      "jetty:6"
+    set_osgi_dependency_property "org.mortbay.jetty.util"        "jetty:6 jetty-util"
+    set_osgi_dependency_property "org.objectweb.asm"             "asm:3 asm-all"
+    set_osgi_dependency_property "org.sat4j.core"                "sat4j-core:2 sat4j-core"
+    set_osgi_dependency_property "org.sat4j.pb"                  "sat4j-pb:2 sat4j-pb"
 
-    # Non-OSGI jar files.
+    echo ">>> Creating non-OSGi dependency properties"
     set_nonosgi_dependency_property "org.junit"                  "junit:3"
     set_nonosgi_dependency_property "org.junit4"                 "junit:4"
     add_nonosgi_dependency_property \
         "org.eclipse.swt.${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}.jar" \
         $(which_installed_jar_file "swt:${SLOT}")
 
-    # Non-OSGI jar files, Ant-specific.
-    local ANT_JAR_ROOTNAME
-    for   ANT_JAR_ROOTNAME in \
+    # Non-OSGI jar files, Ant-specific and provided by the "apache-ant" exheres.
+    echo ">>> Creating non-OSGi Ant dependency properties"
+    local ECLIPSE_ANT_TASK
+    for   ECLIPSE_ANT_TASK in \
         ant ant-jmf ant-junit ant-launcher ant-nodeps ant-swing ant-trax ; do
         # This three parameter version of "set_nonosgi_dependency_property"
         # gets these parameters:
@@ -288,13 +374,22 @@ eclipse_src_prepare() {
         #     parameter into an absolute path: e.g.,
         #     "/usr/share/ant/lib/ant-trax.jar".
         set_nonosgi_dependency_property "org.apache.ant" \
-                "lib/${ANT_JAR_ROOTNAME}\\.jar" \
-            "ant lib/${ANT_JAR_ROOTNAME}"
+               "/lib/${ECLIPSE_ANT_TASK}\\.jar" \
+            "ant lib/${ECLIPSE_ANT_TASK}"
+    done
+
+    # Non-OSGI jar files, Ant-specific but not provided by the "apache-ant"
+    # exheres. Naturally, this should be fixed.
+    local ECLIPSE_ANT_BINARY_TASK
+    for   ECLIPSE_ANT_BINARY_TASK in "${ECLIPSE_ANT_BINARY_TASKS[@]}"; do
+        copy_nonosgi_dependency_property "org.apache.ant" \
+            "/lib/${ECLIPSE_ANT_BINARY_TASK}\\.jar" \
+            "${ECLIPSE_ANT_WORK}/lib/${ECLIPSE_ANT_BINARY_TASK}.jar"
     done
 
     # Glob the set of all "feature.xml" files now; calls to the
     # "eclipse_remove_plugins_containing" function require this set.
-    FEATURE_XML_FILES=( **/feature.xml )
+#   FEATURE_XML_FILES=( **/feature.xml )
 
 #   if ! option doc; then
 #       echo ">>> Removing Eclipse documentation plugins from ${FEATURE_XML_FILES[@]}"
@@ -310,13 +405,13 @@ eclipse_src_prepare() {
 eclipse_src_install() {
     antefix_src_install
 
-    local ECLIPSE_ENVIRO_FILENAME="60eclipse"
-    local ECLIPSE_CONFIG_FILENAME="eclipse"
-    local ECLIPSE_LAUNCH_FILENAME="eclipse-${SLOT}"
+    local ECLIPSE_ENVIRO_FILENAME="60${PN}"
+    local ECLIPSE_CONFIG_FILENAME="${PN}"
+    local ECLIPSE_LAUNCH_FILENAME="${PN}-${SLOT}"
     local ECLIPSE_ENVIRO_FILE="/etc/env.d/${ECLIPSE_ENVIRO_FILENAME}"
     local ECLIPSE_CONFIG_FILE="/etc/conf.d/${ECLIPSE_CONFIG_FILENAME}"
     local ECLIPSE_LAUNCH_FILE="/usr/bin/${ECLIPSE_LAUNCH_FILENAME}"
-    local ECLIPSE_HOME="/usr/$(get_libdir)/eclipse-${SLOT}"
+    local ECLIPSE_HOME="/usr/$(get_libdir)/${PN}-${SLOT}"
 #   local ECLIPSE_BIN="${ECLIPSE_HOME}/eclipse"
 
     #FIXME leycec: needed?
@@ -324,17 +419,17 @@ eclipse_src_install() {
 #   edo rm "${ECLIPSE_BUILD_DIR}/installation/libcairo-swt.so"
 
     echo ">>> Installing distribution tree..."
-    insinto "${ECLIPSE_HOME}"
+    insinto  "${ECLIPSE_HOME}"
     doins -r "${ECLIPSE_BUILD_DIR}/installation"/*
 
     echo ">>> Installing launcher files..."
 
     # Install the launcher script as "/usr/bin/eclipse-${SLOT}".
-    edo cp "${ECLIPSE_FILES_DIR}/eclipse.bash" "${TEMP}"/
-    edo sed -i "${TEMP}/eclipse.bash" \
+    edo cp "${ECLIPSE_FILES_DIR}/${PN}.bash" "${TEMP}"/
+    edo sed -i "${TEMP}/${PN}.bash" \
         -e "s~__ECLIPSE_CONFIG_FILE__~${ECLIPSE_CONFIG_FILE}"
         -e "s~__ECLIPSE_ENVIRO_FILE__~${ECLIPSE_ENVIRO_FILE}"
-    newbin "${TEMP}/eclipse.bash" "eclipse-${SLOT}"
+    newbin "${TEMP}/${PN}.bash" "${ECLIPSE_LAUNCH_FILENAME}"
 
     # Install the launcher configuration files.
     hereenvd "${ECLIPSE_ENVIRO_FILENAME}" <<EOF
@@ -372,11 +467,14 @@ eclipse_patch() {
 }
 
 # ....................{ DEPENDENCIES                       }....................
+ECLIPSE_DEPENDENCIES_PROPERTIES="dependencies.properties"
+ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES="nonosgidependencies.properties"
+
 set_osgi_dependency_property() {
-    set_dependency_property "dependencies.properties" "${@}"
+    set_dependency_property "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
 }
 set_nonosgi_dependency_property() {
-    set_dependency_property "nonosgidependencies.properties" "${@}"
+    set_dependency_property "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
 }
 
 set_dependency_property() {
@@ -399,10 +497,10 @@ set_dependency_property() {
 }
 
 add_osgi_dependency_property() {
-    add_dependency_property "dependencies.properties" "${@}"
+    add_dependency_property "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
 }
 add_nonosgi_dependency_property() {
-    add_dependency_property "nonosgidependencies.properties" "${@}"
+    add_dependency_property "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
 }
 
 add_dependency_property() {
@@ -415,6 +513,57 @@ add_dependency_property() {
     edo cat <<EOF >> "${DEPENDENCIES_PROPERTIES_FILE}"
 ${ECLIPSE_JAR_FILENAME}=${EXHERBO_JAR_FILE}
 EOF
+}
+
+copy_osgi_dependency_property() {
+    copy_dependency_property "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
+}
+copy_nonosgi_dependency_property() {
+    copy_dependency_property "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
+}
+
+copy_dependency_property() {
+    illegal_in_global_scope
+    [[ ${#} -eq 3 ]] ||
+    [[ ${#} -eq 4 ]] || die_unless_nonfatal "three or four arguments needed"
+
+    local DEPENDENCIES_PROPERTIES_FILE="${1}"
+    local ECLIPSE_JAR_PACKAGE="${2}"
+    local ECLIPSE_JAR_FILENAME
+
+    if [[ ${#} -eq 3 ]]
+    then ECLIPSE_JAR_FILENAME='\.jar'
+    else ECLIPSE_JAR_FILENAME="${3}"; shift
+    fi
+
+    local EXHERBO_JAR_FILE="${3}"
+
+    # Make a PCRE matching the passed Java package name. This requires grep be
+    # called with the "-E" option and sed with the "-r" option.
+    local ECLIPSE_JAR_PACKAGE_PATTERN="^${ECLIPSE_JAR_PACKAGE}_.+${ECLIPSE_JAR_FILENAME}="
+
+    # Grep the filename Eclipse expects to find this jar file under from the
+    # passed dependency properties file. (Since this grep expression unavoidably
+    # greps a trailing '=' character, explicitly chomp it with a sed pipe.)
+    local ECLIPSE_JAR_FILENAME=$(grep -m 1 -Eo -e "${ECLIPSE_JAR_PACKAGE_PATTERN}" "${DEPENDENCIES_PROPERTIES_FILE}" | sed 's~=$~~')
+    local ECLIPSE_JAR_FILE="${ECLIPSE_BUILD_DIR}/plugins/${ECLIPSE_JAR_FILENAME}"
+    local ECLIPSE_JAR_DIR="${ECLIPSE_JAR_FILE%/*}"
+
+    # Now remove this filename from the same file, since entries in this file
+    # are filenames to be symlinked. This function does not symlink this file;
+    # instead, it moves it as is to the Eclipse "plugins/" directory.
+    #
+    # Note we use a little known sed feature, here. The
+    # ${ECLIPSE_JAR_PACKAGE_PATTERN} may contain slashes; however, this
+    # conflicts with seds default use of slashes as range match delimiters. To
+    # circumvent this, assign its range match delimiter to an infrequently used
+    # character: here, '~'. To do so, that character must be prefixed with '\'.
+    edo sed -r -e "\\~${ECLIPSE_JAR_PACKAGE_PATTERN}~d" \
+        -i "${DEPENDENCIES_PROPERTIES_FILE}"
+
+    # Move the downloaded jar file to this filename in this directory.
+    [[  -d "${ECLIPSE_JAR_DIR}" ]] || edo mkdir -p "${ECLIPSE_JAR_DIR}"
+    edo mv "${EXHERBO_JAR_FILE}" "${ECLIPSE_JAR_FILE}"
 }
 
 # ....................{ PLUGINS                            }....................

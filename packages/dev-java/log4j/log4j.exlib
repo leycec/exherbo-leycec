@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 # Log4j does not use an Apache-compliant URL scheme. It just mostly complies.
-require antefix javafix apache [ \
+require antefix apache [ \
     pn="logging"        homepage_subdir="${PN}" \
     pnv="apache-${PNV}" download_subdir="${PN}/${PV}" ]
 
@@ -19,8 +19,6 @@ without touching the application binary.
 
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/${PV}/apidocs [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${HOMEPAGE}/${PV}/changes-report.html"
-
-SLOT="0"
 
 # Log4j supports the following optional dependencies. Sadly, we don't.
 #DEPENDENCIES+="

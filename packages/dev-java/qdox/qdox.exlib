@@ -24,7 +24,6 @@ HOMEPAGE="http://${PN}.codehaus.org"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/apidocs/index.html [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${HOMEPAGE}/changes-report.html"
 
-SLOT="0"
 LICENCES="Apache-2.0"
 
 WORK="${WORKBASE}"

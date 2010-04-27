@@ -3,5 +3,6 @@
 
 require commons-codec
 
+SLOT="1"
 PLATFORMS="~amd64 ~x86"
 

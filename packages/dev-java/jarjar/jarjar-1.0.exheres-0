@@ -7,5 +7,6 @@ MY_PV=${PV}rc8
 
 require jarjar
 
+SLOT="1"
 PLATFORMS="~amd64 ~x86"
 

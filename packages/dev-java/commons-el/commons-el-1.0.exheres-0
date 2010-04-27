@@ -3,5 +3,6 @@
 
 require commons-el
 
+SLOT="1"
 PLATFORMS="~amd64 ~x86"
 

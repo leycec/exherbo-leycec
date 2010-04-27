@@ -20,7 +20,6 @@ Moreover, JSch is easily integrated into other Java programs.
 DOWNLOADS="mirror://sourceforge/${PN}/${PNV}.zip"
 REMOTE_IDS="sourceforge:${PN}"
 
-SLOT="0"
 MYOPTIONS+="
     jzlib [[ description = [ support packet compression (recommended) ] ]]
 "

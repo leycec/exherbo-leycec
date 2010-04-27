@@ -12,8 +12,8 @@ PLATFORMS="~amd64 ~x86"
 
 DEPENDENCIES+="
     build+run:
-        dev-java/commons-codec[>=1.4]
-        dev-java/commons-logging[>=1.1.1]
+        dev-java/commons-codec:1[>=1.4]
+        dev-java/commons-logging:1[>=1.1.1]
     build+test:
         dev-java/junit:4
 "

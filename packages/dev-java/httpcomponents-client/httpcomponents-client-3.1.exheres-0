@@ -13,14 +13,14 @@ PLATFORMS="~amd64 ~x86"
 
 DEPENDENCIES+="
     build+run:
-        dev-java/commons-codec[>=1.4]
-        dev-java/commons-logging[>=1.1.1]
+        dev-java/commons-codec:1[>=1.4]
+        dev-java/commons-logging:1[>=1.1.1]
     test:
         dev-java/junit:3
 "
 
 JAVA_SRC_LIBRARY_DIR="lib"
-JAVA_SRC_PREPARE_JARS=( "commons-codec" "commons-logging" )
+JAVA_SRC_PREPARE_JARS=( "commons-codec:1" "commons-logging:1" )
 JAVA_SRC_TEST_JARS=( "junit:3" )
 
 ANT_SRC_CONFIGURE_PARAMS=( static )

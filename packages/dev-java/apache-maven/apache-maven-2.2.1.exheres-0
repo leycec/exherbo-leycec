@@ -3,5 +3,6 @@
 
 require apache-maven
 
+SLOT="2"
 PLATFORMS="~amd64 ~x86"
 

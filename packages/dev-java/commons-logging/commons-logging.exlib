@@ -30,10 +30,9 @@ MYOPTIONS+="
 # Commons Logging insists it requires Tomcat 4.1.xx (i.e., Servlet API 2.3).
 # Fortunately, it builds against all later slots as well. Thus, use the newest
 # working Tomcat slot as of this writing.
-SLOT="0"
 DEPENDENCIES+="
     build+run:
-        log4j?  ( dev-java/log4j:1.2[>=1.2.16] )
+        log4j?  ( dev-java/log4j:1[>=1.2.16] )
         dev-java/tomcat:6[>=6.0.26]
 "
 
@@ -70,6 +69,6 @@ servletapi.jar=$(which_installed_jar_file "tomcat:6" "servlet-api")
 EOF
 
     # Notify Commons Logging of optional dependencies.
-    option log4j && echo "log4j12.jar="$(which_installed_jar_file "log4j:1.2") >> build.properties
+    option log4j && echo "log4j12.jar="$(which_installed_jar_file "log4j:1") >> build.properties
 }
 

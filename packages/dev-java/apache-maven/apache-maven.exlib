@@ -24,8 +24,6 @@ artifacts to specific repositories after a successful build.
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/ref/${PV} [[ lang = en ]]"
 UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/docs/${PV}/release-notes.html"
 
-SLOT="0"
-
 # Maven has transitive dependencies on an extreme number of other Java exheres.
 # In some cases, these dependencies introduce circular dependencies (e.g., Maven
 # depends on the "httpcomponents-client" exheres which itself depends on

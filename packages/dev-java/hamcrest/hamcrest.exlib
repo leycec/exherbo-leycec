@@ -17,13 +17,12 @@ frameworks such as JUnit and jMock. (This is the Hamcrest Java port.)
 
 UPSTREAM_DOCUMENTATION="http://code.google.com/p/${PN}/w/list [[ lang = en ]]"
 
-SLOT="0"
 LICENCES="BSD-3"
 MYOPTIONS+="debug"
 DEPENDENCIES+="
     build+run:
-        dev-java/jarjar[>=0.6]
-        dev-java/qdox[>=1.6.3]
+        dev-java/jarjar:1[>=1.0]
+        dev-java/qdox:1[>=1.11]
 "
 
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/build_xml-fix.patch" )
@@ -35,7 +34,7 @@ JAVA_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
 # jar files without external dependencies, we package JarJar without its ASM
 # dependency and therefore supply it here.
 JAVA_SRC_LIBRARY_DIR="lib/generator"
-JAVA_SRC_PREPARE_JARS=( asm asm-commons jarjar qdox )
+JAVA_SRC_PREPARE_JARS=( "asm:3" "asm:3 asm-commons" "jarjar:1" "qdox:1" )
 
 # Hamcrest's "build.xml" file references version-specific jar files. Cull!
 JAVA_SRC_PREPARE_DEVERSION_FILES=( "${ANT_BUILD_XML}" )

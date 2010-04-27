@@ -3,4 +3,5 @@
 
 require hamcrest
 
+SLOT="1"
 PLATFORMS="~amd64 ~x86"
