@@ -34,9 +34,6 @@ export_exlib_phases pkg_setup \
 # fail! Those that do must set this array, as above.
 JAVA_RESTRICT_JDK_PREFIXES=( )
 
-# Hamcrest does not compile under "gcj", currently.
-JAVA_RESTRICT_JDK_PREFIXES=( gcj )
-
 # Find parameters to be passed to the command-line invocation of "find" when
 # cleaning jar files from ${WORK}. Specify this to prevent cleaning of wanted,
 # specific jar files: e.g.,
@@ -376,7 +373,7 @@ clean_class_files() {
 # These files are typically "build.xml" files, so as to generalize their build
 # process to non-versioned jar files installed on the local machine.
 deversion_java_files() {
-    local EPN
+    local LIBRARY_JAR_SPEC LIBRARY_JAR_NAME
     local DEVERSION_JAVA_FILE
     for   DEVERSION_JAVA_FILE in "${@}"; do
         # Implicitly remove filename version specifiers matching:
@@ -389,16 +386,20 @@ deversion_java_files() {
             -r -e 's~-\$\{(DSTAMP|TSTAMP|TODAY)\}\.jar~.jar~'
 
         # Explicitly remove filename version specifiers only for externally
-        # symlinked jar files, where the 'E' in "EPN" stands for external.
+        # symlinked jar files listed in ${JAVA_SRC_PREPARE_JARS}. Note that
+        # elements of this list are jar specifiers and must be converted to a
+        # proper absolute path so that the basename of that path, which is the
+        # jar filename, may be matched against.
         #
         # Do not remove version specifiers from other jar filenames as those
         # filenames may not actually exist. As we can't be sure, we don't.
         if [[ -n "${JAVA_SRC_PREPARE_JARS[@]}" ]]; then
-            for EPN in "${JAVA_SRC_PREPARE_JARS[@]}"; do
-                if [[ "${EPN:0:1}" != / ]]; then  # ignore absolute paths
-                    edo sed -i "${DEVERSION_JAVA_FILE}" \
-                        -r -e "s~${EPN}${JAVA_JAR_VERSION_PATTERN}~${EPN}.jar~"
-                fi
+            for LIBRARY_JAR_SPEC in "${JAVA_SRC_PREPARE_JARS[@]}"; do
+                LIBRARY_JAR_NAME=$(which_installed_jar_file_from_spec "${LIBRARY_JAR_SPEC}")
+                LIBRARY_JAR_NAME="${LIBRARY_JAR_NAME##*/}"
+                LIBRARY_JAR_NAME="${LIBRARY_JAR_NAME%.jar}"
+                edo sed -i "${DEVERSION_JAVA_FILE}" -r \
+                        -e "s~${LIBRARY_JAR_NAME}${JAVA_JAR_VERSION_PATTERN}~${LIBRARY_JAR_NAME}.jar~"
             done
         fi
     done
@@ -938,7 +939,8 @@ rectify_jar_manifest() {
     # sed FAQ at http://sed.sourceforge.net/sed1line.txt .
     edo sed -i "${1}" -r \
         -e 's/\r$//' \
-        -e '/^Name:[[:space:]].+$/,/^SHA1-Digest:[[:space:]].+$/d' \
+        -e '/^Name:[[:space:]]/,/^SHA1-Digest:[[:space:]]/d' \
+        -e '/^Bundle-ClassPath:[[:space:]]/d' \
         -e "s\`^(Bundle-Version:[[:space:]]).+$\`\\1${PV}\`" \
         -e "s\`^(implementation-version:[[:space:]]).+$\`\\1${PV}\`" \
         -e "s\`^(Build-JDK:[[:space:]]).+$\`\\1${JAVA_JDK_VERSION}\`i" \
