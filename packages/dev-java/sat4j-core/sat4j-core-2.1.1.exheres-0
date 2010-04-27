@@ -1,7 +1,7 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
-require sat4j [ build_date=20090826 build_version=2.4 ]
+require sat4j [ slot="2" build_date=20090826 build_version=2.4 ]
 
 PLATFORMS="~amd64 ~x86"
 

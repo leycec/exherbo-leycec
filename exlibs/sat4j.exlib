@@ -13,13 +13,17 @@
 #
 #     # SAT4J 2.1.1 was completed on August 26th, 2009 and requires
 #     # "build-2.4.xml" for building.
-#     require sat4j [ build_date=20090826 build_version=2.4 ]
+#     require sat4j [ slot=4 build_date=20090826 build_version=2.4 ]
 require antefix
 export_exlib_phases src_unpack src_prepare src_install
 
 # Get the suffix for this subcomponent: e.g., for "sat4j-core" this is "core".
 # Set this early, so that we can reference it via "myexparam" defaults.
 SAT4J_PN=${PN#sat4j-}
+
+# Exheres slot, passed as an exparam so as to be available in global scope.
+myexparam slot=
+  exparam -v SLOT slot
 
 # SAT4J tarballs are named according to completion date rather than program
 # version. These dates are formatted "${YEAR}${MONTH}${DAY}".
@@ -109,7 +113,6 @@ DOWNLOADS="
     http://download.forge.objectweb.org/sat4j/build-${SAT4J_BUILD_VERSION}.xml -> build.xml"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/maven$(ever range 1-2 ${PV}) [[ lang = en ]]"
 
-SLOT="0"
 LICENCES="|| ( EPL-1.0 LGPL-3 )"
 DEPENDENCIES+="
     build:
@@ -121,7 +124,7 @@ DEPENDENCIES+="
 if [[ "${SAT4J_PN}" != "core" ]]; then
     DEPENDENCIES+="
     build+run:
-        dev-java/sat4j-core[=${PV}]
+        dev-java/sat4j-core:${SLOT}[=${PV}]
 "
 fi
 
@@ -146,7 +149,7 @@ sat4j_src_unpack() {
     if [[ "${SAT4J_PN}" != "core" ]]; then
         echo ">>> Preparing exheres globals"
         JAVA_SRC_LIBRARY_DIR="${SAT4J_LIB_DIR}"
-        JAVA_SRC_PREPARE_JARS=( $(which_installed_jar_file "sat4j-core") )
+        JAVA_SRC_PREPARE_JARS=( $(which_installed_jar_file "sat4j-core:${SLOT}") )
     fi
 
     echo ">>> Unpacking sources jar file"
@@ -189,7 +192,7 @@ sat4j_src_prepare() {
     #
     # Do this prior to calling the parent "src_prepare", which invokes Ant.
     echo ">>> Patching ${ANT_BUILD_XML}"
-    edo sed -e 's: depends="core"::' -e 's:,getsource::' -i "${ANT_BUILD_XML}"
+    edo sed -e 's~ depends="core"~~' -e 's~,getsource~~' -i "${ANT_BUILD_XML}"
 
     # These values retrieved from "plugin.properties" bundled with this jar file.
     # Thor, I pray they stay in sync.
