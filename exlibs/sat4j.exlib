@@ -78,8 +78,8 @@ JAVA_IS_CLEANING_JAR_FILES=
 # * "${SAT4J_PN}/lib/", having input jar files (i.e., external dependencies).
 # * "${SAT4J_PN}/META-INF/", having manifest files.
 #
-# Non-core subcomponents also expect core directories, despite ignoring the
-# contents of these directories, resembling:
+# Non-core subcomponents also expect core directories (despite ignoring the
+# contents of these directories) resembling:
 #
 # * "core/src/", having source files for SAT4J Core.
 # * "core/lib/", having input jar files for SAT4J Core.
@@ -119,9 +119,6 @@ DEPENDENCIES+="
 # Non-core subcomponents depend upon core of the exact same version, and must
 # symlink that external jar file for core into their "lib/" directory.
 if [[ "${SAT4J_PN}" != "core" ]]; then
-    JAVA_SRC_LIBRARY_DIR="${SAT4J_LIB_DIR}"
-    JAVA_SRC_PREPARE_JARS=( $(which_installed_jar_file "sat4j-core") )
-
     DEPENDENCIES+="
     build+run:
         dev-java/sat4j-core[=${PV}]
@@ -143,6 +140,14 @@ DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "overview.html" )
 # files. Unpack the former and delete both.
 sat4j_src_unpack() {
     antefix_src_unpack
+
+    # Non-core subcomponents must symlink the external SAT4J core jar file into
+    # their "lib/" directory prior to Ant invocation.
+    if [[ "${SAT4J_PN}" != "core" ]]; then
+        echo ">>> Preparing exheres globals"
+        JAVA_SRC_LIBRARY_DIR="${SAT4J_LIB_DIR}"
+        JAVA_SRC_PREPARE_JARS=( $(which_installed_jar_file "sat4j-core") )
+    fi
 
     echo ">>> Unpacking sources jar file"
     SAT4J_JAR_FILE_SOURCES="${SAT4J_JAR_PN}-src.jar"

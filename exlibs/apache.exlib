@@ -49,9 +49,13 @@ exparam -v APACHE_SUFFIX suffix
 # Subdirectory under ${WORKBASE} to which the above source tarball extracts.
 myexparam work="${APACHE_PNV}"
 
+# Basename for the downloaded Apache archive. This is of occasional interest for
+# exheres downloading several archives.
+APACHE_ARCHIVE="${APACHE_PNV}.${APACHE_SUFFIX}"
+
 # ....................{ EXHERES GLOBALS                    }....................
 HOMEPAGE="http://${APACHE_PN}.apache.org/$(exparam homepage_subdir)"
-DOWNLOADS="mirror://apache/${APACHE_PN}/$(exparam download_subdir)/${APACHE_PNV}.${APACHE_SUFFIX}"
+DOWNLOADS="mirror://apache/${APACHE_PN}/$(exparam download_subdir)/${APACHE_ARCHIVE}"
 
 #FIXME: Uncomment after adding an apache ${REMOTE_IDS} resolver.
 #REMOTE_IDS+=" apache:${APACHE_PN} "

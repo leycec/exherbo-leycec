@@ -149,6 +149,10 @@ DEPENDENCIES+="
 # defaults to the empty string here but is set in the "pkg_setup" phase.
 JAVA_JDK=
 
+# Version of the currently selected Java JDK: e.g., "1.6", "4.4". This
+# defaults to the empty string here but is set in the "pkg_setup" phase.
+JAVA_JDK_VERSION=
+
 # Absolute path to the directory having JDK jar files for the above compiler:
 # e.g., "rt.jar", "jce.jar".
 JAVA_JRE_LIBRARY_DIR="/usr/$(get_libdir)/jre/lib"
@@ -179,8 +183,8 @@ JAVA_IS_CLEANING_JAR_FILES=1
 # Eclipse SWT) require sufficiently complex unpacking to warrant their doing it
 # themselves. (This is not recommended.)
 #
-# Defaults to unset.
-JAVA_IS_UNPACKING_MANUALLY=
+# Defaults to set.
+JAVA_IS_UNPACKING_ARCHIVES=1
 
 # Bash pattern matching the version suffix commonly appended to jar filenames.
 # This pattern matches conventional versions (e.g., "hamcrest-1.2.jar") and
@@ -211,24 +215,24 @@ javafix_pkg_setup() {
 
 javafix_src_unpack() {
     # Call "default_src_unpack", unless the calling exheres has other plans.
-    if [[ -z "${JAVA_IS_UNPACKING_MANUALLY}" ]]; then
+    if [[ -n "${JAVA_IS_UNPACKING_ARCHIVES}" ]]; then
         default
-    fi
 
-    # The "ant_src_unpack" function recursively destroys the contents of all
-    # paths in "${ANT_BUNDLED_LIBSDIR}". Now, we must not destroy the "${WORK}"
-    # path. However, some Java libraries (e.g., Hamcrest) come with jar files
-    # pre-bundled in the "${WORK}" path. We thus homebrew this boolean to
-    # recursively remove jar files rather than all files and paths, prior to
-    # calling the "ant_src_unpack" function.
-    if [[ "${JAVA_IS_CLEANING_JAR_FILES}" ]]; then
-        echo ">>> Removing jar files"
-        clean_jar_files
-    fi
+        # The "ant_src_unpack" function recursively destroys the contents of all
+        # paths in "${ANT_BUNDLED_LIBSDIR}". Now, we must not destroy the "${WORK}"
+        # path. However, some Java libraries (e.g., Hamcrest) come with jar files
+        # pre-bundled in the "${WORK}" path. We thus homebrew this boolean to
+        # recursively remove jar files rather than all files and paths, prior to
+        # calling the "ant_src_unpack" function.
+        if [[ -n "${JAVA_IS_CLEANING_JAR_FILES}" ]]; then
+            echo ">>> Removing jar files"
+            clean_jar_files
+        fi
 
-    if [[ "${JAVA_IS_CLEANING_CLASS_FILES}" ]]; then
-        echo ">>> Removing class files"
-        clean_class_files
+        if [[ -n "${JAVA_IS_CLEANING_CLASS_FILES}" ]]; then
+            echo ">>> Removing class files"
+            clean_class_files
+        fi
     fi
 }
 
@@ -319,9 +323,13 @@ javafix_src_preamble() {
 # Find the currently selected JDK and ensure the current exheres permits
 # building against this JDK.
 check_jdk() {
-    # Locate the currently selected JDK.
+    # Find the currently selected JDK.
     JAVA_JDK=$(readlink -e "${JAVA_HOME}")
     JAVA_JDK="${JAVA_JDK##*/}"
+
+    # Grep the currently selected JDK's version. (Oddly, the "javac -version"
+    # emits to stderr rather than stdout. Ehhrm?)
+    JAVA_JDK_VERSION=$(javac -version 2>&1 | awk '{print $2}')
 
     # Die if the currently selected JDK is exheres restricted.
     if [[ -n "${JAVA_RESTRICT_JDK_PREFIXES[@]}" ]]; then
@@ -472,6 +480,35 @@ install_jars() {
     done
 }
 
+# void install_jar_symlinks(char *jar_filename1, char *jar_filename2, ...)
+#
+# Symlink the passed jar files to relative filenames having the same basename sans
+# version under the installation directory for this exheres: usually,
+# "/usr/share/${PN}/${SLOT}/".
+#
+# Passed jar files must already have been installed under ${IMAGE} prior to
+# calling this function. Example:
+#
+#   # Symlinks "/opt/jetty/lib/${PNV}.jar" to
+#   # "/usr/share/jetty/${SLOT}/${PN}.jar".
+#   insinto "/opt/jetty"
+#   doins                           "lib/${PNV}.jar" 
+#   install_jar_symlinks "/opt/jetty/lib/${PNV}.jar" 
+install_jar_symlinks() {
+    illegal_in_global_scope
+    [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
+
+    local    JAR_DIR_TARGET=$(which_installed_jar_dir_for_this_exheres)
+    dodir "${JAR_DIR_TARGET}"
+
+    local JAR_FILE_SOURCE JAR_FILE_TARGET
+    for   JAR_FILE_SOURCE in "${@}"; do
+        JAR_FILE_TARGET="${JAR_DIR_TARGET}/"$(basename "${JAR_FILE_SOURCE/${JAVA_JAR_PARAMETER_VERSION_PATTERN}/.jar}")
+        echo "ln -s ${JAR_FILE_SOURCE} ${JAR_FILE_TARGET}"
+        dosym      "${JAR_FILE_SOURCE}" "${JAR_FILE_TARGET}"
+    done
+}
+
 # void install_jars_with_manifests(
 #     char *jar_filename1, char *manifest_filename1,
 #     char *jar_filename2, char *manifest_filename2, ...)
@@ -558,6 +595,7 @@ which_installed_jar_dir() {
 # Like "which_installed_jar_dir" but does not die when the path does not exist.
 # Avoid calling this function; it is unsafe, and intended only as a utility.
 which_installed_jar_dir_nonfatal() {
+    illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "one arguments needed"
 
     # Install jar files to possibly slotted subdirectories under "/usr/share".
@@ -605,6 +643,7 @@ which_installed_jar_file() {
 # Avoid calling this function from exheres; it is a utility function intended to
 # be called from functions in this exlib.
 which_installed_jar_file_nonfatal() {
+    illegal_in_global_scope
     [[ ${#} -eq 1 ]] ||
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "one or two arguments needed"
     [[ -n "${1}"  ]] || die_unless_nonfatal "non-null argument needed"
@@ -752,6 +791,7 @@ which_installed_jar_file_from_spec() {
 # Avoid calling this function from exheres; it is a utility function intended to
 # be called from functions in this exlib.
 which_installed_jar_file_from_spec_nonfatal() {
+    illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
 
     local JAR_SPEC="${1}"
@@ -900,6 +940,8 @@ rectify_jar_manifest() {
         -e 's/\r$//' \
         -e '/^Name:[[:space:]].+$/,/^SHA1-Digest:[[:space:]].+$/d' \
         -e "s\`^(Bundle-Version:[[:space:]]).+$\`\\1${PV}\`" \
+        -e "s\`^(implementation-version:[[:space:]]).+$\`\\1${PV}\`" \
+        -e "s\`^(Build-JDK:[[:space:]]).+$\`\\1${JAVA_JDK_VERSION}\`i" \
         -e "s\`__PN__\`${PN}\`" \
         -e "s\`__PV__\`${PV}\`" \
         -e "s\`%bundleName\`${BUNDLE_NAME:-${PN}}\`" \
