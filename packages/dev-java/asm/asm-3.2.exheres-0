@@ -3,4 +3,5 @@
 
 require asm
 
+SLOT="3"
 PLATFORMS="~amd64 ~x86"

@@ -22,8 +22,6 @@ as small and as fast as possible, ASM is attractive for use in dynamic systems.
 HOMEPAGE="http://${PN}.ow2.org"
 DOWNLOADS="http://download.forge.objectweb.org/${PN}/${PNV}.tar.gz"
 UPSTREAM_DOCUMENTATION="http://${PN}.ow2.org/${PN}$(ever delete_all)/javadoc/user/index.html [[ lang = en ]]"
-
-SLOT="0"
 LICENCES="BSD-3"
 
 # ASM's "build.xml" file complains with:
