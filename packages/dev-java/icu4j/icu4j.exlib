@@ -25,7 +25,6 @@ UPSTREAM_CHANGELOG="http://source.icu-project.org/repos/icu/${PN}/tags/release-$
 UPSTREAM_DOCUMENTATION="http://icu-project.org/apiref/${PN} [[ lang = en ]]"
 
 # ICU elected to licence their work under a homebrew license. Not terribly wise.
-SLOT="0"
 LICENCES="ICU-1.8.1"
 
 WORK="${WORKBASE}"
@@ -46,12 +45,4 @@ JAVA_RESTRICT_JAVA_JDK_PREFIXES=( gcj )
 # install "icu4j-charsets.jar" as is, as Eclipse does not require it.
 JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=( "${PN}.jar" "${FILES}/MANIFEST.MF" )
 JAVA_SRC_INSTALL_JARS=( "${PN}-charsets.jar" )
-
-# Strictly speaking, it's not necessary we pass the "env.COMPUTERNAME" property;
-# it just makes build output moderately prettier.
-ANT_PARAMS=( -Denv.COMPUTERNAME=$(hostname) )
-
-ANT_SRC_COMPILE_PARAMS=( main )
-ANT_SRC_TEST_PARAMS=( check )
-ANT_SRC_INSTALL_PARAMS=( jar )
 

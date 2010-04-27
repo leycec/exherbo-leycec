@@ -6,8 +6,8 @@ require icu4j
 SLOT="4"
 PLATFORMS="~amd64 ~x86"
 
-# ICU4J 4.4.x uses more sensibly named Ant tasks than prior versions.
-ANT_SRC_COMPILE_PARAMS=( main )
+# ICU4J 4.0.x uses insensibly named Ant tasks. I mean, really.
+ANT_SRC_COMPILE_PARAMS=( core indices )
 ANT_SRC_TEST_PARAMS=( check )
 ANT_SRC_INSTALL_PARAMS=( jar )
 
