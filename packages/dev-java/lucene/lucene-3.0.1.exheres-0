@@ -3,5 +3,17 @@
 
 require lucene
 
+SLOT="3"
 PLATFORMS="~amd64 ~x86"
+
+# Apache PDFBox requires both "lucene-core.jar" and "lucene-demos.jar". Most
+# other exheres require the former but not the latter. Make both, just in case.
+#
+# Do not do this for Lucene 1.x.x, however, as its "compile-demo" task fails
+# with compilation error. (Absurd, of course.)
+ANT_SRC_COMPILE_PARAMS+=( compile-demo )
+ANT_SRC_INSTALL_PARAMS+=( jar-demo )
+
+DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
+JAVA_SRC_INSTALL_JARS=( "build/${PN}-demos-${PV}.jar" )
 

@@ -16,12 +16,15 @@ It's suitable for applications requiring cross-platform portable, full-
 featured, and full-text search. 
 "
 
+# Lucene 1.x.x is archived under a different download subdirectory. Happily,
+# this URI has all Lucene releases regardless of age. Unhappily, explicitly
+# stating this URI prevents us from using the "mirror://apache".
+DOWNLOADS="http://archive.apache.org/dist/${APACHE_PN}/java/${APACHE_ARCHIVE}"
+
 MY_PV=$(ever replace_all _)
 LUCENE_DOCUMENTATION_ROOT="${HOMEPAGE}/${APACHE_DOWNLOAD_SUBDIR}/${MY_PV}"
 UPSTREAM_DOCUMENTATION="${LUCENE_DOCUMENTATION_ROOT}/api/all [[ lang = en ]]"
 UPSTREAM_CHANGELOG="${LUCENE_DOCUMENTATION_ROOT}/changes/Changes.html"
-
-SLOT="0"
 
 #FIXME: Couldn't get SUBOPTIONS to work for the life of me; I suspect it
 #requires physical modification to "arbor/profiles/options.conf". That would be
@@ -34,6 +37,7 @@ SLOT="0"
 #    lucene_contribs:
 #        analyzers   [[ description = [ install lucene-analyzers.jar for tokenizing text ] ]]
 #"
+MYOPTIONS+="debug"
 LUCENE_IS_BUILDING_CONTRIB_ANALYZERS=1
 
 # Technically, Java Lucene does not require JavaCC to build: its source tarball
@@ -68,43 +72,40 @@ ANT_CONTRIB_BUILD_DIR="build/contrib"
 # manifest files. We should probably update its manifest with an OSGI
 # version, as well.
 ANT_CONTRIB_ANALYZERS_BUILD_XML="contrib/analyzers/build.xml"
-ANT_CONTRIB_ANALYZERS_BUILD_DIR="${ANT_CONTRIB_BUILD_DIR}/analyzers/common"
+ANT_CONTRIB_ANALYZERS_BUILD_DIR="${ANT_CONTRIB_BUILD_DIR}/analyzers"
 
 JAVA_SRC_LIBRARY_DIR="lib"
 JAVA_SRC_PREPARE_DEVERSION_FILES=( "${ANT_COMMON_BUILD_XML}" )
 JAVA_SRC_TEST_JARS=( "junit:4" )
 
-# Install "lucene-core.jar" with an Eclipse-compatible OSGi manifest. But
-# install "lucene-demos.jar" as is, as Eclipse does not require it.
+# Install "lucene-core.jar" with an Eclipse-compatible OSGi manifest.
 JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=(
     "build/${PN}-core-${PV}.jar" "${FILES}/MANIFEST.MF" )
-JAVA_SRC_INSTALL_JARS=( "build/${PN}-demos-${PV}.jar" )
-
-DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "JRE_VERSION_MIGRATION.txt" )
 
 # Running the "javacc" task recompiles pre-compiled parser generators via
 # JavaCC. As discussed above, this task is optional but strongly recommended.
 #
 # Running this task appears to also run the "compile-core" task. Odd. Delay
 # running this task, therefore, till in the "src_compile" phase.
-ANT_SRC_COMPILE_PARAMS=( javacc compile-core compile-demo )
+ANT_SRC_COMPILE_PARAMS=( javacc compile-core )
 
 # Running the "test-core" task tests core functionality, but not backwards
 # compatibility. We care about the former but not the latter. (Core is enough.)
 ANT_SRC_TEST_PARAMS=( test-core )
-
-# Apache PDFBox requires both "lucene-core.jar" and "lucene-demos.jar". Most
-# other exheres require the former but not the latter. Make both, just in case.
-ANT_SRC_INSTALL_PARAMS=( jar-core jar-demo )
+ANT_SRC_INSTALL_PARAMS=( jar-core )
 
 lucene_pkg_setup() {
     antefix_pkg_setup
 
+    # Lucene 1.x.x fails with compilation error under JDK 1.4, which makes
+    # sense. But it defaults to compiling under JDK 1.4, which makes utterly no
+    # sense. Force it back onto the path of sensibility.
+    #
     # Lucene requires "javacc.jar" to run the "javacc" task, which makes sense.
     # But it requires it under "/usr/share/javacc/bin/lib/", which doesn't. We
-    # don't really feel like patching its "common-build.xml" file, however, so we'll
-    # grudgingly accept that by setting "-Djavacc.home" to "/usr/share/javacc";
-    # Lucene's "common-build.xml" will do the rest and pull the jar from there.
+    # don't really feel like patching its "common-build.xml" file, however, so
+    # we'll grudgingly accept that by setting "-Djavacc.home" to
+    # "/usr/share/javacc"; Lucene's "common-build.xml" does the rest.
     #
     # Lucene often appends "-dev" to version strings, which produces jar files
     # resembling "${PN}-core-${PV}-dev.jar", which is not a recognizable
@@ -114,6 +115,9 @@ lucene_pkg_setup() {
     # Delay setting Ant parameters until within an actual phase, as exheres
     # dependencies *may* not be available in global scope.
     ANT_PARAMS+=(
+        -Djavac.debug=$(option debug && echo true || echo false)
+        -Djavac.source=1.5
+        -Djavac.target=1.5
         -Djavacc.home=$(which_installed_jar_dir "javacc")
         -Dversion=${PV}
     )
@@ -123,8 +127,12 @@ lucene_src_prepare() {
     antefix_src_prepare
 
     # See "ANT_PARAMS" above for why we remove "-dev" from version strings here.
+    # Note Lucene 1.x.x gets the version wrong, so we can't just match against
+    # "${PV}-dev". (That would have been too easy, clearly.)
+    #
+    # Technically, it should be enough to set "-Dversion" above. It isn't. Meh!
     echo ">>> Patching ${ANT_COMMON_BUILD_XML}"
-    edo sed -e "s:${PV}-dev:${PV}:" -i "${ANT_COMMON_BUILD_XML}"
+    edo sed -r -e "s~[[:digit:].]+-dev~${PV}~" -i "${ANT_COMMON_BUILD_XML}"
 }
 
 lucene_src_compile() {
@@ -151,9 +159,12 @@ lucene_src_install() {
 
         # Eclipse needs "lucene-analyzers" to have an OSGI manifest. Make it so!
         # Replace the manifest auto-generated for this jar file with our own.
+        #
+        # Note the subdirectory to which this jar file is output changes with
+        # some slots. Glob these ambiguities away.
         echo ">>> Correcting contrib_analyzers jar file manifests"
         replace_jar_manifest \
-            "${ANT_CONTRIB_ANALYZERS_BUILD_DIR}/${PN}-analyzers-${PV}.jar" \
+            "${ANT_CONTRIB_ANALYZERS_BUILD_DIR}"/**/"${PN}-analyzers-${PV}.jar" \
             "${FILES}/MANIFEST-contrib_analyzers.MF"
     fi
 
