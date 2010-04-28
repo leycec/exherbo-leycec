@@ -59,12 +59,26 @@ src_install() {
     # manifests, and all others as is (as Eclipse does not require them).
     #
     # Do this here rather via the ${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS} array
-    # for the sake of simplicity.
+    # so that we may override the default values to be replaced. In particular,
+    # note that:
+    #
+    # * The "servlet-api.jar" file manifest requires a "Bundle-Version"
+    #   corresponding to its Servlet API version: e.g., 2.5.0.
+    # * The "jsp-api.jar" file manifest requires a "Bundle-Version"
+    #   corresponding to its JSP API version: e.g., 2.0.0.
+    # * The "jasper.jar" file is actually a holdover from the 5.x.x series and
+    #   requires a "Bundle-Version" reflecting that.
     echo ">>> Correcting jar file manifests"
     edo cp "${FETCHEDDIR}/${TOMCAT_JASPER_ARCHIVE}" "${TOMCAT_DIST_LIB_DIR}"/
-    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/servlet-api.jar"          "${FILES}/${SLOT}/MANIFEST-servlet-api.MF"
-    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/jsp-api.jar"              "${FILES}/${SLOT}/MANIFEST-jsp-api.MF"
-    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/${TOMCAT_JASPER_ARCHIVE}" "${FILES}/${SLOT}/MANIFEST-jasper.MF"
+    local PV="2.5.0"
+    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/servlet-api.jar" \
+        "${FILES}/${SLOT}/MANIFEST-servlet-api.MF"
+    local PV="2.0.0"
+    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/jsp-api.jar" \
+        "${FILES}/${SLOT}/MANIFEST-jsp-api.MF"
+    local PV="5.5.17"
+    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/${TOMCAT_JASPER_ARCHIVE}" \
+        "${FILES}/${SLOT}/MANIFEST-jasper.MF"
 
     echo ">>> Installing jar files"
     install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar

@@ -1,6 +1,7 @@
 # Copyright 2010 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
-require eclipse [ build_v="0.5.0" ant_v="1.8.0" ] # jasper_pv="5.5.17" jetty_pv="6.1.24" ]
+require eclipse [ slot="3.5" build_v="0.5.0" ant_v="1.8.0" ]
 
 PLATFORMS="~amd64 ~x86"
+

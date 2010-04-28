@@ -25,7 +25,7 @@ MYOPTIONS+="
 "
 DEPENDENCIES+="
     build+run:
-        jzlib? ( dev-java/jzlib ) 
+        jzlib? ( dev-java/jzlib:1 ) 
 "
 
 # JSch's "build.xml" file expects JZlib source to be manually copied into its
@@ -52,7 +52,7 @@ jsch_src_unpack() {
     if option jzlib; then
         einfo "Enabling packet compression..."
         JAVA_SRC_LIBRARY_DIR="lib"
-        JAVA_SRC_PREPARE_JARS=( jzlib )
+        JAVA_SRC_PREPARE_JARS=( "jzlib:1" )
     fi
 }
 

@@ -34,7 +34,11 @@
 # See "Eclipse Build Wiki" above to map Eclipse versions to "build_v" versions.
 
 require antefix
-export_exlib_phases src_unpack src_prepare src_install
+export_exlib_phases src_unpack src_prepare src_compile src_install
+
+# Exheres slot, passed as an exparam so as to be available in global scope.
+myexparam slot=
+  exparam -v SLOT slot
 
 # Eclipse distributes source via a customary tarball, identified as:
 #
@@ -134,6 +138,19 @@ ECLIPSE_BUILD_ARCH=
 # Cocoa, GTK, Motif, Photon, Win32, and WPF. Force GTK, for the moment.
 ECLIPSE_WS="gtk"
 
+# Whitespace-delimited list of all possible values for the above magic strings.
+# References to values not matching the current values above are deleted from
+# "feature.xml" files when building.
+ECLIPSE_OS_ALL="aix hpux linux macosx qnx solaris win32"
+ECLIPSE_WS_ALL="carbon cocoa gtk motif photon win32 wpf"
+ECLIPSE_BUILD_ARCH_ALL="alpha arm ia64 mips mipsel PA_RISC ppc ppc64 s390 s390x sparc sparc64 x86 x86_64"
+
+# Eclipse package name suffix specific to the current architecture.
+ECLIPSE_BUILD_PACKAGE_SUFFIX="${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}"
+
+# Eclipse SWT package name specific to the current architecture.
+SWT_PACKAGE_NAME="org.eclipse.swt.${ECLIPSE_BUILD_PACKAGE_SUFFIX}"
+
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
 
@@ -165,7 +182,6 @@ REMOTE_IDS=""
 UPSTREAM_DOCUMENTATION="http://help.${PN}.org/galileo/index.jsp [[ lang = en ]]"
 UPSTREAM_RELEASE_NOTES="http://www.${PN}.org/${PN}/development/readme_${PN}_${ECLIPSE_FETCH_V}.html"
 
-SLOT="3.5"
 LICENCES="EPL-1.0"
 
 # Building Eclipse documentation plugins consumes, on rough average, twice the
@@ -186,6 +202,18 @@ MYOPTIONS+="
 # Eclipse installation requires XML munging, and thus a sufficiently capable
 # command-line XML parser. This exlib depends on that XML jack-of-all-trades,
 # "xmlstarlet". (See discussion in "exlib/maven.exlib" for the justification.)
+#
+# Eclipse requires:
+#
+# * "httpcomponents-client:3", most versions.
+# * "lucene:1", most versions.
+# * "icu4j:4[=4.0.1]", exactly this version. Newer versions of ICU4J bundle
+#   localization resources in different directories within the ICU4J jar file,
+#   causing Eclipse to die during compilation.
+# * "swt", exactly the same slot and version as this exheres.
+# 
+# Eclipse is seems to be lenient concerning all other exheres. Thus, require the
+# newest slots and versions where we can.
 DEPENDENCIES+="
     build:
         app-arch/bzip2
@@ -199,7 +227,7 @@ DEPENDENCIES+="
         dev-java/hamcrest:1[>=1.2]
         dev-java/httpcomponents-client:3[>=3.1]
         dev-java/icu4j:4[=4.0.1]
-        dev-java/jsch:0[>=0.1.42]
+        dev-java/jsch[>=0.1.42]
         dev-java/jetty:6[>=6.1.24]
         dev-java/junit:3[>=3.8.2]
         dev-java/junit:4[>=4.8.1]
@@ -236,13 +264,18 @@ ANT_SRC_UNPACK_PARAMS=( unpack )
 # to exist until after invoking this task.
 ANT_SRC_PREPARE_PARAMS=( applyPatches )
 
-# The "symlinkDeps" task the top-level "build.xml" file symlinks exheres-
+# The "symlinkDeps" task in the top-level "build.xml" file symlinks exheres-
 # installed external jar files into the "plugins/" directory. Due to the
 # difficulty of doing this by hand, this is probably the most helpful Ant task
 # anyone ever wrote. (Thanks, guys!)
 ANT_SRC_CONFIGURE_PARAMS=( symlinkDeps )
+
+# The mother of them all.
 ANT_SRC_COMPILE_PARAMS=( build )
-ANT_SRC_INSTALL_PARAMS=( jar )
+
+# The "install" task in the top-level "build.xml" file installs a target Eclipse
+# distribution under "${WORK}/installation".
+ANT_SRC_INSTALL_PARAMS=( install )
 
 # Eclipse features are bundles of Eclipse plugins as described by a
 # "feature.xml" file under the root directory for each feature. This array
@@ -251,6 +284,9 @@ FEATURE_XML_FILES=( )
 
 # Absolute path to the directory to which the Ant tarball is unpacked.
 ECLIPSE_ANT_WORK="${WORKBASE}/${ECLIPSE_ANT_NV}"
+
+# Java classpath to core JDK jar files.
+ECLIPSE_BOOTSTRAP_CLASSPATH="${JAVA_JRE_LIBRARY_DIR}/rt.jar:${JAVA_JRE_LIBRARY_DIR}/jce.jar"
 
 # Array of all optional Ant task names to be installed as precompiled jar files.
 # (This should eventually be reduced to none.)
@@ -270,8 +306,8 @@ ECLIPSE_ANT_BINARY_TASKS=(
 #done
 
 # ....................{ PHASES                             }....................
-# Do not call the "default_src_unpack" function. Eclipse bundles itself in
-# an odd manner; we have to unpack it ourselves.
+# Do not call the "default_src_unpack" function. Eclipse bundles itself... well,
+# rather poorly; we have to unpack it ourselves.
 JAVA_IS_UNPACKING_ARCHIVES=
 
 eclipse_src_unpack() {
@@ -290,11 +326,11 @@ eclipse_src_unpack() {
     elif option platform:x86;   then ECLIPSE_BUILD_ARCH="x86"
     fi
 
-    # Notify Ant of our target architecture.
-    ANT_PARAMS+=( "-DbuildArch=${ECLIPSE_BUILD_ARCH}" )
-
-    # Notify Ant of whether or not we're building "gnome" support.
-    ANT_PARAMS+=( "-Dbuild.libgnomeproxy="$(option gnome && echo true || echo false) )
+    # Notify Ant of our target architecture and bootstrap classpath.
+    ANT_PARAMS+=(
+        "-DbuildArch=${ECLIPSE_BUILD_ARCH}"
+        "-Dbootclasspath=${ECLIPSE_BOOTSTRAP_CLASSPATH}"
+    )
 
     echo ">>> Creating directory tree"
     edo ln -s "${FETCHEDDIR}/${ECLIPSE_FETCH_ARCHIVE}" "${WORK}"/
@@ -305,6 +341,17 @@ eclipse_src_unpack() {
     echo ">>> Patching build.xml"
     pushd "${WORK}"
     eclipse_patch "build_xml.patch"
+
+    # Prevent Ant from building "gnome" support, if disabled. Note that it is
+    # not sufficient to pass "-Dbuild.libgnomeproxy=false", due to subtleties.
+    if ! option gnome; then
+        sed -i "${ANT_BUILD_XML}" -e '/target="compile.libgnomeproxy"/d'
+    fi
+
+    # Prevent Ant from building SWT. We've already built SWT as a dependency.
+    sed -i "${ANT_BUILD_XML}" -e '/target="build.nativeLibraries"/d'
+
+    # Pop goes whoever reads comments.
     popd
 
     # Call the parent "src_unpack" last, as this invokes Ant with the "unpack"
@@ -314,6 +361,10 @@ eclipse_src_unpack() {
 
 eclipse_src_prepare() {
     antefix_src_prepare
+
+    # Glob the set of all "feature.xml" files now; calls to the
+    # "eclipse_remove_plugins_matching" function require this set.
+    ECLIPSE_FEATURE_XML_FILES=( **/feature.xml )
 
     # Apply exheres-specific patches after applying standard Eclipse patches,
     # above. (Force this odd calling order by doing it ourselves rather than
@@ -328,14 +379,68 @@ eclipse_src_prepare() {
     eclipse_patch "gtk-make_linux_mak.patch"
     popd
 
-    # Convert hardcoded library paths to Exherbo-specific library paths.
+    # Convert hardcoded library paths to Exherbo-specific library paths. This is
+    # only a precautionary measure in the event of Eclipse refusing to recognize
+    # the above "-Dbootclasspath=" Ant parameter. (It happens. Believe us.)
     echo ">>> Patching build files"
-    edo sed -i {pde,}build.properties -r \
-        -e "s~/.+/rt\.jar:.+$~${JAVA_JRE_LIBRARY_DIR}/rt.jar:${JAVA_JRE_LIBRARY_DIR}/jce.jar~"
+    local ECLIPSE_BUILD_PROPERTIES
+    for   ECLIPSE_BUILD_PROPERTIES in \
+        "build.properties" "pdebuild.properties" \
+        "${ECLIPSE_BUILD_DIR}/buildConfigs/eclipse-build-config/build.properties" \
+        "${ECLIPSE_BUILD_DIR}/plugins/org.eclipse.pde.build/feature/builder/build.properties" \
+        "${ECLIPSE_BUILD_DIR}/plugins/org.eclipse.pde.build/templates/headless-build/build.properties" \
+        ; do
+        edo sed -i "${ECLIPSE_BUILD_PROPERTIES}" -r \
+            -e "s~=.+/rt\.jar.*$~=${ECLIPSE_BOOTSTRAP_CLASSPATH}~"
+    done
+
+    echo ">>> Removing cross-architecture plugins"
+    local ECLIPSE_OS_ALL_BAD=$(eclipse_grep_names_not_matching "${ECLIPSE_OS}" "${ECLIPSE_OS_ALL}")
+    local ECLIPSE_WS_ALL_BAD=$(eclipse_grep_names_not_matching "${ECLIPSE_WS}" "${ECLIPSE_WS_ALL}")
+    local ECLIPSE_BUILD_ARCH_ALL_BAD=$(eclipse_grep_names_not_matching "${ECLIPSE_BUILD_ARCH}" "${ECLIPSE_BUILD_ARCH_ALL}")
+
+    # Dynamically construct an XPATH expression matching all "feature.xml"
+    # plugin elements not corresponding to this architecture. These elements
+    # will be removed.
+    #
+    # Prevent removal of the "org.eclipse.update.core.linux" and
+    # "org.eclipse.core.net.linux.x86" plugins regardless of this architecture.
+    # These are mandatory plugins.
+    local PLUGIN_XPATH_EXPRESSION="(@id!='org.eclipse.update.core.linux' and @id!='org.eclipse.core.net.linux.x86') and ("
+
+    local ECLIPSE_OS_BAD ECLIPSE_WS_BAD ECLIPSE_BUILD_ARCH_BAD
+    for   ECLIPSE_OS_BAD in ${ECLIPSE_OS_ALL_BAD} ; do
+        PLUGIN_XPATH_EXPRESSION+="@os='${ECLIPSE_OS_BAD}' or "
+    done
+    for   ECLIPSE_WS_BAD in ${ECLIPSE_WS_ALL_BAD} ; do
+        PLUGIN_XPATH_EXPRESSION+="@ws='${ECLIPSE_WS_BAD}' or "
+    done
+    for   ECLIPSE_BUILD_ARCH_BAD in ${ECLIPSE_BUILD_ARCH_ALL_BAD} ; do
+        PLUGIN_XPATH_EXPRESSION+="@arch='${ECLIPSE_BUILD_ARCH_BAD}' or "
+    done
+
+    # Replace the last accidentally introduced " or " expression with a trailing ")".
+    PLUGIN_XPATH_EXPRESSION="${PLUGIN_XPATH_EXPRESSION% or })"
+
+    # Do it. Do it now!
+    eclipse_remove_plugins_matching "${PLUGIN_XPATH_EXPRESSION}"
+
+    echo ">>> Removing cross-architecture SWT plugins"
+    eclipse_remove_plugins_matching "contains(@id, 'org.eclipse.swt.') and not(contains(@id, '${ECLIPSE_BUILD_PACKAGE_SUFFIX}'))) or (contains(@id, 'org.eclipse.equinox.launcher.') and not(contains(@id, '${ECLIPSE_BUILD_PACKAGE_SUFFIX}')))"
+
+    if ! option doc; then
+        echo ">>> Removing documentation plugins"
+        eclipse_remove_plugins_matching "contains(@id, '.doc')"
+    fi
+
+    if ! option source; then
+        echo ">>> Removing source plugins"
+        eclipse_remove_plugins_matching "contains(@id, '.source')"
+    fi
 
     echo ">>> Creating OSGi dependency properties"
     set_osgi_dependency_property "com.ibm.icu"                   "icu4j:4"
-    set_osgi_dependency_property "com.jcraft.jsch"               "jsch:0"
+    set_osgi_dependency_property "com.jcraft.jsch"               "jsch"
     set_osgi_dependency_property "javax.servlet"                 "tomcat:6 servlet-api"
     set_osgi_dependency_property "javax.servlet.jsp"             "tomcat:6 jsp-api"
     set_osgi_dependency_property "org.apache.commons.codec"      "commons-codec:1"
@@ -345,19 +450,19 @@ eclipse_src_prepare() {
     set_osgi_dependency_property "org.apache.jasper"             "tomcat:6 jasper"
     set_osgi_dependency_property "org.apache.lucene"             "lucene:1 lucene-core"
     set_osgi_dependency_property "org.apache.lucene.analysis"    "lucene:1 lucene-analyzers"
-    set_osgi_dependency_property "org.hamcrest.core"             "hamcrest-core:1"
+    set_osgi_dependency_property "org.hamcrest.core"             "hamcrest:1 hamcrest-core"
     set_osgi_dependency_property "org.mortbay.jetty.server"      "jetty:6"
     set_osgi_dependency_property "org.mortbay.jetty.util"        "jetty:6 jetty-util"
     set_osgi_dependency_property "org.objectweb.asm"             "asm:3 asm-all"
     set_osgi_dependency_property "org.sat4j.core"                "sat4j-core:2 sat4j-core"
     set_osgi_dependency_property "org.sat4j.pb"                  "sat4j-pb:2 sat4j-pb"
+#   add_osgi_dependency_property \
+#       "org.eclipse.swt.${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}.jar" \
+#       $(which_installed_jar_file "swt:${SLOT}")
 
     echo ">>> Creating non-OSGi dependency properties"
     set_nonosgi_dependency_property "org.junit"                  "junit:3"
     set_nonosgi_dependency_property "org.junit4"                 "junit:4"
-    add_nonosgi_dependency_property \
-        "org.eclipse.swt.${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}.jar" \
-        $(which_installed_jar_file "swt:${SLOT}")
 
     # Non-OSGI jar files, Ant-specific and provided by the "apache-ant" exheres.
     echo ">>> Creating non-OSGi Ant dependency properties"
@@ -387,19 +492,16 @@ eclipse_src_prepare() {
             "${ECLIPSE_ANT_WORK}/lib/${ECLIPSE_ANT_BINARY_TASK}.jar"
     done
 
-    # Glob the set of all "feature.xml" files now; calls to the
-    # "eclipse_remove_plugins_containing" function require this set.
-#   FEATURE_XML_FILES=( **/feature.xml )
+}
 
-#   if ! option doc; then
-#       echo ">>> Removing Eclipse documentation plugins from ${FEATURE_XML_FILES[@]}"
-#       eclipse_remove_plugins_containing '.doc'
-#   fi
+eclipse_src_compile() {
+    antefix_src_compile
 
-#   if ! option source; then
-#       echo ">>> Removing Eclipse source plugins"
-#       eclipse_remove_plugins_containing '.source'
-#   fi
+#   local SWT_JAR_FILE_TARGET="${ECLIPSE_BUILD_DIR}/plugins/${SWT_PACKAGE_NAME}/${SWT_PACKAGE_NAME}.jar"
+#   echo ">>> Symlinking SWT"
+#   local SWT_JAR_FILE_SOURCE=$(which_installed_jar_file "swt:${SLOT}")
+#   local SWT_JAR_FILE_TARGET="${ECLIPSE_BUILD_DIR}/plugins/${SWT_PACKAGE_NAME}/swt.jar"
+#   edo ln -sf "${SWT_JAR_FILE_SOURCE}" "${SWT_JAR_FILE_TARGET}"
 }
 
 eclipse_src_install() {
@@ -464,6 +566,49 @@ eclipse_patch() {
                 cat -- "${PATCH_FILE}" | patch -s -f -p1
           paludis_assert_unless_nonfatal "applying \"${PATCH_FILE}\" failed"
     done
+}
+
+# ....................{ PLUGINS                            }....................
+eclipse_grep_names_not_matching() {
+    illegal_in_global_scope
+    [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
+
+    local NAME_PATTERN="${1}"
+    local ALL_NAMES="${2}"
+
+    # Cut the passed name pattern from the passed whitespace-delimited string of
+    # all such strings. Note this uses sed rather than Bash regular expressions:
+    # not because it has to, but because it was easier and more reliable to.
+    echo "${ALL_NAMES}" | sed -r \
+        -e "s~[[:space:]]?${NAME_PATTERN}([[:space:]]?)~\\1~" \
+        -e 's~^[[:space:]]+~~'
+}
+
+eclipse_remove_plugins_matching() {
+    illegal_in_global_scope
+    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
+    [[ -n "${ECLIPSE_FEATURE_XML_FILES[@]}" ]] ||
+        die_unless_nonfatal "\$ECLIPSE_FEATURE_XML_FILES not set"
+
+    local PLUGIN_XPATH_EXPRESSION="${1}"
+
+    # Delete all plugin entries matching a fairly self-explanatory XPATH
+    # expression from all "feature.xml" files.
+    local ECLIPSE_FEATURE_XML_FILE_TEMP="${TEMP}/feature.xml"
+    local ECLIPSE_FEATURE_XML_FILE
+    for   ECLIPSE_FEATURE_XML_FILE in "${ECLIPSE_FEATURE_XML_FILES[@]}"; do
+        # Bizzarely, "xmlstarlet" erases the contents of the input file when
+        # redirecting stdout directly to that file via a customary trailing '>'.
+        # So, instead redirect stdout to a temporary file and move the temporary
+        # file to the input file.
+        edo xmlstarlet ed --delete "/feature/plugin[${PLUGIN_XPATH_EXPRESSION}]" \
+            "${ECLIPSE_FEATURE_XML_FILE}" > "${ECLIPSE_FEATURE_XML_FILE_TEMP}"
+        edo mv "${ECLIPSE_FEATURE_XML_FILE_TEMP}" "${ECLIPSE_FEATURE_XML_FILE}"
+    done
+
+    #FIXME: ...should probably do this, at some point.
+    # Delete the plugins themselves.
+#   edo rm -rf "${ECLIPSE_BUILD_DIR}/plugins"/*${PLUGINS_PATTERN}{,_*,.*}
 }
 
 # ....................{ DEPENDENCIES                       }....................
@@ -565,42 +710,4 @@ copy_dependency_property() {
     [[  -d "${ECLIPSE_JAR_DIR}" ]] || edo mkdir -p "${ECLIPSE_JAR_DIR}"
     edo mv "${EXHERBO_JAR_FILE}" "${ECLIPSE_JAR_FILE}"
 }
-
-# ....................{ PLUGINS                            }....................
-eclipse_remove_plugins_containing() {
-    illegal_in_global_scope
-    [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
-    [[ -n "${FEATURE_XML_FILES[@]}" ]] ||
-        die_unless_nonfatal "\$FEATURE_XML_FILES not set"
-
-    local PLUGINS_PATTERN="${1}"
-
-    # Delete all plugin entries matching a fairly self-explanatory XPATH
-    # expression from all "feature.xml" files.
-    for FEATURE_XML_FILE in "${FEATURE_XML_FILES[@]}"; do
-        edo xmlstarlet ed --delete \
-            "/feature/plugin[contains(@id, '${PLUGINS_PATTERN}')]" \
-            "${FEATURE_XML_FILE}" > "${FEATURE_XML_FILE}"
-    done
-
-    # Delete the plugins themselves.
-    edo rm -rf "${ECLIPSE_BUILD_DIR}/plugins"/*${PLUGINS_PATTERN}{,.*}
-}
-
-#FIXME leycec: A promising post I pounced upon, online.
-#FYI: I've stumbled across a working solution for unbundling dependencies that does not require the use of the (sparsely supported) "external" Bundle-ClassPath references and does not require system-installed JARs to contain OSGi metadata:
-#
-#1. Run Eclipse-Build as usual.
-#2. For each dependency JAR in installation/plugins:
-#    a. Create a new directory in installation/plugins named using the basename of the plugin JAR.
-#    b. Extract plugin.properties and META-INF/MANIFEST.MF from the plugin JAR into the new directory.
-#    c. Create symlink(s) to the system-installed JAR(s) in the new directory.
-#    d. Remove all "Name" and "SHA1-Digest" entries from META-INF/MANIFEST.MF.
-#    e. Add a "Bundle-ClassPath" entry to META-INF/MANIFEST.MF listing the names of the symlink(s) created in step c.
-#    f. Add the following XML element as a child of the <artifact> element for the appropriate plugin in artifacts.xml:
-#        <repositoryProperties size='1'>
-#            <property name='artifact.folder' value='true'/>
-#        </repositoryProperties>
-#    g. Edit configuration/org.eclipse.equinox.simpleconfigurator/bundles.info to change the ".jar" suffix of the appropriate plugin to "/".
-#    h. Delete the dependency JAR from installation/plugins.
 
