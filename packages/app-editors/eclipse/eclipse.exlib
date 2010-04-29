@@ -12,6 +12,24 @@
 # This exlib is resource intensive, typically allocating between 1GB to 4GB of
 # memory and an indeterminate amount of disk space. Such is life, Exherbo-style. 
 #
+# --------------------( OSGi                               )--------------------
+# This exlib requires both OSGi and non-OSGi Java dependencies. Both are
+# encapsulated in jar files and otherwise provide an identical directory layout
+# within those jar files. Superficially therefore, OSGi-conformant jar files and
+# non-OSGi-conformant jar files perform identical. The difference lies solely in
+# the contents of the "META-INF/MANIFEST.MF" file. In non-OSGi-conformant jar
+# files, this manifest has arbritrarily many key value pairs having arbitrary
+# key names and values; in other words, no conformance to a helpful standard. In
+# OSGi-conformant jar files, however, this manifest has key names and values
+# conforming to well-defined industry standards; in other words, predictable.
+#
+# What's the problem? Most Java projects still ship non-OSGi-conformant jar
+# files. For the most part, Eclipse requires absolutely OSGi-conformant jar
+# files: even for old projects known not to ship such jar files. Other exheres
+# must ensure, therefore, that their "src_install" phase replaces non-OSGi
+# "META-INF/MANIFEST.MF" files bundled in their output jar files with OSGi
+# "META-INF/MANIFEST.MF" files.
+#
 # --------------------( SEE ALSO                           )--------------------
 # * "Eclipse Build Wiki."
 #   http://wiki.eclipse.org/Linux_Tools_Project/Eclipse_Build
@@ -89,42 +107,6 @@ myexparam ant_nv="${ECLIPSE_ANT_N}-${ECLIPSE_ANT_V}"
 myexparam ant_archive="${ECLIPSE_ANT_NV}-bin.tar.bz2"
   exparam -v ECLIPSE_ANT_ARCHIVE ant_archive
 
-#FIXME leycec: Obsolete. Remove when stable.
-# Eclipse requires Tomcat Jasper, which Exherbo currently does not provide due
-# to complexities of that build process. Instead, fetch a precompiled jar file
-# identified as:
-#
-# * "jasper_pn", the prefix for this jar file.
-# * "jasper_pv", the version of this jar file needed for this Eclipse version.
-# * "jasper_pnv", the name and version for this jar file.
-#myexparam jasper_pn="jasper"
-#  exparam -v JASPER_PN jasper_pn
-#myexparam jasper_pv=    # you must pass this exparam!
-#  exparam -v JASPER_PV jasper_pv
-#myexparam jasper_pnv="${JASPER_PN}-${JASPER_PV}"
-#  exparam -v JASPER_PNV jasper_pnv
-
-# Eclipse requires Apache Jetty, which Exherbo currently does not provide due
-# to complexities of that build process. Instead, fetch a precompiled jar file
-# identified as:
-#
-# * "jetty_pn", the prefix for this jar file.
-# * "jetty_pv", the version of this jar file needed for this Eclipse version.
-# * "jetty_pnv", the name and version for this jar file.
-#myexparam jetty_pn="jetty"
-#  exparam -v JETTY_PN jetty_pn
-#myexparam jetty_pv=    # you must pass this exparam!
-#  exparam -v JETTY_PV jetty_pv
-#myexparam jetty_pnv="${JETTY_PN}-${JETTY_PV}"
-#  exparam -v JETTY_PNV jetty_pnv
-
-# Eclipse requires Apache Jetty in two jar files: "jetty-${JETTY_PV}.jar" and
-# "jetty-util-${JETTY_PV}.jar". The above globals identify the former; these
-# globals identify the latter. (The defaults are fine, for now.)
-#JETTY_UTIL_PN="${JETTY_PN}-util"
-#JETTY_UTIL_PV="${JETTY_PV}"
-#JETTY_UTIL_PNV="${JETTY_UTIL_PN}-${JETTY_UTIL_PV}"
-
 # ....................{ MAGIC STRINGS                      }....................
 # Eclipse analogue to $(uname --operating-system).
 ECLIPSE_OS="linux"
@@ -165,8 +147,7 @@ to as Eclipse ADT for Ada, Eclipse CDT for C, Eclipse JDT for Java, and
 Eclipse PDT for PHP.
 "
 
-#FIXME: Define additional mirrors. Also fetch jasper-5.5.*, jetty-6.1.*, and
-# jetty-util-6.1.*.
+#FIXME leycec: Define additional mirrors.
 #http://repo2.maven.org/maven2/org/mortbay/${JETTY_PN}/${JETTY_UTIL_PN}/6.1.24/jetty-util-6.1.24.jar
 #http://maven.simexplorer.org/repo/org/apache/${JASPER_PN}/${JASPER_PV}/${JASPER_PNV}.jar
 #EXTRA_WGET+="-U NoSuchBrowser/1.0"
@@ -178,7 +159,7 @@ http://archive.apache.org/dist/ant/binaries/apache-ant-${ECLIPSE_ANT_V}-bin.tar.
 HOMEPAGE="http://www.${PN}.org"
 REMOTE_IDS=""
 
-#FIXME: Refers to the most recent documentation, only.
+#FIXME leycec: Refers to the most recent documentation, only.
 UPSTREAM_DOCUMENTATION="http://help.${PN}.org/galileo/index.jsp [[ lang = en ]]"
 UPSTREAM_RELEASE_NOTES="http://www.${PN}.org/${PN}/development/readme_${PN}_${ECLIPSE_FETCH_V}.html"
 
@@ -189,13 +170,13 @@ LICENCES="EPL-1.0"
 MYOPTIONS+="
     gnome
     doc    [[ description = [ build eclipse documentation plugins (not recommended) ] ]]
-    source [[ description = [ build eclipse source plugins ] ]]
+    source [[ description = [ build eclipse source plugins (not recommended) ] ]]
     platform:
         amd64
         x86
 "
 
-#FIXME: "libgnome" and "libgnomeui" are deprecated. Where do we go from here?
+#FIXME leycec: "libgnome" and "libgnomeui" are deprecated. Where do we go from here?
 # Eclipse comes bundled with both the 3.x.x. and 4.x.x series of JUnit.
 # Therefore, so do we.
 #
@@ -246,10 +227,6 @@ DEPENDENCIES+="
 
 WORK="${WORKBASE}/${ECLIPSE_BUILD_NV}"
 
-# Absolute path to the directory into which "build.xml" assembles the final
-# Eclipse distribution.
-ECLIPSE_BUILD_DIR="${WORK}/build/${ECLIPSE_FETCH_NV}"
-
 # Eclipse comes bundled with the kitchen sink. We want that sink.
 JAVA_IS_CLEANING_JAR_FILES=
 
@@ -277,16 +254,42 @@ ANT_SRC_COMPILE_PARAMS=( build )
 # distribution under "${WORK}/installation".
 ANT_SRC_INSTALL_PARAMS=( install )
 
-# Eclipse features are bundles of Eclipse plugins as described by a
-# "feature.xml" file under the root directory for each feature. This array
-# remains empty until the "src_prepare" phase for reasons discussed there.
-FEATURE_XML_FILES=( )
+# Absolute path to the directory into which the "install" task assembles the
+# final Eclipse distribution.
+ECLIPSE_BUILD_DIR="${WORK}/build/${ECLIPSE_FETCH_NV}"
 
-# Absolute path to the directory to which the Ant tarball is unpacked.
+# Absolute path to the directory into which the Ant tarball is unpacked.
 ECLIPSE_ANT_WORK="${WORKBASE}/${ECLIPSE_ANT_NV}"
 
 # Java classpath to core JDK jar files.
 ECLIPSE_BOOTSTRAP_CLASSPATH="${JAVA_JRE_LIBRARY_DIR}/rt.jar:${JAVA_JRE_LIBRARY_DIR}/jce.jar"
+
+# Absolute root under which Eclipse is installed.
+ECLIPSE_PREFIX="/usr"
+
+# Relative root under ${ECLIPSE_HOME_PREFIX} under which Eclipse is installed.
+ECLIPSE_LIBDIR=$(get_libdir)
+
+# Absolute path to which the above "install" task temporarily installs Eclipse.
+# This exheres does not actually install Eclipse to this directory, as this
+# directory is not slotted.
+ECLIPSE_HOME_IMAGE="${IMAGE}${ECLIPSE_PREFIX}/${ECLIPSE_LIBDIR}/${PN}"
+
+# Absolute path to which this exheres permanently installs Eclipse.
+ECLIPSE_HOME="${ECLIPSE_PREFIX}/${ECLIPSE_LIBDIR}/${PN}-${SLOT}"
+
+# Relative path under ${WORK} to the property file listing Eclipse's OSGi-
+# conformant dependencies.
+ECLIPSE_DEPENDENCIES_PROPERTIES="dependencies.properties"
+
+# Relative path under ${WORK} to the property file listing Eclipse's non-OSGi-
+# conformant dependencies.
+ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES="nonosgidependencies.properties"
+
+# Eclipse features are bundles of Eclipse plugins as described by a
+# "feature.xml" file under the root directory for each feature. This array
+# remains empty until the "src_prepare" phase for reasons discussed there.
+ECLIPSE_FEATURE_XML_FILES=( )
 
 # Array of all optional Ant task names to be installed as precompiled jar files.
 # (This should eventually be reduced to none.)
@@ -297,13 +300,6 @@ ECLIPSE_ANT_BINARY_TASKS=(
     ant-commons-logging ant-commons-net
     ant-javamail ant-jdepend ant-jsch
 )
-
-#FIXME leycec: Obsolete. Remove when stable.
-#for ECLIPSE_ANT_BINARY_TASK in "${ECLIPSE_ANT_BINARY_TASKS[@]}"; do
-#    DOWNLOADS+="
-#    http://repo2.maven.org/maven2/org/apache/ant/${ECLIPSE_ANT_BINARY_TASK}/${ECLIPSE_ANT_V}/${ECLIPSE_ANT_BINARY_TASK}-${ECLIPSE_ANT_V}.jar
-#"
-#done
 
 # ....................{ PHASES                             }....................
 # Do not call the "default_src_unpack" function. Eclipse bundles itself... well,
@@ -330,6 +326,9 @@ eclipse_src_unpack() {
     ANT_PARAMS+=(
         "-DbuildArch=${ECLIPSE_BUILD_ARCH}"
         "-Dbootclasspath=${ECLIPSE_BOOTSTRAP_CLASSPATH}"
+        "-DdestDir=${IMAGE}"
+        "-Dprefix=${ECLIPSE_PREFIX}"
+        "-DlibDir=${ECLIPSE_LIBDIR}"
     )
 
     echo ">>> Creating directory tree"
@@ -340,16 +339,26 @@ eclipse_src_unpack() {
     # that is this current directory, pushd there prior to patching.
     echo ">>> Patching build.xml"
     pushd "${WORK}"
-    eclipse_patch "build_xml.patch"
 
     # Prevent Ant from building "gnome" support, if disabled. Note that it is
     # not sufficient to pass "-Dbuild.libgnomeproxy=false", due to subtleties.
     if ! option gnome; then
-        sed -i "${ANT_BUILD_XML}" -e '/target="compile.libgnomeproxy"/d'
+        xmlstarleted "${ANT_BUILD_XML}" --delete \
+            "/project/target[@name='compilelibs']/antcall[@target='compile.libgnomeproxy']"
     fi
 
-    # Prevent Ant from building SWT. We've already built SWT as a dependency.
-    sed -i "${ANT_BUILD_XML}" -e '/target="build.nativeLibraries"/d'
+    # Prevent Ant from building native SWT C and C++ libraries. We've already
+    # built these libraries as an exheres dependency.
+    xmlstarleted "${ANT_BUILD_XML}" --delete \
+        "/project/target[@name='compilelibs']/ant[@target='build.nativeLibraries']" \
+
+    #FIXME leycec: obsolete; remove when stable.
+    # Force Ant to install Eclipse under the multilib directory for this arch.
+#   xmlstarlet ed --delete "/project/target[@name='setLib64Dir']/property[@name='libDir']" \
+#       "${ANT_BUILD_XML}"
+#   xmlstarleted \
+#       --update "/project/target[@name='setLibDir']/property[@name='libDir']/@value" \
+#       --value $(get_libdir) "${ANT_BUILD_XML}"
 
     # Pop goes whoever reads comments.
     popd
@@ -364,7 +373,7 @@ eclipse_src_prepare() {
 
     # Glob the set of all "feature.xml" files now; calls to the
     # "eclipse_remove_plugins_matching" function require this set.
-    ECLIPSE_FEATURE_XML_FILES=( **/feature.xml )
+    ECLIPSE_ECLIPSE_FEATURE_XML_FILES=( **/feature.xml )
 
     # Apply exheres-specific patches after applying standard Eclipse patches,
     # above. (Force this odd calling order by doing it ourselves rather than
@@ -426,11 +435,12 @@ eclipse_src_prepare() {
     eclipse_remove_plugins_matching "${PLUGIN_XPATH_EXPRESSION}"
 
     echo ">>> Removing cross-architecture SWT plugins"
-    eclipse_remove_plugins_matching "contains(@id, 'org.eclipse.swt.') and not(contains(@id, '${ECLIPSE_BUILD_PACKAGE_SUFFIX}'))) or (contains(@id, 'org.eclipse.equinox.launcher.') and not(contains(@id, '${ECLIPSE_BUILD_PACKAGE_SUFFIX}')))"
+    eclipse_remove_plugins_matching "(contains(@id, 'org.eclipse.swt.') and not(contains(@id, '${ECLIPSE_BUILD_PACKAGE_SUFFIX}'))) or (contains(@id, 'org.eclipse.equinox.launcher.') and not(contains(@id, '${ECLIPSE_BUILD_PACKAGE_SUFFIX}')))"
 
+    #FIXME leycec: enabling "doc" causes sydbox network violations. Whitelist.
     if ! option doc; then
         echo ">>> Removing documentation plugins"
-        eclipse_remove_plugins_matching "contains(@id, '.doc')"
+        eclipse_remove_plugins_matching "contains(@id, '.doc.')"
     fi
 
     if ! option source; then
@@ -456,6 +466,8 @@ eclipse_src_prepare() {
     set_osgi_dependency_property "org.objectweb.asm"             "asm:3 asm-all"
     set_osgi_dependency_property "org.sat4j.core"                "sat4j-core:2 sat4j-core"
     set_osgi_dependency_property "org.sat4j.pb"                  "sat4j-pb:2 sat4j-pb"
+
+    #FIXME leycec: consider reenabling to symlink in SWT. (See below.)
 #   add_osgi_dependency_property \
 #       "org.eclipse.swt.${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}.jar" \
 #       $(which_installed_jar_file "swt:${SLOT}")
@@ -497,6 +509,8 @@ eclipse_src_prepare() {
 eclipse_src_compile() {
     antefix_src_compile
 
+    #FIXME leycec: should be uncommented at some point to symlink in the
+    #already compiled "/usr/share/swt/${SLOT}/swt.jar" file.
 #   local SWT_JAR_FILE_TARGET="${ECLIPSE_BUILD_DIR}/plugins/${SWT_PACKAGE_NAME}/${SWT_PACKAGE_NAME}.jar"
 #   echo ">>> Symlinking SWT"
 #   local SWT_JAR_FILE_SOURCE=$(which_installed_jar_file "swt:${SLOT}")
@@ -505,48 +519,59 @@ eclipse_src_compile() {
 }
 
 eclipse_src_install() {
+    #FIXME leycec: doesn't work... *sigh*
+    # The "install" task eventually calls the "run.director" task, which itself
+    # attempts to open spurious IPV6 connections to the localhost. Allow it.
+    #
+    # For further examples of sydbox syntax, see:
+    # http://projects.0x90.dk/repositories/entry/sydbox/tests/progtests/t47-sandbox-network-ipv6.bash?rev=b2ae2ee332bc8a7927640a313d01b4e87580f550
+#   sydboxcmd "net/whitelist/connect/inet6://::1"
+    ewarn "Disabling network sandboxing..."
+    sydboxcmd 'sandunbox/net'
     antefix_src_install
+    ewarn "Reenabling network sandboxing..."
+    sydboxcmd 'sandbox/net'
 
     local ECLIPSE_ENVIRO_FILENAME="60${PN}"
-    local ECLIPSE_CONFIG_FILENAME="${PN}"
-    local ECLIPSE_LAUNCH_FILENAME="${PN}-${SLOT}"
     local ECLIPSE_ENVIRO_FILE="/etc/env.d/${ECLIPSE_ENVIRO_FILENAME}"
-    local ECLIPSE_CONFIG_FILE="/etc/conf.d/${ECLIPSE_CONFIG_FILENAME}"
-    local ECLIPSE_LAUNCH_FILE="/usr/bin/${ECLIPSE_LAUNCH_FILENAME}"
-    local ECLIPSE_HOME="/usr/$(get_libdir)/${PN}-${SLOT}"
-#   local ECLIPSE_BIN="${ECLIPSE_HOME}/eclipse"
+    local ECLIPSE_CONFIG_FILE="/etc/${PN}.ini"
 
-    #FIXME leycec: needed?
-#   edo chmod +x "${ECLIPSE_BUILD_DIR}/installation/eclipse"
-#   edo rm "${ECLIPSE_BUILD_DIR}/installation/libcairo-swt.so"
+    #FIXME leycec: replace "plugins/org.eclipse.swt.gtk.linux.x86_64_3.5.2.v3557f.jar"
+    #with a system symlink.
+    # Install Eclipse to a slotted directory of the proper multilib tree. Note
+    # Eclipse installs a "${ECLIPSE_HOME_IMAGE_PREFIX}/share" directory as well,
+    # but that it provides so few files as to hardly benefit from slotting.
+    echo ">>> Installing distribution tree"
+    edo mv "${ECLIPSE_HOME_IMAGE}" "${IMAGE}${ECLIPSE_HOME}"
 
-    echo ">>> Installing distribution tree..."
-    insinto  "${ECLIPSE_HOME}"
-    doins -r "${ECLIPSE_BUILD_DIR}/installation"/*
-
-    echo ">>> Installing launcher files..."
-
-    # Install the launcher script as "/usr/bin/eclipse-${SLOT}".
-    edo cp "${ECLIPSE_FILES_DIR}/${PN}.bash" "${TEMP}"/
+    # Install the launcher script as "/usr/bin/eclipse-${SLOT}". Note Eclipse
+    # installs a "/usr/bin/eclipse" symlink to "/usr/lib/eclipse/bin/eclipse,"
+    # the binary Eclipse executable. Remove this, as running the raw executable
+    # is a bit unhelpful. (And besides, the absolute path of the raw executable
+    # is changed to "/usr/$(get_libdir)/eclipse/bin/eclipse", meaning we would
+    # have to replace the symlink anyway. It's more trouble than it's worth!)
+    echo ">>> Installing launcher script"
+    edo rm "${IMAGE}${ECLIPSE_PREFIX}/bin/eclipse"
+    edo cp "${FILES}/${SLOT}/${PN}.bash" "${TEMP}"/
     edo sed -i "${TEMP}/${PN}.bash" \
-        -e "s~__ECLIPSE_CONFIG_FILE__~${ECLIPSE_CONFIG_FILE}"
-        -e "s~__ECLIPSE_ENVIRO_FILE__~${ECLIPSE_ENVIRO_FILE}"
-    newbin "${TEMP}/${PN}.bash" "${ECLIPSE_LAUNCH_FILENAME}"
+        -e "s~__ECLIPSE_CONFIG_FILE__~${ECLIPSE_CONFIG_FILE}~"
+        -e "s~__ECLIPSE_ENVIRO_FILE__~${ECLIPSE_ENVIRO_FILE}~"
+    newbin "${TEMP}/${PN}.bash" "${PN}-${SLOT}"
 
     # Install the launcher configuration files.
+    echo ">>> Installing environment file"
     hereenvd "${ECLIPSE_ENVIRO_FILENAME}" <<EOF
 ECLIPSE_HOME="${ECLIPSE_HOME}"
 EOF
 
-    # FIXME leycec: also set "VMARGS_XX_PERMSIZE" and "VMARGS_XX_PERMSIZE". I
-    # can't be bothered, at the moment.
-    hereconfd "${ECLIPSE_CONFIG_FILENAME}" <<EOF
-# Require Eclipse to allocate at least VMARGS_XMS much memory but no more than
-# VMARGS_XMX much memory, where the 'm' refers to megabyte and 'g' to gigabyte.
-# If you receive "OutOfMemory" exceptions, double these values until you don't.
-VMARGS_XMS=256m
-VMARGS_XMX=512m
-EOF
+    # FIXME leycec: obsolete; Remove when stabilized.
+#   hereconfd "${ECLIPSE_CONFIG_FILENAME}" <<EOF
+## Require Eclipse to allocate at least VMARGS_XMS much memory but no more than
+## VMARGS_XMX much memory, where the 'm' refers to megabyte and 'g' to gigabyte.
+## If you receive "OutOfMemory" exceptions, double these values until you don't.
+#VMARGS_XMS=256m
+#VMARGS_XMX=512m
+#EOF
 }
 
 # ....................{ PATCHES                            }....................
@@ -568,6 +593,28 @@ eclipse_patch() {
     done
 }
 
+# ....................{ XMLSTARLET                         }....................
+# void xmlstarleted(char *filename, char *param1, char *param2, ...)
+#
+# Calls "xmlstarlet ed" on the passed file with the passed arguments. For
+# details, see "xmlstarlet ed --help".
+#
+# Note that calling this bizarrely erases the contents of the input file when
+# redirecting stdout directly to that file via a customary trailing '>'.
+# So, instead redirect stdout to a temporary file and move the temporary
+# file to the input file.
+xmlstarleted() {
+    illegal_in_global_scope
+    [[ ${#} -ge 2 ]] || die_unless_nonfatal "at least two arguments needed"
+
+    local XMLSTARLETED_TEMP_FILE="${TEMP}/xmlstarleted.xml"
+    local XMLSTARLETED_FILE="${1}"
+    shift
+
+    edo xmlstarlet ed "${@}" "${XMLSTARLETED_FILE}" > "${XMLSTARLETED_TEMP_FILE}"
+    edo mv "${XMLSTARLETED_TEMP_FILE}" "${XMLSTARLETED_FILE}"
+}
+
 # ....................{ PLUGINS                            }....................
 eclipse_grep_names_not_matching() {
     illegal_in_global_scope
@@ -587,8 +634,8 @@ eclipse_grep_names_not_matching() {
 eclipse_remove_plugins_matching() {
     illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
-    [[ -n "${ECLIPSE_FEATURE_XML_FILES[@]}" ]] ||
-        die_unless_nonfatal "\$ECLIPSE_FEATURE_XML_FILES not set"
+    [[ -n "${ECLIPSE_ECLIPSE_FEATURE_XML_FILES[@]}" ]] ||
+        die_unless_nonfatal "\$ECLIPSE_ECLIPSE_FEATURE_XML_FILES not set"
 
     local PLUGIN_XPATH_EXPRESSION="${1}"
 
@@ -596,14 +643,16 @@ eclipse_remove_plugins_matching() {
     # expression from all "feature.xml" files.
     local ECLIPSE_FEATURE_XML_FILE_TEMP="${TEMP}/feature.xml"
     local ECLIPSE_FEATURE_XML_FILE
-    for   ECLIPSE_FEATURE_XML_FILE in "${ECLIPSE_FEATURE_XML_FILES[@]}"; do
-        # Bizzarely, "xmlstarlet" erases the contents of the input file when
-        # redirecting stdout directly to that file via a customary trailing '>'.
-        # So, instead redirect stdout to a temporary file and move the temporary
-        # file to the input file.
-        edo xmlstarlet ed --delete "/feature/plugin[${PLUGIN_XPATH_EXPRESSION}]" \
-            "${ECLIPSE_FEATURE_XML_FILE}" > "${ECLIPSE_FEATURE_XML_FILE_TEMP}"
-        edo mv "${ECLIPSE_FEATURE_XML_FILE_TEMP}" "${ECLIPSE_FEATURE_XML_FILE}"
+    for   ECLIPSE_FEATURE_XML_FILE in "${ECLIPSE_ECLIPSE_FEATURE_XML_FILES[@]}"; do
+        # Plugin elements in "feature.xml" files denote those plugins as
+        # belonging to this features. Include elements in the same files
+        # denote that, though the plugins referenced in those elements do not
+        # belong to this feature, they are dependencies of this feature.
+        # Plugin or include elements matching the passed XPATH expression both
+        # signify a plugin to be deleted, and thus must be. We express this via
+        # the XPATH union operator, '|'.
+        xmlstarleted "${ECLIPSE_FEATURE_XML_FILE}" --delete \
+            "/feature/plugin[${PLUGIN_XPATH_EXPRESSION}] | /feature/includes[${PLUGIN_XPATH_EXPRESSION}]"
     done
 
     #FIXME: ...should probably do this, at some point.
@@ -612,9 +661,6 @@ eclipse_remove_plugins_matching() {
 }
 
 # ....................{ DEPENDENCIES                       }....................
-ECLIPSE_DEPENDENCIES_PROPERTIES="dependencies.properties"
-ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES="nonosgidependencies.properties"
-
 set_osgi_dependency_property() {
     set_dependency_property "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
 }
