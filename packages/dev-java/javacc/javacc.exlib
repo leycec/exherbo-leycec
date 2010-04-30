@@ -35,7 +35,6 @@ HOMEPAGE="https://${PN}.dev.java.net"
 DOWNLOADS="${HOMEPAGE}/files/documents/17/$(exparam download_id)/${PNV}src.tar.gz"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/doc/docindex.html [[ lang = en ]]"
 
-SLOT="0"
 LICENCES="BSD-3"
 DEPENDENCIES+="
     build+run+test:

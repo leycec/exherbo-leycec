@@ -3,4 +3,6 @@
 
 require javacc [ download_id=142527 ]
 
+SLOT="5"
 PLATFORMS="~amd64 ~x86"
+

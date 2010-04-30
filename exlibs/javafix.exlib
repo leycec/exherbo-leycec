@@ -716,15 +716,10 @@ which_installed_jar_file_for_this_exheres() {
 # Return this exheres name optionally suffixed by this exheres slot, if given.
 # This is a utility function called by the "*_for_this_exheres" functions above.
 get_java_exheres_name_for_this_exheres() {
-    # Exheres having no slot or a zero slot are unslotted exheres. Note we do
-    # not compare slots numerically, as the numerical comparators fail with
-    # error when passed floating point values: e.g.,
-    #
-    #     # This works.        # This doesn't.
-    #     [[ "3" -eq 0 ]]      [[ "3.5" -eq 0 ]]
-    #
-    # So, compare slots alphanumerically for safety.
-    if [[ -z "${SLOT}" ]] || [[ "${SLOT}" = "0" ]]
+    # Technically, exheres having no slot or a zero slot are unslotted exheres.
+    # Nonetheless, this exlib explicitly slots zero slot exheres for forwards
+    # compatibility with future releases of those exheres.
+    if [[ -z "${SLOT}" ]]
     then echo "${PN}"
     else echo "${PN}:${SLOT}"
     fi
@@ -873,10 +868,11 @@ replace_jar_manifest() {
 #
 # * "__PN__", which will be substituted with ${PN}.
 # * "__PV__", which will be substituted with ${PV}.
-# * "%bundleName" or "%pluginName", which will both be substituted with
-#   ${BUNDLE_NAME}. If ${BUNDLE_NAME} is not set, defaults to ${PN}. This is
-#   O.K.; this variable is usually applied to the "Bundle-Name" manifest key,
-#   which, under the OSGi standard, is an optional key for GUI purposes.
+# * "%bundleName", "%fragmentName", "%pluginName", which will both be
+#   substituted with ${BUNDLE_NAME}. If ${BUNDLE_NAME} is not set, defaults to
+#   ${PN}. This is O.K.; this variable is usually applied to the "Bundle-Name"
+#   manifest key, which, under the OSGi standard, is an optional key for GUI
+#   purposes.
 # * "%bundleProvider" or "%providerName", which will both be substituted with
 #   ${BUNDLE_VENDOR}. If ${BUNDLE_VENDOR} is not set, defaults to "Exherbo!"
 #   This is O.K.; this variable is usually applied to the "Bundle-Vendor"
@@ -947,6 +943,7 @@ rectify_jar_manifest() {
         -e "s\`__PN__\`${PN}\`" \
         -e "s\`__PV__\`${PV}\`" \
         -e "s\`%bundleName\`${BUNDLE_NAME:-${PN}}\`" \
+        -e "s\`%fragmentName\`${BUNDLE_NAME:-${PN}}\`" \
         -e "s\`%pluginName\`${BUNDLE_NAME:-${PN}}\`" \
         -e "s\`%bundleProvider\`${BUNDLE_VENDOR:-Exherbo!}\`" \
         -e "s\`%providerName\`${BUNDLE_VENDOR:-Exherbo!}\`" \

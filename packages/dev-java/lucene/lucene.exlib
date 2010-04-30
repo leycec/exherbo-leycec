@@ -51,7 +51,7 @@ LUCENE_IS_BUILDING_CONTRIB_ANALYZERS=1
 #   compiling system-specific binaries, Exherbons choose the latter. Hu-ah!
 DEPENDENCIES+="
     build:
-        dev-java/javacc[>=5.0]
+        dev-java/javacc:5
     test:
         dev-java/junit:4
 "
@@ -118,7 +118,7 @@ lucene_pkg_setup() {
         -Djavac.debug=$(option debug && echo true || echo false)
         -Djavac.source=1.5
         -Djavac.target=1.5
-        -Djavacc.home=$(which_installed_jar_dir "javacc")
+        -Djavacc.home=$(which_installed_jar_dir "javacc:5")
         -Dversion=${PV}
     )
 }
