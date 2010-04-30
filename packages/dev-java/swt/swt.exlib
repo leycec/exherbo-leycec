@@ -52,6 +52,7 @@ UPSTREAM_DOCUMENTATION="http://www.eclipse.org/${PN}/docs.php [[ lang = en ]]"
 
 SLOT="3.5"
 LICENCES="|| ( CPL-1.0 LGPL-2.1 MPL-1.1 )"
+
 MYOPTIONS+="
     cairo gnome opengl xulrunner
     platform:
@@ -60,8 +61,7 @@ MYOPTIONS+="
 "
 
 #FIXME: The soft "opengl" dependency should probably be "virtual/opengl"
-#instead. Unfortunately, that doesn't exist yet. Also, is this the most
-#concise way to depend on "gnome"?
+#instead. Unfortunately, that doesn't exist yet.
 DEPENDENCIES+="
     build:
         app-arch/unzip
@@ -187,8 +187,7 @@ swt_src_install() {
     edo sed -i "${MANIFEST_FILE}" -e "s~x86~${SWT_ARCH}~"
 
     # Install "swt.jar" with an Eclipse-compatible OSGi manifest.
-    echo ">>> Installing jar file with manifest"
+    echo ">>> Installing jar file"
     install_jars_with_manifests "dist/${PN}.jar" "${MANIFEST_FILE}"
-    die
 }
 
