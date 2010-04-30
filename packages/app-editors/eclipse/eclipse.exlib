@@ -208,7 +208,7 @@ DEPENDENCIES+="
         dev-java/hamcrest:1[>=1.2]
         dev-java/httpcomponents-client:3[>=3.1]
         dev-java/icu4j:4[=4.0.1]
-        dev-java/jsch[>=0.1.42]
+        dev-java/jsch:0[>=0.1.42]
         dev-java/jetty:6[>=6.1.24]
         dev-java/junit:3[>=3.8.2]
         dev-java/junit:4[>=4.8.1]
@@ -450,7 +450,7 @@ eclipse_src_prepare() {
 
     echo ">>> Creating OSGi dependency properties"
     set_osgi_dependency_property "com.ibm.icu"                   "icu4j:4"
-    set_osgi_dependency_property "com.jcraft.jsch"               "jsch"
+    set_osgi_dependency_property "com.jcraft.jsch"               "jsch:0"
     set_osgi_dependency_property "javax.servlet"                 "tomcat:6 servlet-api"
     set_osgi_dependency_property "javax.servlet.jsp"             "tomcat:6 jsp-api"
     set_osgi_dependency_property "org.apache.commons.codec"      "commons-codec:1"
@@ -542,7 +542,9 @@ eclipse_src_install() {
     # Eclipse installs a "${ECLIPSE_HOME_IMAGE_PREFIX}/share" directory as well,
     # but that it provides so few files as to hardly benefit from slotting.
     echo ">>> Installing distribution tree"
-    edo mv "${ECLIPSE_HOME_IMAGE}" "${IMAGE}${ECLIPSE_HOME}"
+    edo mv  "${ECLIPSE_HOME_IMAGE}" "${IMAGE}${ECLIPSE_HOME}"
+    keepdir "${ECLIPSE_HOME}/dropins"
+    keepdir "${ECLIPSE_PREFIX}/share/${PN}/dropins"
 
     # Install the launcher script as "/usr/bin/eclipse-${SLOT}". Note Eclipse
     # installs a "/usr/bin/eclipse" symlink to "/usr/lib/eclipse/bin/eclipse,"
@@ -554,7 +556,7 @@ eclipse_src_install() {
     edo rm "${IMAGE}${ECLIPSE_PREFIX}/bin/eclipse"
     edo cp "${FILES}/${SLOT}/${PN}.bash" "${TEMP}"/
     edo sed -i "${TEMP}/${PN}.bash" \
-        -e "s~__ECLIPSE_CONFIG_FILE__~${ECLIPSE_CONFIG_FILE}~"
+        -e "s~__ECLIPSE_CONFIG_FILE__~${ECLIPSE_CONFIG_FILE}~" \
         -e "s~__ECLIPSE_ENVIRO_FILE__~${ECLIPSE_ENVIRO_FILE}~"
     newbin "${TEMP}/${PN}.bash" "${PN}-${SLOT}"
 
