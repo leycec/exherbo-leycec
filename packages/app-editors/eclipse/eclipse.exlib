@@ -176,7 +176,6 @@ MYOPTIONS+="
         x86
 "
 
-#FIXME leycec: "libgnome" and "libgnomeui" are deprecated. Where do we go from here?
 # Eclipse comes bundled with both the 3.x.x. and 4.x.x series of JUnit.
 # Therefore, so do we.
 #

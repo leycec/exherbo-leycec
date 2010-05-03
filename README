@@ -17,7 +17,7 @@
 #     EOF
 #
 #     # Get this repository. (Note the "x-" prefix, below!)
-#     paludis -s x-leycec
+#     sudo paludis -s x-leycec
 #
 # If you receive errors, ensure that you've installed all repository masters
 # (i.e., dependencies) required by this repository. Currently, these are the
@@ -32,7 +32,7 @@
 #     EOF
 #
 #     # Retrieve the contents of this repository. (Note the "x-" prefix, below!)
-#     paludis -s x-java
+#     sudo paludis -s x-java
 # 
 # If you still receive errors, please send me a comment. (...with my apologies.)
 #

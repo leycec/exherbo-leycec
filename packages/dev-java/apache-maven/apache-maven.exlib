@@ -45,9 +45,6 @@ DEFAULT_SRC_INSTALL_EXTRA_DOCS=( "DEPENDENCIES" )
 # files, therefore.
 JAVA_IS_CLEANING_JAR_FILES=
 
-# Absolute path to the system-wide directory to which Maven will be installed.
-MAVEN_HOME=$(which_installed_jar_dir_for_this_exheres)
-
 # Absolute path to the directory to which Maven's "build.xml" installs files.
 MAVEN_DIST_DIR="${WORK}/dist"
 
@@ -139,6 +136,9 @@ apache-maven_src_prepare() {
 apache-maven_src_install() {
     antefix_src_install
 
+    # Absolute path to the system-wide directory to which Maven will be installed.
+    local MAVEN_HOME=$(which_installed_jar_dir_for_this_exheres)
+
     echo ">>> Removing extraneous files"
     edo rm "${MAVEN_HOME_WORK}"/*.txt
     edo rm "${MAVEN_HOME_WORK}"/bin/*.bat
@@ -154,7 +154,7 @@ apache-maven_src_install() {
     # for subsequent access by other exlibs, exheres, and users.
     echo ">>> Installing environment files"
     hereenvd "50${PN}" <<EOF
-M2_HOME=${MAVEN_HOME}
+M2_HOME="${MAVEN_HOME}"
 EOF
 }
 
