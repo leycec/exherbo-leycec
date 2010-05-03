@@ -21,7 +21,7 @@ DOWNLOADS="mirror://sourceforge/${PN}/${PNV}.zip"
 REMOTE_IDS="sourceforge:${PN}"
 
 MYOPTIONS+="
-    jzlib [[ description = [ support packet compression (recommended) ] ]]
+    jzlib [[ description = [ Support packet compression (recommended) ] ]]
 "
 DEPENDENCIES+="
     build+run:

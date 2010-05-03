@@ -44,7 +44,13 @@
 # That said, this exheres substantially differs from the ebuild on which it was
 # originally based. This is due, in large part, to substantial changes in the
 # Eclipse build framework introduced in Eclipse 3.5.2.
- 
+# 
+# --------------------( TODO                               )--------------------
+# * Symlink "swt.jar" rather than recompiling it. Should not be difficult.
+# * Provide supplementary exheres for compiling optional Eclipse features: e.g.,
+#   CDT, PyDev. After compilation, exheres should be installed as appropriately
+#   named zip files in Eclipse's "dropins" folder. (Simple? Simple.)
+
 # ....................{ EXLIB                              }....................
 # Eclipse exheres must pass the mandatory "build_v" exparam when requiring this
 # exlib. All other exparams are optional and generally need not be passed.
@@ -52,7 +58,7 @@
 # See "Eclipse Build Wiki" above to map Eclipse versions to "build_v" versions.
 
 require antefix
-export_exlib_phases src_unpack src_prepare src_compile src_install
+export_exlib_phases src_unpack src_prepare src_install pkg_postinst
 
 # Exheres slot, passed as an exparam so as to be available in global scope.
 myexparam slot=
@@ -131,7 +137,7 @@ ECLIPSE_BUILD_ARCH_ALL="alpha arm ia64 mips mipsel PA_RISC ppc ppc64 s390 s390x 
 ECLIPSE_BUILD_PACKAGE_SUFFIX="${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}"
 
 # Eclipse SWT package name specific to the current architecture.
-SWT_PACKAGE_NAME="org.eclipse.swt.${ECLIPSE_BUILD_PACKAGE_SUFFIX}"
+ECLIPSE_SWT_PACKAGE_NAME="org.eclipse.swt.${ECLIPSE_BUILD_PACKAGE_SUFFIX}"
 
 # ....................{ EXHERES                            }....................
 BUGS_TO="leycec@gmail.com"
@@ -148,29 +154,22 @@ Eclipse PDT for PHP.
 "
 
 #FIXME leycec: Define additional mirrors.
-#http://repo2.maven.org/maven2/org/mortbay/${JETTY_PN}/${JETTY_UTIL_PN}/6.1.24/jetty-util-6.1.24.jar
-#http://maven.simexplorer.org/repo/org/apache/${JASPER_PN}/${JASPER_PV}/${JASPER_PNV}.jar
-#EXTRA_WGET+="-U NoSuchBrowser/1.0"
 DOWNLOADS="
 http://download.${PN}.org/technology/linuxtools/${ECLIPSE_BUILD_N}/${ECLIPSE_FETCH_ARCHIVE}
 http://download.${PN}.org/technology/linuxtools/${ECLIPSE_BUILD_N}/${ECLIPSE_BUILD_ARCHIVE}
 http://archive.apache.org/dist/ant/binaries/apache-ant-${ECLIPSE_ANT_V}-bin.tar.bz2
 "
 HOMEPAGE="http://www.${PN}.org"
-REMOTE_IDS=""
-
-#FIXME leycec: Refers to the most recent documentation, only.
 UPSTREAM_DOCUMENTATION="http://help.${PN}.org/galileo/index.jsp [[ lang = en ]]"
 UPSTREAM_RELEASE_NOTES="http://www.${PN}.org/${PN}/development/readme_${PN}_${ECLIPSE_FETCH_V}.html"
 
-LICENCES="EPL-1.0"
-
 # Building Eclipse documentation plugins consumes, on rough average, twice the
 # computational resources as not doing so and is thus discouraged.
+LICENCES="EPL-1.0"
 MYOPTIONS+="
     gnome
-    doc    [[ description = [ build eclipse documentation plugins (not recommended) ] ]]
-    source [[ description = [ build eclipse source plugins (not recommended) ] ]]
+    doc    [[ description = [ Install Eclipse documentation plugins (not recommended) ] ]]
+    source [[ description = [ Install Eclipse source plugins (not recommended) ] ]]
     platform:
         amd64
         x86
@@ -290,6 +289,13 @@ ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES="nonosgidependencies.properties"
 # remains empty until the "src_prepare" phase for reasons discussed there.
 ECLIPSE_FEATURE_XML_FILES=( )
 
+# Absolute path to installed text files.
+ECLIPSE_LAUNCH_FILENAME="${PN}-${SLOT}"
+ECLIPSE_LAUNCH_FILE="/usr/bin/${PN}-${SLOT}"
+ECLIPSE_ENVIRO_FILENAME="60${PN}"
+ECLIPSE_ENVIRO_FILE="/etc/env.d/${ECLIPSE_ENVIRO_FILENAME}"
+ECLIPSE_CONFIG_FILE="/etc/${PN}.ini"
+
 # Array of all optional Ant task names to be installed as precompiled jar files.
 # (This should eventually be reduced to none.)
 ECLIPSE_ANT_BINARY_TASKS=(
@@ -342,22 +348,14 @@ eclipse_src_unpack() {
     # Prevent Ant from building "gnome" support, if disabled. Note that it is
     # not sufficient to pass "-Dbuild.libgnomeproxy=false", due to subtleties.
     if ! option gnome; then
-        xmlstarleted "${ANT_BUILD_XML}" --delete \
+        eclipse_xmlstarlet_ed "${ANT_BUILD_XML}" --delete \
             "/project/target[@name='compilelibs']/antcall[@target='compile.libgnomeproxy']"
     fi
 
     # Prevent Ant from building native SWT C and C++ libraries. We've already
     # built these libraries as an exheres dependency.
-    xmlstarleted "${ANT_BUILD_XML}" --delete \
+    eclipse_xmlstarlet_ed "${ANT_BUILD_XML}" --delete \
         "/project/target[@name='compilelibs']/ant[@target='build.nativeLibraries']" \
-
-    #FIXME leycec: obsolete; remove when stable.
-    # Force Ant to install Eclipse under the multilib directory for this arch.
-#   xmlstarlet ed --delete "/project/target[@name='setLib64Dir']/property[@name='libDir']" \
-#       "${ANT_BUILD_XML}"
-#   xmlstarleted \
-#       --update "/project/target[@name='setLibDir']/property[@name='libDir']/@value" \
-#       --value $(get_libdir) "${ANT_BUILD_XML}"
 
     # Pop goes whoever reads comments.
     popd
@@ -448,39 +446,39 @@ eclipse_src_prepare() {
     fi
 
     echo ">>> Creating OSGi dependency properties"
-    set_osgi_dependency_property "com.ibm.icu"                   "icu4j:4"
-    set_osgi_dependency_property "com.jcraft.jsch"               "jsch:0"
-    set_osgi_dependency_property "javax.servlet"                 "tomcat:6 servlet-api"
-    set_osgi_dependency_property "javax.servlet.jsp"             "tomcat:6 jsp-api"
-    set_osgi_dependency_property "org.apache.commons.codec"      "commons-codec:1"
-    set_osgi_dependency_property "org.apache.commons.el"         "commons-el:1"
-    set_osgi_dependency_property "org.apache.commons.httpclient" "httpcomponents-client:3"
-    set_osgi_dependency_property "org.apache.commons.logging"    "commons-logging:1"
-    set_osgi_dependency_property "org.apache.jasper"             "tomcat:6 jasper"
-    set_osgi_dependency_property "org.apache.lucene"             "lucene:1 lucene-core"
-    set_osgi_dependency_property "org.apache.lucene.analysis"    "lucene:1 lucene-analyzers"
-    set_osgi_dependency_property "org.hamcrest.core"             "hamcrest:1 hamcrest-core"
-    set_osgi_dependency_property "org.mortbay.jetty.server"      "jetty:6"
-    set_osgi_dependency_property "org.mortbay.jetty.util"        "jetty:6 jetty-util"
-    set_osgi_dependency_property "org.objectweb.asm"             "asm:3 asm-all"
-    set_osgi_dependency_property "org.sat4j.core"                "sat4j-core:2 sat4j-core"
-    set_osgi_dependency_property "org.sat4j.pb"                  "sat4j-pb:2 sat4j-pb"
+    eclipse_symlink_osgi_dependency "com.ibm.icu"                   "icu4j:4"
+    eclipse_symlink_osgi_dependency "com.jcraft.jsch"               "jsch:0"
+    eclipse_symlink_osgi_dependency "javax.servlet"                 "tomcat:6 servlet-api"
+    eclipse_symlink_osgi_dependency "javax.servlet.jsp"             "tomcat:6 jsp-api"
+    eclipse_symlink_osgi_dependency "org.apache.commons.codec"      "commons-codec:1"
+    eclipse_symlink_osgi_dependency "org.apache.commons.el"         "commons-el:1"
+    eclipse_symlink_osgi_dependency "org.apache.commons.httpclient" "httpcomponents-client:3"
+    eclipse_symlink_osgi_dependency "org.apache.commons.logging"    "commons-logging:1"
+    eclipse_symlink_osgi_dependency "org.apache.jasper"             "tomcat:6 jasper"
+    eclipse_symlink_osgi_dependency "org.apache.lucene"             "lucene:1 lucene-core"
+    eclipse_symlink_osgi_dependency "org.apache.lucene.analysis"    "lucene:1 lucene-analyzers"
+    eclipse_symlink_osgi_dependency "org.hamcrest.core"             "hamcrest:1 hamcrest-core"
+    eclipse_symlink_osgi_dependency "org.mortbay.jetty.server"      "jetty:6"
+    eclipse_symlink_osgi_dependency "org.mortbay.jetty.util"        "jetty:6 jetty-util"
+    eclipse_symlink_osgi_dependency "org.objectweb.asm"             "asm:3 asm-all"
+    eclipse_symlink_osgi_dependency "org.sat4j.core"                "sat4j-core:2 sat4j-core"
+    eclipse_symlink_osgi_dependency "org.sat4j.pb"                  "sat4j-pb:2 sat4j-pb"
 
     #FIXME leycec: consider reenabling to symlink in SWT. (See below.)
-#   add_osgi_dependency_property \
+#   eclipse_symlink_new_osgi_dependency \
 #       "org.eclipse.swt.${ECLIPSE_WS}.${ECLIPSE_OS}.${ECLIPSE_BUILD_ARCH}.jar" \
 #       $(which_installed_jar_file "swt:${SLOT}")
 
     echo ">>> Creating non-OSGi dependency properties"
-    set_nonosgi_dependency_property "org.junit"                  "junit:3"
-    set_nonosgi_dependency_property "org.junit4"                 "junit:4"
+    eclipse_symlink_nonosgi_dependency "org.junit"                  "junit:3"
+    eclipse_symlink_nonosgi_dependency "org.junit4"                 "junit:4"
 
     # Non-OSGI jar files, Ant-specific and provided by the "apache-ant" exheres.
     echo ">>> Creating non-OSGi Ant dependency properties"
     local ECLIPSE_ANT_TASK
     for   ECLIPSE_ANT_TASK in \
         ant ant-jmf ant-junit ant-launcher ant-nodeps ant-swing ant-trax ; do
-        # This three parameter version of "set_nonosgi_dependency_property"
+        # This three parameter version of "eclipse_symlink_nonosgi_dependency"
         # gets these parameters:
         #
         # {1} "dependencies.properties" jar package.
@@ -489,7 +487,7 @@ eclipse_src_prepare() {
         #     "which_installed_jar_file_from_spec" function expands this
         #     parameter into an absolute path: e.g.,
         #     "/usr/share/ant/lib/ant-trax.jar".
-        set_nonosgi_dependency_property "org.apache.ant" \
+        eclipse_symlink_nonosgi_dependency "org.apache.ant" \
                "/lib/${ECLIPSE_ANT_TASK}\\.jar" \
             "ant lib/${ECLIPSE_ANT_TASK}"
     done
@@ -498,22 +496,17 @@ eclipse_src_prepare() {
     # exheres. Naturally, this should be fixed.
     local ECLIPSE_ANT_BINARY_TASK
     for   ECLIPSE_ANT_BINARY_TASK in "${ECLIPSE_ANT_BINARY_TASKS[@]}"; do
-        copy_nonosgi_dependency_property "org.apache.ant" \
+        eclipse_copy_nonosgi_dependency "org.apache.ant" \
             "/lib/${ECLIPSE_ANT_BINARY_TASK}\\.jar" \
             "${ECLIPSE_ANT_WORK}/lib/${ECLIPSE_ANT_BINARY_TASK}.jar"
     done
 
-}
-
-eclipse_src_compile() {
-    antefix_src_compile
-
     #FIXME leycec: should be uncommented at some point to symlink in the
     #already compiled "/usr/share/swt/${SLOT}/swt.jar" file.
-#   local SWT_JAR_FILE_TARGET="${ECLIPSE_BUILD_DIR}/plugins/${SWT_PACKAGE_NAME}/${SWT_PACKAGE_NAME}.jar"
+#   local SWT_JAR_FILE_TARGET="${ECLIPSE_BUILD_DIR}/plugins/${ECLIPSE_SWT_PACKAGE_NAME}/${ECLIPSE_SWT_PACKAGE_NAME}.jar"
 #   echo ">>> Symlinking SWT"
 #   local SWT_JAR_FILE_SOURCE=$(which_installed_jar_file "swt:${SLOT}")
-#   local SWT_JAR_FILE_TARGET="${ECLIPSE_BUILD_DIR}/plugins/${SWT_PACKAGE_NAME}/swt.jar"
+#   local SWT_JAR_FILE_TARGET="${ECLIPSE_BUILD_DIR}/plugins/${ECLIPSE_SWT_PACKAGE_NAME}/swt.jar"
 #   edo ln -sf "${SWT_JAR_FILE_SOURCE}" "${SWT_JAR_FILE_TARGET}"
 }
 
@@ -530,10 +523,6 @@ eclipse_src_install() {
     antefix_src_install
     ewarn "Reenabling network sandboxing..."
     sydboxcmd 'sandbox/net'
-
-    local ECLIPSE_ENVIRO_FILENAME="60${PN}"
-    local ECLIPSE_ENVIRO_FILE="/etc/env.d/${ECLIPSE_ENVIRO_FILENAME}"
-    local ECLIPSE_CONFIG_FILE="/etc/${PN}.ini"
 
     #FIXME leycec: replace "plugins/org.eclipse.swt.gtk.linux.x86_64_3.5.2.v3557f.jar"
     #with a system symlink.
@@ -557,22 +546,34 @@ eclipse_src_install() {
     edo sed -i "${TEMP}/${PN}.bash" \
         -e "s~__ECLIPSE_CONFIG_FILE__~${ECLIPSE_CONFIG_FILE}~" \
         -e "s~__ECLIPSE_ENVIRO_FILE__~${ECLIPSE_ENVIRO_FILE}~"
-    newbin "${TEMP}/${PN}.bash" "${PN}-${SLOT}"
+    newbin "${TEMP}/${PN}.bash" "${ECLIPSE_LAUNCH_FILENAME}"
 
     # Install the launcher configuration files.
     echo ">>> Installing environment file"
     hereenvd "${ECLIPSE_ENVIRO_FILENAME}" <<EOF
 ECLIPSE_HOME="${ECLIPSE_HOME}"
 EOF
+}
 
-    # FIXME leycec: obsolete; Remove when stabilized.
-#   hereconfd "${ECLIPSE_CONFIG_FILENAME}" <<EOF
-## Require Eclipse to allocate at least VMARGS_XMS much memory but no more than
-## VMARGS_XMX much memory, where the 'm' refers to megabyte and 'g' to gigabyte.
-## If you receive "OutOfMemory" exceptions, double these values until you don't.
-#VMARGS_XMS=256m
-#VMARGS_XMX=512m
-#EOF
+eclipse_pkg_postinst() {
+    default
+
+    elog "Eclipse has been installed to \"${ECLIPSE_HOME}\"."
+    elog
+    elog "Eclipse is runnable via \"${ECLIPSE_LAUNCH_FILENAME}\" and configurable via"
+    elog "\"${ECLIPSE_CONFIG_FILE}\". Edit the latter if you recieve OutOfMemory"
+    elog "exceptions."
+    elog
+    elog "Note Eclipse does not add any update discovery sites by default! On initial"
+    elog "startup, add the following sites to the \"Help->Install New Software...->"
+    elog "Available Software Sites\" dialog:"
+    elog
+    elog "    Name: Eclipse Updates"
+    elog "    URL:  http://download.eclipse.org/eclipse/updates/3.5"
+    elog "    Name: Eclipse Galileo Updates"
+    elog "    URL:  http://download.eclipse.org/releases/galileo"
+    elog
+    elog "These updates are fetched as precompiled binaries. (Such is life.)"
 }
 
 # ....................{ PATCHES                            }....................
@@ -595,7 +596,7 @@ eclipse_patch() {
 }
 
 # ....................{ XMLSTARLET                         }....................
-# void xmlstarleted(char *filename, char *param1, char *param2, ...)
+# void eclipse_xmlstarlet_ed(char *filename, char *param1, char *param2, ...)
 #
 # Calls "xmlstarlet ed" on the passed file with the passed arguments. For
 # details, see "xmlstarlet ed --help".
@@ -604,11 +605,11 @@ eclipse_patch() {
 # redirecting stdout directly to that file via a customary trailing '>'.
 # So, instead redirect stdout to a temporary file and move the temporary
 # file to the input file.
-xmlstarleted() {
+eclipse_xmlstarlet_ed() {
     illegal_in_global_scope
     [[ ${#} -ge 2 ]] || die_unless_nonfatal "at least two arguments needed"
 
-    local XMLSTARLETED_TEMP_FILE="${TEMP}/xmlstarleted.xml"
+    local XMLSTARLETED_TEMP_FILE="${TEMP}/eclipse_xmlstarlet_ed.xml"
     local XMLSTARLETED_FILE="${1}"
     shift
 
@@ -652,7 +653,7 @@ eclipse_remove_plugins_matching() {
         # Plugin or include elements matching the passed XPATH expression both
         # signify a plugin to be deleted, and thus must be. We express this via
         # the XPATH union operator, '|'.
-        xmlstarleted "${ECLIPSE_FEATURE_XML_FILE}" --delete \
+        eclipse_xmlstarlet_ed "${ECLIPSE_FEATURE_XML_FILE}" --delete \
             "/feature/plugin[${PLUGIN_XPATH_EXPRESSION}] | /feature/includes[${PLUGIN_XPATH_EXPRESSION}]"
     done
 
@@ -662,14 +663,14 @@ eclipse_remove_plugins_matching() {
 }
 
 # ....................{ DEPENDENCIES                       }....................
-set_osgi_dependency_property() {
-    set_dependency_property "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
+eclipse_symlink_osgi_dependency() {
+    eclipse_symlink_dependency "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
 }
-set_nonosgi_dependency_property() {
-    set_dependency_property "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
+eclipse_symlink_nonosgi_dependency() {
+    eclipse_symlink_dependency "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
 }
 
-set_dependency_property() {
+eclipse_symlink_dependency() {
     illegal_in_global_scope
     [[ ${#} -eq 3 ]] ||
     [[ ${#} -eq 4 ]] || die_unless_nonfatal "three or four arguments needed"
@@ -688,14 +689,14 @@ set_dependency_property() {
         -e "s~^(${ECLIPSE_JAR_PACKAGE}.+${ECLIPSE_JAR_FILENAME}=).+$~\\1${EXHERBO_JAR_FILE}~"
 }
 
-add_osgi_dependency_property() {
-    add_dependency_property "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
+eclipse_symlink_new_osgi_dependency() {
+    eclipse_symlink_new_dependency "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
 }
-add_nonosgi_dependency_property() {
-    add_dependency_property "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
+eclipse_symlink_new_nonosgi_dependency() {
+    eclipse_symlink_new_dependency "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
 }
 
-add_dependency_property() {
+eclipse_symlink_new_dependency() {
     illegal_in_global_scope
     [[ ${#} -eq 3 ]] || die_unless_nonfatal "exactly three arguments needed"
 
@@ -707,14 +708,14 @@ ${ECLIPSE_JAR_FILENAME}=${EXHERBO_JAR_FILE}
 EOF
 }
 
-copy_osgi_dependency_property() {
-    copy_dependency_property "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
+eclipse_copy_osgi_dependency() {
+    eclipse_copy_dependency "${ECLIPSE_DEPENDENCIES_PROPERTIES}" "${@}"
 }
-copy_nonosgi_dependency_property() {
-    copy_dependency_property "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
+eclipse_copy_nonosgi_dependency() {
+    eclipse_copy_dependency "${ECLIPSE_NONOSGI_DEPENDENCIES_PROPERTIES}" "${@}"
 }
 
-copy_dependency_property() {
+eclipse_copy_dependency() {
     illegal_in_global_scope
     [[ ${#} -eq 3 ]] ||
     [[ ${#} -eq 4 ]] || die_unless_nonfatal "three or four arguments needed"

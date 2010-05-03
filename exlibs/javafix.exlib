@@ -206,7 +206,7 @@ javafix_pkg_setup() {
     # following installation, will set this. So, don't spit out an error.
     if [[ -n "${JAVA_HOME}" ]]; then
         echo ">>> Checking JDK"
-        check_jdk
+        javafix_check_jdk
     fi
 }
 
@@ -314,12 +314,13 @@ javafix_src_preamble() {
     fi
 }
 
+#FIXME: Prefix all function names with "javafix" for safety.
 # ....................{ CHECKERS                           }....................
 # void check_jdk(void)
 #
 # Find the currently selected JDK and ensure the current exheres permits
 # building against this JDK.
-check_jdk() {
+javafix_check_jdk() {
     # Find the currently selected JDK.
     JAVA_JDK=$(readlink -e "${JAVA_HOME}")
     JAVA_JDK="${JAVA_JDK##*/}"
