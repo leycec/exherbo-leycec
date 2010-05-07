@@ -1,0 +1,18 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Prevent forced stripping and optimization.
+--- old/SConscript	2010-02-22 15:10:58.000000000 +0000
++++ new/SConscript	2010-05-07 06:48:13.244076833 +0000
+@@ -91,9 +91,9 @@
+ 		env.Append(
+ 			CPPDEFINES = ['NDEBUG'],
+ 			CDEFINES = ['NDEBUG'],
+-			CPPFLAGS = ['-Wall', '-O3'],
+-			CFLAGS = ['-Wall', '-O3'],
+-			LINKFLAGS = ['-Wl,-as-needed', '-s'],
++			CPPFLAGS = ['-Wall'],
++			CFLAGS = ['-Wall'],
++			LINKFLAGS = ['-Wl,-as-needed'],
+ 			)
+ 
+ extern_libs = SConscript(['extern/SConscript'], exports='env')

@@ -1,0 +1,45 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# ....................{ EXLIB                              }....................
+# gpick prefers underscores to hyphens. Very well!
+MY_PNV="${PN}_${PV}"
+
+require googlecode [ suffix=tar.gz ] scons
+export_exlib_phases src_install
+
+# ....................{ EXHERES                            }....................
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="GTK+ color picker/palette editor"
+DESCRIPTION="
+gpick is a combination color picker/palette editor written in C++ using the GTK+
+toolkit, perhaps best known for its ability to preview color selections on a fake
+webpage.
+"
+
+SLOT="0"
+LICENCES="BSD"
+MYOPTIONS+=""
+
+# For a list of all hypothetical gpick dependencies, see:
+#     http://code.google.com/p/gpick/wiki/BuildingDependencies
+DEPENDENCIES+="
+    build+run:
+        dev-lang/lua[>=5.1]
+        x11-libs/gtk+:2[>=2.12]
+        dev-libs/dbus-glib[>=0.76]
+"
+
+WORK="${WORKBASE}/${MY_PNV}"
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/SConscript.patch" )
+
+#FIXME leycec: "scons.exlib" requires generalized support for custom DESTDIRs.
+gpick_src_install() {
+    escons \
+        --config=cache \
+        DESTDIR="${IMAGE}/usr" \
+        "${SCONS_SRC_INSTALL_PARAMS[@]}" \
+        install
+}
+
