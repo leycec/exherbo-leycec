@@ -4,7 +4,7 @@
 require antefix jcraft
 
 # JZlib ships no "build.xml" file. Let's help them with that.
-enable_build_xml_creation
+antefix_enable_build_xml_creation
 
 # Smallest exlib evar.
 BUGS_TO="leycec@gmail.com"

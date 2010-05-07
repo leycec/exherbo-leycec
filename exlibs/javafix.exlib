@@ -103,7 +103,7 @@ JAVA_SRC_INSTALL_JAVADOC_DIR=""
 #     JAVA_SRC_INSTALL_JARS=( "dist/${PNV}.jar" "dist/${PNV}-library.jar" )
 #
 # If filenames are not known until install time, leave this blank and explicitly
-# call "install_jars" within your "src_install".
+# call "javafix_install_jars" within your "src_install".
 JAVA_SRC_INSTALL_JARS=( )
 
 # Associative array mapping jar specifier to absolute or relative path under
@@ -124,11 +124,11 @@ JAVA_SRC_INSTALL_JARS=( )
 # returning them from functions. Fortunately, the "fake" solution works reliably.
 #
 # If filenames are not known until install time, leave this blank and explicitly
-# call "install_jars_with_manifests" within your "src_install".
+# call "javafix_install_jars_with_manifests" within your "src_install".
 JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS=( )
 
 # Add a buildtime dependency on "app-arch/zip" to calling exheres. The
-# "replace_jar_manifest" function implicitly requires this binary. While many
+# "javafix_replace_jar_manifest" function implicitly requires this binary. While many
 # Java exheres do not call this function, many others do; as this is a common
 # dependency of other core exheres, our adding it here does little harm.
 DEPENDENCIES+="
@@ -223,12 +223,12 @@ javafix_src_unpack() {
         # calling the "ant_src_unpack" function.
         if [[ -n "${JAVA_IS_CLEANING_JAR_FILES}" ]]; then
             echo ">>> Removing jar files"
-            clean_jar_files
+            javafix_clean_jar_files
         fi
 
         if [[ -n "${JAVA_IS_CLEANING_CLASS_FILES}" ]]; then
             echo ">>> Removing class files"
-            clean_class_files
+            javafix_clean_class_files
         fi
     fi
 }
@@ -240,7 +240,7 @@ javafix_src_prepare() {
     # Deversion files after patching files above but before invoking Ant below.
     if [[ -n "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}" ]]; then
         echo ">>> Removing jar filename version specifiers"
-        deversion_java_files "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}"
+        javafix_deversion_files "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}"
     fi
 
     if [[ -n "${JAVA_SRC_PREPARE_JARS[@]}" ]]; then
@@ -295,7 +295,7 @@ javafix_src_install() {
 
     if [[ -n "${JAVA_SRC_INSTALL_JARS[@]}" ]]; then
         echo ">>> Installing jar files"
-        install_jars "${JAVA_SRC_INSTALL_JARS[@]}"
+        javafix_install_jars "${JAVA_SRC_INSTALL_JARS[@]}"
     fi
 
     # Note: it is valid for an exheres to define both ${JAVA_SRC_INSTALL_JARS}
@@ -303,7 +303,7 @@ javafix_src_install() {
     # output jar files requiring manifest replacement and others not.
     if [[ -n "${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS[@]}" ]]; then
         echo ">>> Installing jar files with custom manifests"
-        install_jars_with_manifests "${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS[@]}"
+        javafix_install_jars_with_manifests "${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS[@]}"
     fi
 }
 
@@ -314,9 +314,8 @@ javafix_src_preamble() {
     fi
 }
 
-#FIXME: Prefix all function names with "javafix" for safety.
 # ....................{ CHECKERS                           }....................
-# void check_jdk(void)
+# void javafix_check_jdk(void)
 #
 # Find the currently selected JDK and ensure the current exheres permits
 # building against this JDK.
@@ -350,30 +349,30 @@ javafix_check_jdk() {
 }
 
 # ....................{ CLEANERS                           }....................
-# void clean_jar_files(void)
+# void javafix_clean_jar_files(void)
 #
 # Recursively remove all jar files under ${WORK}. (Fairly destructive!)
-clean_jar_files() {
+javafix_clean_jar_files() {
     # Do not use "edo rm -f "${WORK}"/**/*.jar" as that tends to glob more
     # files than can be reasonably handled by the shell.
     edo find "${WORK}" -type f -iname '*.jar' \
         "${JAVA_CLEAN_JAR_FILES_PARAMS[@]}" -delete
 }
 
-# void clean_class_files(void)
+# void javafix_clean_class_files(void)
 #
 # Recursively remove all class files under ${WORK}. (Danger, Exherbon.)
-clean_class_files() {
+javafix_clean_class_files() {
     edo find "${WORK}" -type f -iname '*.class' -delete
 }
 
 # ....................{ DEVERSIONERS                       }....................
-# void deversion_java_files(char *filename1, char *filename2, ...)
+# void javafix_deversion_files(char *filename1, char *filename2, ...)
 #
 # Patch the passed absolute or relative filenames of jar file version suffixes.
 # These files are typically "build.xml" files, so as to generalize their build
 # process to non-versioned jar files installed on the local machine.
-deversion_java_files() {
+javafix_deversion_files() {
     local LIBRARY_JAR_SPEC LIBRARY_JAR_NAME
     local DEVERSION_JAVA_FILE
     for   DEVERSION_JAVA_FILE in "${@}"; do
@@ -453,7 +452,7 @@ symlink_jars() {
 # The following convenience functions install all Java libraries produced by
 # this exheres into local directories appropriate for this exheres.
 
-# void install_jars(char *jar_filename1, char *jar_filename2, ...)
+# void javafix_install_jars(char *jar_filename1, char *jar_filename2, ...)
 #
 # Copy the passed jar files to relative filenames having the same basename sans
 # version under the installation directory for this exheres: usually,
@@ -462,7 +461,7 @@ symlink_jars() {
 # elsewhere without concern for specific versions they represent. This resembles:
 #
 #   cp "$filename1" "$filename2" ... "${IMAGE}/${JAVA_SRC_INSTALL_JARS_IMAGE_DIR}"
-install_jars() {
+javafix_install_jars() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
 
@@ -482,7 +481,7 @@ install_jars() {
     done
 }
 
-# void install_jar_symlinks(char *jar_filename1, char *jar_filename2, ...)
+# void javafix_install_jar_symlinks(char *jar_filename1, char *jar_filename2, ...)
 #
 # Symlink the passed jar files to relative filenames having the same basename sans
 # version under the installation directory for this exheres: usually,
@@ -495,8 +494,8 @@ install_jars() {
 #   # "/usr/share/jetty/${SLOT}/${PN}.jar".
 #   insinto "/opt/jetty"
 #   doins                           "lib/${PNV}.jar" 
-#   install_jar_symlinks "/opt/jetty/lib/${PNV}.jar" 
-install_jar_symlinks() {
+#   javafix_install_jar_symlinks "/opt/jetty/lib/${PNV}.jar" 
+javafix_install_jar_symlinks() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
 
@@ -511,7 +510,7 @@ install_jar_symlinks() {
     done
 }
 
-# void install_jars_with_manifests(
+# void javafix_install_jars_with_manifests(
 #     char *jar_filename1, char *manifest_filename1,
 #     char *jar_filename2, char *manifest_filename2, ...)
 #
@@ -519,7 +518,7 @@ install_jar_symlinks() {
 # manifest files for each; then, copy the resultant jar files to relative
 # filenames having the same basename sans version under the installation
 # directory for this exheres: usually, "/usr/share/${PN}/${SLOT}/".
-install_jars_with_manifests() {
+javafix_install_jars_with_manifests() {
     illegal_in_global_scope
     [[ ${#} -ge 2 ]] || die_unless_nonfatal "at least two arguments needed"
 
@@ -534,19 +533,19 @@ install_jars_with_manifests() {
         JAR_FILES+=( "${JAR_FILE}" )
         shift 2
 
-        replace_jar_manifest "${JAR_FILE}" "${MANIFEST_FILE}"
+        javafix_replace_jar_manifest "${JAR_FILE}" "${MANIFEST_FILE}"
     done
 
-    install_jars "${JAR_FILES[@]}"
+    javafix_install_jars "${JAR_FILES[@]}"
 }
 
-# void install_jar_as(char *filename1, char *filename2)
+# void javafix_install_jar_as(char *filename1, char *filename2)
 #
 # Copy absolute "$filename1" to relative "$filename2" under the above directory.
 # This is functionally equivalent to:
 #
-#   cp "$filename1" "${IMAGE}/$install_jar_dir/$filename2"
-install_jar_as() {
+#   cp "$filename1" "${IMAGE}/$javafix_install_jar_dir/$filename2"
+javafix_install_jar_as() {
     illegal_in_global_scope
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
 
@@ -819,18 +818,18 @@ which_installed_jar_file_from_spec_nonfatal() {
 }
 
 # ....................{ MANIFEST.MF                        }....................
-# void replace_jar_manifest(char *jar_filename, char *manifest_filename)
+# void javafix_replace_jar_manifest(char *jar_filename, char *manifest_filename)
 #
 # Replace "META-INF/MANIFEST.MF" in the passed jar filename with the passed
 # manifest filename. Also, substitute placeholder variables with their current
-# Bash values as performed by the "rectify_jar_manifest" function.
+# Bash values as performed by the "javafix_rectify_jar_manifest" function.
 #
 # Exheres usually call this function from "src_install", occasionally overriding
 # exheres globals with jar file-specific locals: e.g.,
 #
 #     local PV=0.8.1   # ...hides the global ${PV}
-#     replace_jar_manifest "dist/${PN}.jar" "${FILES}/${PN}-MANIFEST.MF"
-replace_jar_manifest() {
+#     javafix_replace_jar_manifest "dist/${PN}.jar" "${FILES}/${PN}-MANIFEST.MF"
+javafix_replace_jar_manifest() {
     illegal_in_global_scope
     [[ ${#} -eq 2 ]] || die_unless_nonfatal "exactly two arguments needed"
 
@@ -840,7 +839,7 @@ replace_jar_manifest() {
     # Copy the source to target manifest file, and patch placeholders.
     edo mkdir -p              "${TEMP}/META-INF"
     edo cp "${MANIFEST_FILE}" "${TEMP}/META-INF/MANIFEST.MF"
-    rectify_jar_manifest      "${TEMP}/META-INF/MANIFEST.MF"
+    javafix_rectify_jar_manifest      "${TEMP}/META-INF/MANIFEST.MF"
 
     # Move the jar file to the temporary path having the target manifest,
     # temporarily renaming it for convenience.
@@ -862,7 +861,7 @@ replace_jar_manifest() {
     edo mv "${TEMP}/temp.jar" "${JAR_FILE}"
 }
 
-# void rectify_jar_manifest(char *manifest_filename)
+# void javafix_rectify_jar_manifest(char *manifest_filename)
 #
 # Substitute placeholder variables in the passed manifest file with their
 # current values. Recognized placeholders are:
@@ -901,13 +900,13 @@ replace_jar_manifest() {
 #
 #     local PV=3.0.2                   # ...hides the global ${PV}
 #     local BUNDLE_NAME="SAT4J Core"   # ...hides the global ${BUNDLE_NAME}
-#     rectify_jar_manifest "${WORK}/build/META-INF/MANIFEST.MF"
+#     javafix_rectify_jar_manifest "${WORK}/build/META-INF/MANIFEST.MF"
 #
 # !!!!!IMPORTANT!!!!! strings substituted into placeholder variables must not
 # contain backtick characters '`', as the sed expressions performing these
 # substitutions use that character to delimit themselves. Since this would be a
 # strange character for a string to contain, this is generally "safe."
-rectify_jar_manifest() {
+javafix_rectify_jar_manifest() {
     illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
 

@@ -70,7 +70,7 @@ junit_src_unpack() {
 
     # Delete all jar files, including the above.
     echo ">>> Removing jar files"
-    clean_jar_files
+    javafix_clean_jar_files
 
     echo ">>> Removing extraneous source files"
     local EXTRA_SOURCE_FILES

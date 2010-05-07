@@ -4,7 +4,7 @@
 require junit [ archive_jar_file="src.jar" ]
 
 # JUnit 3.x.x ships no "build.xml" file. Insanity.
-enable_build_xml_creation
+antefix_enable_build_xml_creation
 
 # See the newest exheres for SLOT commentary.
 SLOT="3"

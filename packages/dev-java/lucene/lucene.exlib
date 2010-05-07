@@ -163,7 +163,7 @@ lucene_src_install() {
         # Note the subdirectory to which this jar file is output changes with
         # some slots. Glob these ambiguities away.
         echo ">>> Correcting contrib_analyzers jar file manifests"
-        replace_jar_manifest \
+        javafix_replace_jar_manifest \
             "${ANT_CONTRIB_ANALYZERS_BUILD_DIR}"/**/"${PN}-analyzers-${PV}.jar" \
             "${FILES}/MANIFEST-contrib_analyzers.MF"
     fi
@@ -176,7 +176,7 @@ lucene_src_install() {
 
         if [[ -n "${CONTRIB_JAR_FILES}" ]]; then
             echo ">>> Installing contrib jar files"
-            install_jars ${CONTRIB_JAR_FILES}
+            javafix_install_jars ${CONTRIB_JAR_FILES}
         fi
     fi
 }

@@ -199,7 +199,7 @@ sat4j_src_prepare() {
     echo ">>> Patching jar file manifest"
     local BUNDLE_NAME="SAT4J ${SAT4J_PN_CASED}"
     local PROVIDER_NAME="CRIL CNRS UMR 8188 - Universite d'Artois"
-    rectify_jar_manifest "${SAT4J_MANIFEST_FILE}"
+    javafix_rectify_jar_manifest "${SAT4J_MANIFEST_FILE}"
 }
 
 sat4j_src_install() {
@@ -212,11 +212,11 @@ sat4j_src_install() {
     # Apply a custom "MANIFEST.MF", if this exheres provides one.
     if [[ -n "${FILES}/MANIFEST.MF" ]]; then
         echo ">>> Correcting jar file manifest"
-        replace_jar_manifest "${SAT4J_JAR_FILE_SOURCE}" "${FILES}/MANIFEST.MF"
+        javafix_replace_jar_manifest "${SAT4J_JAR_FILE_SOURCE}" "${FILES}/MANIFEST.MF"
     fi
 
     echo ">>> Installing jar file"
-    install_jar_as "${SAT4J_JAR_FILE_SOURCE}" "${SAT4J_JAR_FILE_TARGET}"
+    javafix_install_jar_as "${SAT4J_JAR_FILE_SOURCE}" "${SAT4J_JAR_FILE_TARGET}"
 
     # Other exheres often expect SAT4J jar filenames to be named according the
     # reverse domain name.

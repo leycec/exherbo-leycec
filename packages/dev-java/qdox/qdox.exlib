@@ -8,7 +8,7 @@ require antefix
 export_exlib_phases src_unpack
 
 # QDox ships no "build.xml" file. I don't know whether to hug them or cry.
-enable_build_xml_creation
+antefix_enable_build_xml_creation
 
 BUGS_TO="leycec@gmail.com"
 

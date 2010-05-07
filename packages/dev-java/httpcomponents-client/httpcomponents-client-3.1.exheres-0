@@ -57,7 +57,7 @@ src_install() {
     # replace its manifest with an Eclipse-compatible OSGi manifest.
     echo ">>> Installing jar files"
     local JAR_FILE_SOURCE="dist/${HTTP_PN}.jar"
-    replace_jar_manifest "${JAR_FILE_SOURCE}" "${FILES}/${SLOT}/MANIFEST.MF"
-    install_jar_as       "${JAR_FILE_SOURCE}" "${PN}.jar"
+    javafix_replace_jar_manifest "${JAR_FILE_SOURCE}" "${FILES}/${SLOT}/MANIFEST.MF"
+    javafix_install_jar_as       "${JAR_FILE_SOURCE}" "${PN}.jar"
 }
 

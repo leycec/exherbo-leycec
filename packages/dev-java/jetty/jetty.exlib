@@ -54,8 +54,8 @@ EOF
 
     # Install jar files with Eclipse-compatible OSGi manifests.
     echo ">>> Correcting jar file manifests"
-    replace_jar_manifest "${JETTY_JAR_FILE}"      "${FILES}/MANIFEST.MF"
-    replace_jar_manifest "${JETTY_UTIL_JAR_FILE}" "${FILES}/MANIFEST-util.MF"
+    javafix_replace_jar_manifest "${JETTY_JAR_FILE}"      "${FILES}/MANIFEST.MF"
+    javafix_replace_jar_manifest "${JETTY_UTIL_JAR_FILE}" "${FILES}/MANIFEST-util.MF"
 
     echo ">>> Installing directory tree"
     dodir   "${JETTY_HOME}"
@@ -75,7 +75,7 @@ EOF
     # Exherbo exheres expect Jetty jars in the customary directory,
     # "/usr/share/jetty/${SLOT/". Symlink from the above directory here.
     echo ">>> Symlinking jar files"
-    install_jar_symlinks \
+    javafix_install_jar_symlinks \
         "${JETTY_HOME}/${JETTY_JAR_FILE}" \
         "${JETTY_HOME}/${JETTY_UTIL_JAR_FILE}"
 

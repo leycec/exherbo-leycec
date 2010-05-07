@@ -132,12 +132,12 @@ ANT="${ANT_HOME}/bin/ant"
 # used sparingly.)
 #
 # Defaults to false. To set this variable, do not set it directly. Instead, call
-# the "enable_build_xml_creation" function to have it set for you. Do this at
+# the "antefix_enable_build_xml_creation" function to have it set for you. Do this at
 # the earliest time possible after requiring this exlib. Example:
 #
 #      # "qdox-1.11.exheres-0" needs a fake "build.xml". Make it so.
 #      require antefix
-#      enable_build_xml_creation
+#      antefix_enable_build_xml_creation
 ANT_IS_CREATING_BUILD_XML=
 
 # ....................{ EXHERES                            }....................
@@ -160,14 +160,14 @@ antefix_src_unpack() {
 
     if [[ "${ANT_IS_CREATING_BUILD_XML}" ]]; then
         echo ">>> Creating ${ANT_BUILD_XML}"
-        create_build_xml
+        antefix_create_build_xml
     fi
 
     # Kill evil bundled jar files!
     #
     # This is a deprecated code block, and now (more or less) considered bad.
     # The "java_src_unpack" cleans all embedded jar files if and only if the
-    # "clean_jar_files" exparam is true. This code block remains, however, until
+    # "javafix_clean_jar_files" exparam is true. This code block remains, however, until
     # we verify that no exheres requires this code block.
     if [[ -n "${ANT_BUNDLED_LIBSDIR[@]}" ]]; then
         for ANT_BUNDLED_LIBS in "${ANT_BUNDLED_LIBSDIR[@]}"; do
@@ -298,11 +298,11 @@ exant() {
 }
 
 # ....................{ BUILD.XML                          }....................
-# void enable_build_xml_creation(void)
+# void antefix_enable_build_xml_creation(void)
 #
 # Enable "build.xml" creation. This must only be called in global exheres scope;
 # it provides exheres globals, Ant tasks, et al.
-enable_build_xml_creation() {
+antefix_enable_build_xml_creation() {
     # Ensure the appropriate global boolean is also enabled.
     ANT_IS_CREATING_BUILD_XML=1
 
@@ -353,11 +353,11 @@ enable_build_xml_creation() {
     JAVA_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
 }
 
-# void create_build_xml(char *filename)
+# void antefix_create_build_xml(char *filename)
 #
 # Create a new "build.xml" file appropriate for building this exheres. See
-# "create_build_xml_file" for details as to the contents of this file.
-create_build_xml() {
+# "antefix_create_build_xml_file" for details as to the contents of this file.
+antefix_create_build_xml() {
     illegal_in_global_scope
     [[ ${#} -eq 0 ]] || die_unless_nonfatal "no arguments needed"
 
@@ -367,7 +367,7 @@ create_build_xml() {
     [[ -f "${ANT_BUILD_XML}" ]] &&
         die_unless_nonfatal "${PN} already provides a default ${ANT_BUILD_XML}"
 
-    create_build_xml_file "${ANT_BUILD_XML}"
+    antefix_create_build_xml_file "${ANT_BUILD_XML}"
 
     # Copy the source tree unpacked from the exheres tarball into the
     # canonical "${WORK}/src/" directory Ant expects.
@@ -381,7 +381,7 @@ create_build_xml() {
     fi
 
     # Also ensure we generate javadoc if that option is enabled. Do this here
-    # rather than in the "enable_build_xml_creation" function as we call that
+    # rather than in the "antefix_enable_build_xml_creation" function as we call that
     # function in global scope, at which point we have cannot check options.
     if option doc; then
         JAVA_SRC_INSTALL_JAVADOC_DIR="javadoc"
@@ -392,7 +392,7 @@ create_build_xml() {
     edo popd
 }
 
-# void create_build_xml(char *filename)
+# void antefix_create_build_xml(char *filename)
 #
 # Create a new "build.xml" file at the passed absolute or relative path
 # appropriate for building this exheres. This is only appropriate for those
@@ -428,8 +428,8 @@ create_build_xml() {
 # that's it. This exlib takes care of everything else for you. See
 # implementation for details.
 #
-# This is a utility function only ever called by "create_build_xml".
-create_build_xml_file() {
+# This is a utility function only ever called by "antefix_create_build_xml".
+antefix_create_build_xml_file() {
     illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
 

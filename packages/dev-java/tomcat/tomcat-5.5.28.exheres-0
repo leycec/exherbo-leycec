@@ -41,7 +41,7 @@ src_install() {
     # Do this here rather via the ${JAVA_SRC_INSTALL_JARS} array as API versions
     # are not known until installation time.
     echo ">>> Installing jar files"
-    install_jars \
+    javafix_install_jars \
         "${TOMCAT_DIST_ROOT_DIR}"/servlet-api-*/"lib/servlet-api.jar" \
         "${TOMCAT_DIST_ROOT_DIR}"/jsp-api-*/"lib/jsp-api.jar"
 

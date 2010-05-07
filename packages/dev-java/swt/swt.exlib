@@ -13,7 +13,7 @@ export_exlib_phases src_unpack src_compile src_install
 # 
 # To circumvent this circular dependency, replace SWT's "build.xml" with a new
 # "build.xml" just performing compilation and jaring.
-enable_build_xml_creation
+antefix_enable_build_xml_creation
 
 BUGS_TO="leycec@gmail.com"
 
@@ -132,7 +132,7 @@ swt_src_unpack() {
 
     echo ">>> Creating ${ANT_BUILD_XML}"
     edo rm "${ANT_BUILD_XML}"
-    create_build_xml
+    antefix_create_build_xml
 }
 
 # SWT comes as underlying C and C++ libraries and frontfacing Java JNI
@@ -188,6 +188,6 @@ swt_src_install() {
 
     # Install "swt.jar" with an Eclipse-compatible OSGi manifest.
     echo ">>> Installing jar file"
-    install_jars_with_manifests "dist/${PN}.jar" "${MANIFEST_FILE}"
+    javafix_install_jars_with_manifests "dist/${PN}.jar" "${MANIFEST_FILE}"
 }
 

@@ -53,6 +53,6 @@ asm_src_install() {
     # with a custom manifest as described above. Now, install all remaining
     # jars without custom manifests.
     echo ">>> Installing jar files"
-    install_jars "${ASM_DIST_DIR}"/*.jar
+    javafix_install_jars "${ASM_DIST_DIR}"/*.jar
 }
 

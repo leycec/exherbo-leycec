@@ -45,7 +45,7 @@ src_install() {
     # JUnit creates various jar files, of which we ignore all except the
     # "${PN}-dep-${PV}.jar" jar file having no external dependencies.
     echo ">>> Installing jar file"
-    install_jar_as "${JUNIT_DIST_DIR}/${PN}-dep-${PV}.jar" "${PN}.jar"
+    javafix_install_jar_as "${JUNIT_DIST_DIR}/${PN}-dep-${PV}.jar" "${PN}.jar"
 
     # Restructure the JUnit documentation tree so as to place all HTML
     # documentation under a new "/usr/share/doc/${PN}/html/" path.

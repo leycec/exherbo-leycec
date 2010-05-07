@@ -71,16 +71,16 @@ src_install() {
     echo ">>> Correcting jar file manifests"
     edo cp "${FETCHEDDIR}/${TOMCAT_JASPER_ARCHIVE}" "${TOMCAT_DIST_LIB_DIR}"/
     local PV="2.5.0"
-    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/servlet-api.jar" \
+    javafix_replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/servlet-api.jar" \
         "${FILES}/${SLOT}/MANIFEST-servlet-api.MF"
     local PV="2.0.0"
-    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/jsp-api.jar" \
+    javafix_replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/jsp-api.jar" \
         "${FILES}/${SLOT}/MANIFEST-jsp-api.MF"
     local PV="5.5.17"
-    replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/${TOMCAT_JASPER_ARCHIVE}" \
+    javafix_replace_jar_manifest "${TOMCAT_DIST_LIB_DIR}/${TOMCAT_JASPER_ARCHIVE}" \
         "${FILES}/${SLOT}/MANIFEST-jasper.MF"
 
     echo ">>> Installing jar files"
-    install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
+    javafix_install_jars "${TOMCAT_DIST_ROOT_DIR}"/**/*.jar
 }
 

@@ -53,7 +53,7 @@
 # complexity of source-based offline Maven installations. The following needs
 # fixing, in no particular order:
 #
-# * Complete the "create_maven_repository" function by symlinking in external
+# * Complete the "maven_create_repository" function by symlinking in external
 #   jar files to a local temporary repository. This may or may not be the
 #   easiest solution. It requires no XML munging but, instead, filesystem
 #   munging. This may actually be more fragile than XML munging as it
@@ -173,7 +173,7 @@ MAVEN="${M2_HOME}/bin/mvn"
 # absolutely necessary; it sandboxes the build process against capricious users
 # and, more importantly, enforces exlib-specific settings.
 #
-# See the "create_settings_xml" function.
+# See the "maven_create_settings_xml" function.
 MAVEN_SETTINGS_XML="${TEMP}/settings.xml"
 
 # Absolute path to the local Maven repository housing exheres dependencies. As
@@ -186,7 +186,7 @@ MAVEN_SETTINGS_XML="${TEMP}/settings.xml"
 # Due to the complexity of the repository's directory structure, this exlib
 # cannot use the JAVA_SRC_PREPARE_SYMLINK_* globals to make this structure.
 #
-# See the "create_maven_repository" function.
+# See the "maven_create_repository" function.
 MAVEN_REPOSITORY_DIR="${TEMP}/repository"
 
 # ....................{ EXHERES                            }....................
@@ -226,10 +226,10 @@ maven_src_prepare() {
    javafix_src_prepare
 
    echo ">>> Creating settings.xml"
-   create_settings_xml "${MAVEN_SETTINGS_XML}"
+   maven_create_settings_xml "${MAVEN_SETTINGS_XML}"
 
    echo ">>> Creating repository"
-   create_maven_repository "${MAVEN_REPOSITORY_DIR}"
+   maven_create_repository "${MAVEN_REPOSITORY_DIR}"
 }
 
 maven_src_configure() {
@@ -304,7 +304,7 @@ exmaven() {
         -DgeneratePom=true
     )
 
-    # The "settings.xml" file created by "create_settings_xml" also passes this
+    # The "settings.xml" file created by "maven_create_settings_xml" also passes this
     # setting. Pass it again (just to be sure).
     if [[ -n "${MAVEN_IS_OFFLINE}" ]]; then
         EXMAVEN_PARAMS+=( --offline )
@@ -315,21 +315,23 @@ exmaven() {
 }
 
 # ....................{ POM.XML                            }....................
-# void deversion_pom_xml(char *settings_xml_path)
+# void maven_deversion_pom_xml(char *settings_xml_path)
 #
 # Create a new "settings.xml" file appropriate for building this exheres at
 # the passed absolute path.
-deversion_pom_xml() {
+maven_deversion_pom_xml() {
     illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
+
+    die "this function currently unimplemented"
 }
 
 # ....................{ SETTINGS.XML                       }....................
-# void create_settings_xml(char *settings_xml_path)
+# void maven_create_settings_xml(char *settings_xml_path)
 #
 # Create a new "settings.xml" file appropriate for building this exheres at
 # the passed absolute path.
-create_settings_xml() {
+maven_create_settings_xml() {
     illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
 
@@ -348,11 +350,11 @@ EOF
 }
 
 # ....................{ REPOSITORY                         }....................
-# void create_maven_repository(char *maven_repository_path)
+# void maven_create_repository(char *maven_repository_path)
 #
 # Create a new local Maven repository appropriate for building this exheres at
 # the passed absolute path.
-create_maven_repository() {
+maven_create_repository() {
     illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "one argument needed"
 
