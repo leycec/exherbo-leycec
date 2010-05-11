@@ -1,0 +1,35 @@
+Authors:  Cecil Curry <leycec@gmail.com>
+Upstream: no
+Synopsis: Install to canonical directories rather than /usr/X11R6; force use of
+user LDFLAGS; prevent binaries stripping.
+--- old/Makefile	2002-11-24 23:14:18.000000000 +0000
++++ new/Makefile	2010-05-11 10:43:42.774015248 +0000
+@@ -1,8 +1,7 @@
+-X11PREFIX=/usr/X11R6
+ X11BASE=/usr/X11R6
+ 
+-INSTALL_BIN=${DESTDIR}${X11PREFIX}/bin
+-INSTALL_MAN1=${DESTDIR}${X11PREFIX}/man/man1
++INSTALL_BIN=${DESTDIR}/usr/bin
++INSTALL_MAN1=${DESTDIR}/usr/share/man/man1
+ 
+ INC_PATH=-I${X11BASE}/include
+ LIB_PATH=-L${X11BASE}/lib
+@@ -11,7 +10,7 @@
+ all: xkbset xkbset.1
+ 
+ xkbset: getargs.o print.o usage.o main.o misc.o
+-	${CC} ${CFLAGS} ${INC_PATH} ${LIB_PATH} getargs.o print.o usage.o main.o misc.o -o $@ ${LIBS}
++	${CC} ${CFLAGS} ${LDFLAGS} ${INC_PATH} ${LIB_PATH} getargs.o print.o usage.o main.o misc.o -o $@ ${LIBS}
+ 
+ getargs.o: getargs.c xkbset.h
+ 	${CC} ${CFLAGS} ${INC_PATH} ${LIB_PATH} -c getargs.c
+@@ -47,7 +46,7 @@
+ INSTALL=	install -c
+ INSTALL_DATA=	${INSTALL}
+ INSTALL_SCRIPT=	${INSTALL}
+-INSTALL_PROGRAM=${INSTALL} -s
++INSTALL_PROGRAM=${INSTALL}
+ 
+ install: all
+ 	${INSTALL_PROGRAM} xkbset ${INSTALL_BIN}

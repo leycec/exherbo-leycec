@@ -1,0 +1,67 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+export_exlib_phases src_prepare src_install
+
+BUGS_TO="leycec@gmail.com"
+
+SUMMARY="X.org CLI interface to AccessX accessibility features"
+DESCRIPTION="
+xkbset is an X.org CLI interface to AccessX accessibility features, including
+MouseKeys, AccessX, StickyKeys, BounceKeys, and SlowKeys. It also provides an
+optional Tcl/Tk GUI for graphical adjustment of these features.
+"
+
+HOMEPAGE_ROOT="http://www.math.missouri.edu/~stephen/software"
+HOMEPAGE="${HOMEPAGE_ROOT}/#${PN}"
+DOWNLOADS="${HOMEPAGE_ROOT}/xkbset/${PNV}.tar.gz"
+
+SLOT="0"
+LICENCES="BSD-3"
+MYOPTIONS+="
+    tk [[ description = [ Install a Perl-scripted Tcl/Tk GUI ] ]]
+"
+
+# xkbset builds itself in a rather... interesting way. Rather than simply
+# ship C files ready for compilation, it ships Perl scripts that, when run,
+# auto-generate said C files. Once generated, these C files in no way require
+# Perl. Thus, unless also building the xkbset GUI, xkbset does not require
+# Perl at runtime.
+#
+# We don't pretend to know why: but it works.
+DEPENDENCIES+="
+    build:
+        dev-lang/perl
+    build+run:
+        tk? (
+            dev-lang/perl
+            dev-perl/Tk
+        )
+"
+
+DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/Makefile.patch" )
+
+xkbset_src_prepare() {
+    # First, apply the above patch. Then prevent installation of the xkbset GUI,
+    # if not enabled. Note that this GUI requires no compilation units, due to
+    # being an interpreted Perl script.
+    echo ">>> Patching Makefile"
+    default
+
+    if ! option tk; then
+        edo sed -i "${WORK}/Makefile" -e '/xkbset-gui/d'
+    fi
+}
+
+xkbset_src_install() {
+    # The parent "src_install" function implicitly:
+    #
+    # {a} Installs documents.
+    # {b} Calls the "install" target on the Makefile.
+    #
+    # The latter installs xkbset binaries as well as man pages. However, it
+    # requires that all installation directories already exist. Make it so.
+    dodir "/usr/bin" "/usr/share/man/man1"
+    default
+}
+
