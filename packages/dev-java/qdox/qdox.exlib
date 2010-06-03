@@ -4,11 +4,9 @@
 #FIXME leycec: Add a new "ant_tasks: qdox" dependency to the
 # "dev-java/apache-ant" exheres, for integrating with Ant.
 
-require antefix
-export_exlib_phases src_unpack
-
 # QDox ships no "build.xml" file. I don't know whether to hug them or cry.
-antefix_enable_build_xml_creation
+require antefix [ create_build_xml=true ]
+export_exlib_phases src_unpack
 
 BUGS_TO="leycec@gmail.com"
 

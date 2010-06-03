@@ -3,9 +3,6 @@
 # Based in part upon 'swt-3.5.2.ebuild' from Gentoo, which is:
 #     Copyright 1999-2010 Gentoo Foundation
 
-require antefix
-export_exlib_phases src_unpack src_compile src_install
-
 # SWT's "build.xml" is Eclipse-specific, and in fact both assumes and requires
 # Eclipse be already installed. This is an obvious problem for source-based
 # distributions, since the Eclipse exheres depends on the SWT exheres. (Ergo,
@@ -13,7 +10,8 @@ export_exlib_phases src_unpack src_compile src_install
 # 
 # To circumvent this circular dependency, replace SWT's "build.xml" with a new
 # "build.xml" just performing compilation and jaring.
-antefix_enable_build_xml_creation
+require antefix [ create_build_xml=true ]
+export_exlib_phases src_unpack src_compile src_install
 
 BUGS_TO="leycec@gmail.com"
 
@@ -41,8 +39,7 @@ DOWNLOAD_ROOT="http://download.eclipse.org/eclipse/downloads/drops/R-${PV}-20100
 # </target>
 #
 # Nonetheless, our fake "build.xml" file seems to be sufficient. This suggests
-# the Eclipse team over-engineered their SWT build process.
-
+# the Eclipse team over-engineered their SWT build process...by a lot.
 DOWNLOADS="
     platform:x86?   ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86.zip )
     platform:amd64? ( ${DOWNLOAD_ROOT}/${PNV}-gtk-linux-x86_64.zip )
@@ -53,7 +50,7 @@ UPSTREAM_DOCUMENTATION="http://www.eclipse.org/${PN}/docs.php [[ lang = en ]]"
 SLOT="3.5"
 LICENCES="|| ( CPL-1.0 LGPL-2.1 MPL-1.1 )"
 
-MYOPTIONS+="
+MYOPTIONS="
     cairo gnome opengl xulrunner
     platform:
         amd64
@@ -62,7 +59,7 @@ MYOPTIONS+="
 
 #FIXME: The soft "opengl" dependency should probably be "virtual/opengl"
 #instead. Unfortunately, that doesn't exist yet.
-DEPENDENCIES+="
+DEPENDENCIES="
     build:
         app-arch/unzip
         dev-util/pkg-config
@@ -85,9 +82,7 @@ DEPENDENCIES+="
         xulrunner? ( dev-libs/xulrunner[>=1.9] )
 "
 
-# The above archive extracts to the current directory. (Odd, but acceptable...)
 WORK="${WORKBASE}"
-
 DEFAULT_SRC_PREPARE_PATCHES=(
     "${FILES}/make_linux_mak-fix.patch"
     "${FILES}/build_sh-fix.patch"
@@ -101,36 +96,31 @@ swt_src_unpack() {
     antefix_src_unpack
 
     # Absolute path to the root of the SWT's source tree.
-    SWT_SRC_DIR="${WORK}/src"
+    swt_src_dir="${WORK}/src"
 
     # Absolute path to the root of the SWT's build tree having class files.
-    SWT_BUILD_DIR="${WORK}/build"
+    swt_build_dir="${WORK}/build"
 
     # Extract the "src.zip" archive from the fetched compressed archive, then
     # extract the contents of that archive to ${WORK}. 
-    echo ">>> Unpacking ${ARCHIVES} to ${PWD}"
     edo unzip -joq "${FETCHEDDIR}/${ARCHIVES}" "src.zip"
     unpack "./src.zip"   # note: the prefixing "./" is important!
 
     # Delete the resultant "about_files/" path and original "src.zip" archive.
-    echo ">>> Cleaning extraneous files"
     edo rm -rf "about_files/" "src.zip"
 
     # "src.zip" unpacks the Java tree into "org/". The replacement
     # "files/build.xml", however, expects this tree to be found at
     # "src/org/" per the Ant standard. We ensure this now.
-    echo ">>> Creating directory tree"
-    edo mkdir -p "${SWT_SRC_DIR}" "${SWT_BUILD_DIR}"
-    edo mv "${WORK}/org" "${SWT_SRC_DIR}"
+    edo mkdir -p "${swt_src_dir}" "${swt_build_dir}"
+    edo mv "${WORK}/org" "${swt_src_dir}"
 
     # Copy Java files from the source to build directory.
-    echo ">>> Creating required files"
-    edo mkdir -p "${SWT_BUILD_DIR}/org/eclipse/swt/internal/"
-    edo cp "${SWT_SRC_DIR}/org/eclipse/swt/internal/SWTMessages.properties" \
-           "${SWT_BUILD_DIR}/org/eclipse/swt/internal/"
-    edo cp "${WORK}/version.txt" "${SWT_BUILD_DIR}/version.txt"
+    edo mkdir -p "${swt_build_dir}/org/eclipse/swt/internal/"
+    edo cp "${swt_src_dir}/org/eclipse/swt/internal/SWTMessages.properties" \
+           "${swt_build_dir}/org/eclipse/swt/internal/"
+    edo cp "${WORK}/version.txt" "${swt_build_dir}/version.txt"
 
-    echo ">>> Creating ${ANT_BUILD_XML}"
     edo rm "${ANT_BUILD_XML}"
     antefix_create_build_xml
 }
@@ -161,7 +151,6 @@ swt_src_compile() {
     if option xulrunner; then export OPTION_XULRUNNER=1; fi
 
     # So say we all!
-    echo ">>> Compiling C and C++ libraries"
     edo sh "${WORK}/build.sh"
 
     # Compile underlying Java libraries.
@@ -171,12 +160,10 @@ swt_src_compile() {
 swt_src_install() {
     antefix_src_install
 
-    echo ">>> Installing C and C++ libraries"
     dolib.so "${WORK}"/*.so
 
-    echo ">>> Correcting jar file manifest"
-    local MANIFEST_FILE="${TEMP}/MANIFEST.MF"
-    edo cp "${FILES}/MANIFEST.MF" "${MANIFEST_FILE}"
+    local manifest_file="${TEMP}/MANIFEST.MF"
+    edo cp "${FILES}/MANIFEST.MF" "${manifest_file}"
 
     # Set "SWT_ARCH" according to the architecture being built against. The
     # values for this variable follow from the variable of same name in the
@@ -184,10 +171,9 @@ swt_src_install() {
     if   option platform:amd64; then SWT_ARCH="x86_64"
     elif option platform:x86;   then SWT_ARCH="x86"
     fi
-    edo sed -i "${MANIFEST_FILE}" -e "s~x86~${SWT_ARCH}~"
+    edo sed -i "${manifest_file}" -e "s~x86~${SWT_ARCH}~"
 
-    # Install "swt.jar" with an Eclipse-compatible OSGi manifest.
-    echo ">>> Installing jar file"
-    javafix_install_jars_with_manifests "dist/${PN}.jar" "${MANIFEST_FILE}"
+    # Install SWT's jar with an Eclipse-compatible OSGi manifest.
+    javafix_install_jars_with_manifests "dist/${PN}.jar" "${manifest_file}"
 }
 

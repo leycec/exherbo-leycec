@@ -40,6 +40,15 @@ require javafix
 export_exlib_phases pkg_setup \
     src_unpack src_prepare src_configure src_compile src_test src_install
 
+# If true, programmatically create a new "${WORK}/build.xml" file for this
+# exheres. (Enable this for exheres providing no "build.xml", but for which the
+# default "build.xml" is sufficient to build the project. Most modern Java
+# projects already provide Ant, Maven, or Ivy build files; so, this should be
+# used sparingly.)
+#
+# Defaults to false.
+myexparam -b create_build_xml=false
+
 # ....................{ SETTINGS                           }....................
 # Absolute or relative path under ${WORK} to the "build.xml" for this exheres.
 ANT_BUILD_XML="build.xml"
@@ -125,23 +134,8 @@ fi
 # to "/usr/share/ant/".
 ANT="${ANT_HOME}/bin/ant"
 
-# If true, programmatically create a new "${WORK}/build.xml" file for this
-# exheres. (Enable this for exheres providing no "build.xml", but for which the
-# default "build.xml" is sufficient to build the project. Most modern Java
-# projects already provide Ant, Maven, or Ivy build files; so, this should be
-# used sparingly.)
-#
-# Defaults to false. To set this variable, do not set it directly. Instead, call
-# the "antefix_enable_build_xml_creation" function to have it set for you. Do this at
-# the earliest time possible after requiring this exlib. Example:
-#
-#      # "qdox-1.11.exheres-0" needs a fake "build.xml". Make it so.
-#      require antefix
-#      antefix_enable_build_xml_creation
-ANT_IS_CREATING_BUILD_XML=
-
 # ....................{ EXHERES                            }....................
-DEPENDENCIES+="
+DEPENDENCIES="
     build:
         dev-java/apache-ant
 "
@@ -150,16 +144,17 @@ DEPENDENCIES+="
 antefix_pkg_setup() {
     javafix_pkg_setup
 
-    if [[ -n "${ANT_BUNDLED_LIBSDIR}" ]]; then
+    #FIXME: Kill these globals from all Java exheres...then kill this.
+    [[ -n "${ANT_SRC_PREPARE_PARAMS}" ]] &&
+        ewarn "${PN} sets the depcrecated \$ANT_SRC_PREPARE_PARAMS global."
+    [[ -n "${ANT_BUNDLED_LIBSDIR}" ]] &&
         ewarn "${PN} sets the depcrecated \$ANT_BUNDLED_LIBSDIR global."
-    fi
 }
 
 antefix_src_unpack() {
     javafix_src_unpack
 
     if [[ "${ANT_IS_CREATING_BUILD_XML}" ]]; then
-        echo ">>> Creating ${ANT_BUILD_XML}"
         antefix_create_build_xml
     fi
 
@@ -167,8 +162,7 @@ antefix_src_unpack() {
     #
     # This is a deprecated code block, and now (more or less) considered bad.
     # The "java_src_unpack" cleans all embedded jar files if and only if the
-    # "javafix_clean_jar_files" exparam is true. This code block remains, however, until
-    # we verify that no exheres requires this code block.
+    # "javafix_clean_jar_files" exparam is true.
     if [[ -n "${ANT_BUNDLED_LIBSDIR[@]}" ]]; then
         for ANT_BUNDLED_LIBS in "${ANT_BUNDLED_LIBSDIR[@]}"; do
             if [[ -d "${WORK}/${ANT_BUNDLED_LIBS}" ]]; then
@@ -181,8 +175,6 @@ antefix_src_unpack() {
     # "build.xml" files often supply a default task performing all relevant
     # tasks when passed no explicit task. (This is rarely what we want.)
     if [[ -n "${ANT_SRC_UNPACK_PARAMS[@]}" ]]; then
-        echo ">>> Unpacking source files"
-
         # All "build.xml" files reside under ${WORK}. Temporarily pushd there.
         pushd "${WORK}"
         exant "${ANT_BUILD_XML}" \
@@ -223,7 +215,6 @@ antefix_src_prepare() {
     javafix_src_prepare
 
     if [[ -n "${ANT_SRC_PREPARE_PARAMS[@]}" ]]; then
-        echo ">>> Preparing source files"
         exant "${ANT_BUILD_XML}" \
               "${ANT_PARAMS[@]}" "${ANT_SRC_PREPARE_PARAMS[@]}"
     fi
@@ -233,7 +224,6 @@ antefix_src_configure() {
     javafix_src_configure
 
     if [[ -n "${ANT_SRC_CONFIGURE_PARAMS[@]}" ]]; then
-        echo ">>> Configuring source files"
         exant "${ANT_BUILD_XML}" \
               "${ANT_PARAMS[@]}" "${ANT_SRC_CONFIGURE_PARAMS[@]}"
     fi
@@ -243,7 +233,6 @@ antefix_src_compile() {
     javafix_src_compile
 
     if [[ -n "${ANT_SRC_COMPILE_PARAMS[@]}" ]]; then
-        echo ">>> Compiling source files"
         exant "${ANT_BUILD_XML}" \
               "${ANT_PARAMS[@]}" "${ANT_SRC_COMPILE_PARAMS[@]}"
     fi
@@ -253,7 +242,6 @@ antefix_src_test() {
     javafix_src_test
 
     if [[ -n "${ANT_SRC_TEST_PARAMS[@]}" ]]; then
-        echo ">>> Testing compiled files"
         exant "${ANT_BUILD_XML}" \
               "${ANT_PARAMS[@]}" "${ANT_SRC_TEST_PARAMS[@]}"
     fi
@@ -263,7 +251,6 @@ antefix_src_install() {
     # Invoke Ant, which probably generates jar files prior to calling the parent
     # "src_install" function that actually installs these files.
     if [[ -n "${ANT_SRC_INSTALL_PARAMS[@]}" ]]; then
-        echo ">>> Packaging jar files"
         exant "${ANT_BUILD_XML}" \
               "${ANT_PARAMS[@]}" "${ANT_SRC_INSTALL_PARAMS[@]}"
     fi
@@ -288,13 +275,13 @@ exant() {
     illegal_in_global_scope
     [[ ${#} -ge 1 ]] || die_unless_nonfatal "at least one argument needed"
 
-    local EANT_BUILD_XML="${1}"
+    local eant_build_xml="${1}"
     shift
 
     # Always enable the "noget" property when invoking Ant. This instructs Ant
     # to ignore any "get" tasks defined by this "build.xml" file; such tasks,
     # if defined, attempt to remotely download external jar files.
-    edo "${ANT}" -file "${EANT_BUILD_XML}" -Dnoget=true "${@}"
+    edo "${ANT}" -file "${eant_build_xml}" -Dnoget=true "${@}"
 }
 
 # ....................{ BUILD.XML                          }....................
@@ -353,6 +340,10 @@ antefix_enable_build_xml_creation() {
     JAVA_SRC_INSTALL_JARS=( "dist/${PN}.jar" )
 }
 
+# Call the above function for exheres passing the "create_build_xml" exparam.
+# Note that this function may also be called explicitly in exheres if needed.
+exparam -b create_build_xml && antefix_enable_build_xml_creation
+
 # void antefix_create_build_xml(char *filename)
 #
 # Create a new "build.xml" file appropriate for building this exheres. See
@@ -372,7 +363,6 @@ antefix_create_build_xml() {
     # Copy the source tree unpacked from the exheres tarball into the
     # canonical "${WORK}/src/" directory Ant expects.
     if [[ ! -d "${ANT_SRC_COMPILE_SOURCE_DIR}" ]]; then
-        echo ">>> Creating source tree"
         edo mkdir -p "${ANT_SRC_COMPILE_SOURCE_DIR}"
         if [[ -n "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" ]]; then
             edo mv "${ANT_SRC_COMPILE_SOURCE_NAMESPACE_DIR}" \
@@ -433,31 +423,31 @@ antefix_create_build_xml_file() {
     illegal_in_global_scope
     [[ ${#} -eq 1 ]] || die_unless_nonfatal "exactly one argument needed"
 
-    local BUILD_XML_SRC_DIR="${ANT_SRC_COMPILE_SOURCE_DIR:-src}"
-    local BUILD_XML_LIB_DIR="${ANT_SRC_LIBRARY_DIR:-lib}"
-    local BUILD_XML_DIST_DIR="${ANT_SRC_INSTALL_JARS_DIR:-dist}"
-    local BUILD_XML_JAR_FILE="${ANT_SRC_INSTALL_JARS[1]:-${BUILD_XML_DIST_DIR}/${PN}.jar}"
-    local BUILD_XML_JAVADOC_DIR="${ANT_SRC_INSTALL_JAVADOC_DIR:-javadoc}"
+    local build_xml_src_dir="${ANT_SRC_COMPILE_SOURCE_DIR:-src}"
+    local build_xml_lib_dir="${ANT_SRC_LIBRARY_DIR:-lib}"
+    local build_xml_dist_dir="${ANT_SRC_INSTALL_JARS_DIR:-dist}"
+    local build_xml_jar_file="${ANT_SRC_INSTALL_JARS[1]:-${build_xml_dist_dir}/${PN}.jar}"
+    local build_xml_javadoc_dir="${ANT_SRC_INSTALL_JAVADOC_DIR:-javadoc}"
 
     # Exheres calling this function always have a "debug" option.
-    local BUILD_XML_IS_DEBUGGING=$(option debug && echo true || echo false)
+    local build_xml_is_debugging=$(option debug && echo true || echo false)
 
     # Install a custom "MANIFEST.MF" if provided by this exheres.
-    local BUILD_XML_MANIFEST_MF=""
+    local build_xml_manifest_mf=""
     if [[ -n "${ANT_SRC_INSTALL_MANIFEST_MF}" ]]; then
-          BUILD_XML_MANIFEST_MF="manifest=\"${ANT_SRC_INSTALL_MANIFEST_MF}\""
+          build_xml_manifest_mf="manifest=\"${ANT_SRC_INSTALL_MANIFEST_MF}\""
     fi
 
     cat <<EOF > "${1}" 
 <?xml version="1.0" encoding="utf-8"?>
 <project name="${PN}" default="jar" basedir=".">
-    <property name="src"     location="${BUILD_XML_SRC_DIR}"/>
-    <property name="lib"     location="${BUILD_XML_LIB_DIR}"/>
+    <property name="src"     location="${build_xml_src_dir}"/>
+    <property name="lib"     location="${build_xml_lib_dir}"/>
     <property name="build"   location="build"/>
-    <property name="dist"    location="${BUILD_XML_DIST_DIR}"/>
-    <property name="javadoc" location="${BUILD_XML_JAVADOC_DIR}"/>
-    <property name="jar"     value="${BUILD_XML_JAR_FILE}"/>
-    <property name="debug"   value="${BUILD_XML_IS_DEBUGGING}"/>
+    <property name="dist"    location="${build_xml_dist_dir}"/>
+    <property name="javadoc" location="${build_xml_javadoc_dir}"/>
+    <property name="jar"     value="${build_xml_jar_file}"/>
+    <property name="debug"   value="${build_xml_is_debugging}"/>
 
     <path id="lib.classpath">
         <fileset dir="\${lib}">
@@ -479,7 +469,7 @@ antefix_create_build_xml_file() {
     </target>
 
     <target name="jar" depends="compile">
-        <jar jarfile="\${jar}" basedir="\${build}" ${BUILD_XML_MANIFEST_MF}/>
+        <jar jarfile="\${jar}" basedir="\${build}" ${build_xml_manifest_mf}/>
     </target>
 
     <target name="javadoc" depends="init">
