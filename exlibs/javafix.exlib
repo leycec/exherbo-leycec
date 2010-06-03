@@ -205,7 +205,6 @@ javafix_pkg_setup() {
     # If ${JAVA_HOME} is not set, then this exheres is probably a JDK that,
     # following installation, will set this. So, don't spit out an error.
     if [[ -n "${JAVA_HOME}" ]]; then
-        echo ">>> Checking JDK"
         javafix_check_jdk
     fi
 }
@@ -222,12 +221,10 @@ javafix_src_unpack() {
         # recursively remove jar files rather than all files and paths, prior to
         # calling the "ant_src_unpack" function.
         if [[ -n "${JAVA_IS_CLEANING_JAR_FILES}" ]]; then
-            echo ">>> Removing jar files"
             javafix_clean_jar_files
         fi
 
         if [[ -n "${JAVA_IS_CLEANING_CLASS_FILES}" ]]; then
-            echo ">>> Removing class files"
             javafix_clean_class_files
         fi
     fi
@@ -239,7 +236,6 @@ javafix_src_prepare() {
 
     # Deversion files after patching files above but before invoking Ant below.
     if [[ -n "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}" ]]; then
-        echo ">>> Removing jar filename version specifiers"
         javafix_deversion_files "${JAVA_SRC_PREPARE_DEVERSION_FILES[@]}"
     fi
 
@@ -251,11 +247,9 @@ javafix_src_prepare() {
         # ${JAVA_IS_CLEANING_JAR_FILES} is disabled or not. These jar files
         # should be replaced by symlinks in the call to "symlink_jars".
         if [[ -d "${JAVA_SRC_LIBRARY_DIR}" ]]; then
-            echo ">>> Culling library directory"
             edo rm -f "${JAVA_SRC_LIBRARY_DIR}"/*.jar
         fi
 
-        echo ">>> Linking library jar files"
         symlink_jars "${JAVA_SRC_LIBRARY_DIR}" \
                      "${JAVA_SRC_PREPARE_JARS[@]}"
     fi
@@ -275,7 +269,6 @@ javafix_src_test() {
     if [[ -n "${JAVA_SRC_TEST_JARS[@]}" ]]; then
        [[ -n "${JAVA_SRC_LIBRARY_DIR}" ]] ||
             die_unless_nonfatal "\$JAVA_SRC_LIBRARY_DIR not set; cannot link external jar files"
-        echo ">>> Linking test jar files"
         symlink_jars "${JAVA_SRC_LIBRARY_DIR}" \
                      "${JAVA_SRC_TEST_JARS[@]}"
     fi
@@ -284,17 +277,14 @@ javafix_src_test() {
 javafix_src_install() {
     javafix_src_preamble
 
-    echo ">>> Installing documents"
     emagicdocs
 
     if [[ -n "${JAVA_SRC_INSTALL_JAVADOC_DIR}" ]]; then
-        echo ">>> Installing javadoc"
         docinto "html/javadoc"
         dodoc "${JAVA_SRC_INSTALL_JAVADOC_DIR}"/*
     fi
 
     if [[ -n "${JAVA_SRC_INSTALL_JARS[@]}" ]]; then
-        echo ">>> Installing jar files"
         javafix_install_jars "${JAVA_SRC_INSTALL_JARS[@]}"
     fi
 
@@ -302,7 +292,6 @@ javafix_src_install() {
     # and ${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS}, if that exheres has some
     # output jar files requiring manifest replacement and others not.
     if [[ -n "${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS[@]}" ]]; then
-        echo ">>> Installing jar files with custom manifests"
         javafix_install_jars_with_manifests "${JAVA_SRC_INSTALL_JARS_WITH_MANIFESTS[@]}"
     fi
 }

@@ -147,12 +147,10 @@ sat4j_src_unpack() {
     # Non-core subcomponents must symlink the external SAT4J core jar file into
     # their "lib/" directory prior to Ant invocation.
     if [[ "${SAT4J_PN}" != "core" ]]; then
-        echo ">>> Preparing exheres globals"
         JAVA_SRC_LIBRARY_DIR="${SAT4J_LIB_DIR}"
         JAVA_SRC_PREPARE_JARS=( $(which_installed_jar_file "sat4j-core:${SLOT}") )
     fi
 
-    echo ">>> Unpacking sources jar file"
     SAT4J_JAR_FILE_SOURCES="${SAT4J_JAR_PN}-src.jar"
     SAT4J_JAR_FILE_CLASSES="${SAT4J_JAR_PN}.jar"
     edo mkdir -p "${SAT4J_SRC_DIR}" "${SAT4J_LIB_DIR}" "${SAT4J_MANIFEST_DIR}" \
@@ -171,13 +169,11 @@ sat4j_src_unpack() {
     #
     # The build file requires this version file to reside in the hardcoded path
     # "${SAT4J_SRC_DIR_CORE}" rather than the usual "${SAT4J_SRC_DIR}/". Eh?
-    echo ">>> Unpacking classes jar file version"
     edo echo "${PV}.${SAT4J_BUILD_VERSION}" > "${SAT4J_SRC_DIR_CORE}/sat4j.version"
 
     # The sources jar file unpacked above bundles a manifest file into the
     # "${SAT4J_PN}/src/META-INF/" directory. The build file expects it in the
     # "${SAT4J_PN}/META-INF/" directory, however. Move it. /me sighs
-    echo ">>> Structuring directory tree"
     edo mv "${SAT4J_SRC_DIR}/META-INF/MANIFEST.MF" "${SAT4J_MANIFEST_FILE}"
     edo cp "${FETCHEDDIR}/build.xml" .
 }
@@ -191,12 +187,10 @@ sat4j_src_prepare() {
     # SAT4J exheres (e.g., "sat4j-pb").
     #
     # Do this prior to calling the parent "src_prepare", which invokes Ant.
-    echo ">>> Patching ${ANT_BUILD_XML}"
     edo sed -e 's~ depends="core"~~' -e 's~,getsource~~' -i "${ANT_BUILD_XML}"
 
     # These values retrieved from "plugin.properties" bundled with this jar file.
     # Thor, I pray they stay in sync.
-    echo ">>> Patching jar file manifest"
     local BUNDLE_NAME="SAT4J ${SAT4J_PN_CASED}"
     local PROVIDER_NAME="CRIL CNRS UMR 8188 - Universite d'Artois"
     javafix_rectify_jar_manifest "${SAT4J_MANIFEST_FILE}"
@@ -211,11 +205,9 @@ sat4j_src_install() {
 
     # Apply a custom "MANIFEST.MF", if this exheres provides one.
     if [[ -n "${FILES}/MANIFEST.MF" ]]; then
-        echo ">>> Correcting jar file manifest"
         javafix_replace_jar_manifest "${SAT4J_JAR_FILE_SOURCE}" "${FILES}/MANIFEST.MF"
     fi
 
-    echo ">>> Installing jar file"
     javafix_install_jar_as "${SAT4J_JAR_FILE_SOURCE}" "${SAT4J_JAR_FILE_TARGET}"
 
     # Other exheres often expect SAT4J jar filenames to be named according the

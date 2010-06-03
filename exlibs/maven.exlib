@@ -225,10 +225,7 @@ maven_src_unpack() {
 maven_src_prepare() {
    javafix_src_prepare
 
-   echo ">>> Creating settings.xml"
    maven_create_settings_xml "${MAVEN_SETTINGS_XML}"
-
-   echo ">>> Creating repository"
    maven_create_repository "${MAVEN_REPOSITORY_DIR}"
 }
 
@@ -236,7 +233,6 @@ maven_src_configure() {
     javafix_src_configure
 
     if [[ -n "${MAVEN_SRC_CONFIGURE_PARAMS[@]}" ]]; then
-        echo ">>> Configuring source files"
         exmaven "${MAVEN_POM_XML}" \
             "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_CONFIGURE_PARAMS[@]}"
     fi
@@ -246,7 +242,6 @@ maven_src_compile() {
     javafix_src_compile
 
     if [[ -n "${MAVEN_SRC_COMPILE_PARAMS[@]}" ]]; then
-        echo ">>> Compiling source files"
         exmaven "${MAVEN_POM_XML}" \
             "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_COMPILE_PARAMS[@]}"
     fi
@@ -256,7 +251,6 @@ maven_src_test() {
     javafix_src_test
 
     if [[ -n "${MAVEN_SRC_TEST_PARAMS[@]}" ]]; then
-        echo ">>> Testing compiled files"
         exmaven "${MAVEN_POM_XML}" \
             "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_TEST_PARAMS[@]}"
     fi
@@ -266,7 +260,6 @@ maven_src_install() {
     # Invoke Maven, which probably generates jar files prior to calling the
     # parent "src_install" function that actually installs these files.
     if [[ -n "${MAVEN_SRC_INSTALL_PARAMS[@]}" ]]; then
-        echo ">>> Packaging jar files"
         exmaven "${MAVEN_POM_XML}" \
             "${MAVEN_PARAMS[@]}" "${MAVEN_SRC_INSTALL_PARAMS[@]}"
     fi
