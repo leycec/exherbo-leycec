@@ -1,9 +1,0 @@
-# Copyright 2010 Cecil Curry <leycec@gmail.com>
-# Distributed under the terms of the GNU General Public License v2
-
-require log4j
-
-# Log4j's 1.x.xx series is incompatible with the new 2.x.xx series.
-SLOT="1"
-PLATFORMS="~amd64 ~x86"
-
