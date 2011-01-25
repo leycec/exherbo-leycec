@@ -1,0 +1,62 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+export_exlib_phases src_prepare
+
+SUMMARY="Roguelike game for Mac OS X, Windows and Linux by Brian Walker"
+DESCRIPTION="
+Brogue is a Roguelike game for Mac OS X, Windows and Linux by Brian Walker. Your
+goal is to travel to the 26th subterranean floor of the dungeon, retrieve the
+Amulet of Yendor and return with it to the surface. For the truly skillful who
+desire further challenge, depths below 26 contain three lumenstones each --
+items which confer no benefit except an increased score upon victory.
+"
+
+MY_PNV="${PNV}-linux"
+HOMEPAGE="http://sites.google.com/site/broguegame"
+DOWNLOADS="${HOMEPAGE}/${MY_PNV}.tar.gz"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE} [[ lang = en ]]"
+UPSTREAM_DOCUMENTATION="${HOMEPAGE} [[ lang = en ]]"
+
+LICENCES="GPL-3"
+SLOT="0"
+MYOPTIONS=""
+DEPENDENCIES="
+    build+run:
+        games-roguelike/libtcod[>=1.5.1]
+"
+
+BUGS_TO="leycec@gmail.com"
+WORK="${WORKBASE}/${MY_PNV}/Brogue-${PV}"
+
+brogue_src_prepare() {
+    default
+
+    # Remove bundled compiled code and dependencies.
+    edo find "${WORK}" -type f \( -name '*.o' -o -name '*.so' \) -delete
+
+    # Move docs to the top-level for eventual installation by emagicdocs().
+    edo mv "${WORK}/../"*.{rtf,txt} "${WORK}/"
+
+    # Patch the provided Makefile to:
+    #
+    # * Use user "${CFLAGS}".
+    # * Avoid implicit optimization and stripping.
+    edo sed\
+        -e 's~^CFLAGS=.*$~CFLAGS+=$(FLAGS) -I/usr/include/libtcod -IBrogueCode -IPlatformCode -Wall~'\
+        -e 's~-O2 -s ~~'\
+        -i Makefile
+
+    #FIXME: Mail to developer as a diff.
+    # Add an "install" target to this Makefile. (Yes, it doesn't supply one...)
+    local install_dir="${IMAGE}/usr/share/brogue"
+    cat <<EOF >> Makefile 
+install : brogue
+	install -d "\$(DESTDIR)/usr/bin/"
+	install -d "${install_dir}"
+	install -m 0755 brogue "${install_dir}"
+	install -m 0755 *.png "${install_dir}"
+	ln -s /usr/share/brogue/brogue "\$(DESTDIR)/usr/bin"
+EOF
+}
+
