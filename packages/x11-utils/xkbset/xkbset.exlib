@@ -3,8 +3,6 @@
 
 export_exlib_phases src_prepare src_install
 
-BUGS_TO="leycec@gmail.com"
-
 SUMMARY="X.org CLI interface to AccessX accessibility features"
 DESCRIPTION="
 xkbset is an X.org CLI interface to AccessX accessibility features, including
@@ -16,9 +14,9 @@ HOMEPAGE_ROOT="http://www.math.missouri.edu/~stephen/software"
 HOMEPAGE="${HOMEPAGE_ROOT}/#${PN}"
 DOWNLOADS="${HOMEPAGE_ROOT}/xkbset/${PNV}.tar.gz"
 
-SLOT="0"
 LICENCES="BSD-3"
-MYOPTIONS+="
+SLOT="0"
+MYOPTIONS="
     tk [[ description = [ Install a Perl-scripted Tcl/Tk GUI ] ]]
 "
 
@@ -29,7 +27,7 @@ MYOPTIONS+="
 # Perl at runtime.
 #
 # We don't pretend to know why: but it works.
-DEPENDENCIES+="
+DEPENDENCIES="
     build:
         dev-lang/perl
     build+run:
@@ -38,6 +36,8 @@ DEPENDENCIES+="
             dev-perl/Tk
         )
 "
+
+BUGS_TO="leycec@gmail.com"
 
 DEFAULT_SRC_PREPARE_PATCHES=( "${FILES}/Makefile.patch" )
 

@@ -7,8 +7,6 @@ require launchpad [ branch=trunk ] distutils [ python_dep=2.5 ]
 
 export_exlib_phases src_test_expensive
 
-BUGS_TO="leycec@gmail.com"
-
 SUMMARY="A Bazaar plugin providing miscellaneous functionality"
 DESCRIPTION="
 BzrTools is a Bazaar plugin providing extraneous, useful, and
@@ -16,15 +14,16 @@ BzrTools is a Bazaar plugin providing extraneous, useful, and
 "
 
 HOMEPAGE="http://wiki.bazaar.canonical.com/BzrTools"
-REMOTE_IDS="launchpad:${PN}"
-
 UPSTREAM_RELEASE_NOTES="https://launchpad.net/${PN}/trunk/${PV}"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE}/Documentation [[ lang = en ]]"
+REMOTE_IDS="launchpad:${PN}"
 
-SLOT="0"
 LICENCES="GPL-2"
+SLOT="0"
 MYOPTIONS=""
 DEPENDENCIES="build+run: dev-scm/bzr"
+
+BUGS_TO="leycec@gmail.com"
 
 WORK="${WORKBASE}"/${PN}
 
