@@ -1,0 +1,71 @@
+# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# libtcod is a bit of an oddity; its publicly available downloads provide the
+# libtcod library source but no mechanism for building the source. Rather, we
+# have to locally fetch the latest remote revision. (Yes, this is probably as
+# bad as you think it is.)
+SCM_REPOSITORY="http://doryen.eptalys.net/svn-libtcod"
+
+require cmake scm-svn
+export_exlib_phases src_prepare src_install
+
+SUMMARY="Free, fast, portable and uncomplicated API for roguelike developers"
+DESCRIPTION="
+libtcod, a.k.a. \"The Doryen Library,\" is a free, fast, portable and
+uncomplicated API for roguelike developers. It provides an advanced true color
+console, input and lots of other utilities frequently used in roguelikes.
+"
+
+HOMEPAGE="http://doryen.eptalys.net/libtcod"
+UPSTREAM_RELEASE_NOTES="http://doryen.eptalys.net/files/libtcod-CHANGELOG.txt [[ lang = en ]]"
+UPSTREAM_DOCUMENTATION="http://doryen.eptalys.net/data/libtcod/doc/${PV}/index2.html?c=true&cpp=true&cs=true&py=true&lua=true [[ lang = en ]]"
+
+LICENCES="BSD-3"
+SLOT="0"
+MYOPTIONS="doc"
+DEPENDENCIES="
+    build+run:
+        media-libs/libpng[>=1.2.31]
+        media-libs/SDL[>=1.2.12][X]
+        sys-libs/zlib[>=1.2.3]
+"
+
+BUGS_TO="leycec@gmail.com"
+
+libtcod_src_prepare() {
+    default
+
+    # Remove bundled dependencies.
+    edo rm -rf "${WORK}/dependencies"
+    edo find "${WORK}" -type f -name '*.so' -delete
+
+    # Install shared libraries to "${WORK}" rather than "${IMAGE}".
+    edo sed -e "s~\(INSTALL_DIR \)\${CMAKE_CURRENT_SOURCE_DIR}~\1\"${ECMAKE_BUILD_DIR}\"~"\
+            -i CMakeLists.txt
+
+    # "libtcod" is currently incompatible with libpng >= 1.4.0. Fortunately, a
+    # search-and-replace on all ".c" files fixes this, courtesy this thread:
+    #     http://doryen.eptalys.net/forum/index.php?topic=426.0
+    edo find "${WORK}" -type f -name '*.c' -print0 |
+        xargs -0 sed -ie "s~png_infopp_NULL~NULL~g" ||
+        die "sed stripping of \"png_infopp_NULL\" failed"
+}
+
+libtcod_src_install() {
+    cmake_src_install
+
+    # Install shared libraries.
+    dolib "${ECMAKE_BUILD_DIR}/src/"${PN}*.so
+
+    # Install shared headers, taking care to remove all ".svn" directories.
+    edo find "include" -type d -name .svn -print0 | xargs -0 rm -rf
+    insinto /usr/include/${PN}
+    doins -r "include/"*
+
+    if option doc; then
+        docinto  'html'
+        dodoc -r 'doc'
+    fi
+}
+
