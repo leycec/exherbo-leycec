@@ -1,0 +1,86 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+export_exlib_phases src_prepare src_compile src_install
+
+SUMMARY="Build configuration tool"
+DESCRIPTION="
+Premake is a build configuration tool. Describe your C, C++, or C# software
+project using a simple, easy to read syntax and let Premake generate the project
+files for:
+
+* Microsoft Visual Studio 2002, 2003, 2005, and 2008, including Express editions
+* GNU Make, including Cygwin and MinGW
+* Apple Xcode
+* Code::Blocks
+* CodeLite
+* IC#Code SharpDevelop
+* MonoDevelop
+
+Premake also provides experimental support for cross-compiling, targeting:
+
+* 32- and 64-bit builds
+* Mac OS X 32- and 64-bit universal binaries
+* Playstation 3 (Visual Studio and GNU Make)
+* Xbox 360 (Visual Studio only)
+
+Premake allows you to manage your project configuration in one place and still
+support those pesky IDE-addicted Windows coders and/or cranky Linux command-line
+junkies. (That's us.) It allows you to generate project files for tools that you
+do not own. It saves the time that would otherwise be spent manually keeping
+several different toolsets in sync. And it provides an easy upgrade path as new
+versions of your favorite tools are released.
+
+In addition to these project generation capabilities, Premake also provides a
+complete Lua scripting environment, enabling the automation of complex
+configuration tasks, such as setting up new source tree checkouts or creating
+deployment packages. These scripts will run on any platform, ending batch/shell
+script duplication.
+
+Premake is a \"plain old C\" application, distributed as a single executable
+file. It is small, weighing in at around 200K. It does not require any
+additional libraries or runtimes to be installed.
+"
+
+HOMEPAGE="http://industriousone.com/premake"
+DOWNLOADS="mirror://sourceforge/${PN}/${PNV}-src.zip"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/userguide [[ lang = en ]]"
+
+LICENCES="GPL-2"
+SLOT="4"
+MYOPTIONS="debug"
+DEPENDENCIES=""
+
+BUGS_TO="leycec@gmail.com"
+
+PREMAKE_MAKEFILE_DIR=build/gmake.unix
+PREMAKE_MAKEFILE="${PREMAKE_MAKEFILE_DIR}/Premake4.make"
+
+# Initialized in the premake_src_prepare() function.
+PREMAKE_BUILD_TYPE=
+
+premake_src_prepare() {
+    default
+
+    if option debug
+    then PREMAKE_BUILD_TYPE=debug
+    else PREMAKE_BUILD_TYPE=release
+    fi
+
+    # Avoid optimization and symbol stripping without user say-so.
+    edo sed\
+        -e 's~ -Os$~~'\
+        -e 's~^\(  LDFLAGS.*\)-s ~\1~'\
+        -i "${PREMAKE_MAKEFILE}"
+}
+
+premake_src_compile() {
+    pushd "${PREMAKE_MAKEFILE_DIR}"
+    emake config="${PREMAKE_BUILD_TYPE}" verbose=true
+}
+
+premake_src_install() {
+    default
+    dobin "bin/${PREMAKE_BUILD_TYPE}/premake4"
+}
+
