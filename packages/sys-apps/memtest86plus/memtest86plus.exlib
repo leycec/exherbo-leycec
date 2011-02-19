@@ -12,12 +12,12 @@ arbitrary patterns of data written to it, and that there are no errors in
 memory interaction or addressing.
 "
 
-LICENCES="GPL-2"
-SLOT="0"
 HOMEPAGE="http://www.memtest.org"
 DOWNLOADS="http://www.memtest.org/download/${PV}/memtest86+-${PV}.tar.gz"
-UPSTREAM_RELEASE_NOTES="http://www.memtest.org/#change"
+UPSTREAM_RELEASE_NOTES="http://www.memtest.org/#change [[ lang = en ]]"
 
+LICENCES="GPL-2"
+SLOT="0"
 MYOPTIONS="platform: amd64"
 DEPENDENCIES=""
 

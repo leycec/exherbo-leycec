@@ -64,8 +64,8 @@ libtcod_src_install() {
     doins -r "include/"*
 
     if option doc; then
-        docinto  'html'
-        dodoc -r 'doc'
+        docinto  html
+        dodoc -r doc
     fi
 }
 
