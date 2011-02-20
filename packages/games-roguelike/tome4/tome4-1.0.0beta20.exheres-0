@@ -1,0 +1,7 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+require tome4 [ pv="1.0.0beta20b" ]
+
+PLATFORMS="~amd64 ~x86"
+
