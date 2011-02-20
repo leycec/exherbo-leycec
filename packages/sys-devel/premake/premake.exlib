@@ -46,7 +46,7 @@ HOMEPAGE="http://industriousone.com/premake"
 DOWNLOADS="mirror://sourceforge/${PN}/${PNV}-src.zip"
 UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/userguide [[ lang = en ]]"
 
-LICENCES="GPL-2"
+LICENCES="BSD-3"
 SLOT="4"
 MYOPTIONS="debug"
 DEPENDENCIES=""
