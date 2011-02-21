@@ -59,7 +59,7 @@ LICENCES="GPL-3"
 SLOT="0"
 MYOPTIONS="music"
 
-# "tome4" is not yet compatible with "libpng:1.45", sadly.
+# "tome4" is not yet compatible with "libpng:1.4", sadly.
 DEPENDENCIES="
     build:
         sys-devel/premake:4
@@ -102,9 +102,7 @@ tome4_src_install() {
     exeinto "${tome4_home}"
     doexe t-engine
 
-    # The main executable expects to executed in "${tome4_home}". Install a
-    # wrapper script guaranteeing this.
-#   dodir "/usr/bin"
+    # The main executable expects to be executed in "${tome4_home}".
     herebin tome4 <<EOF
 #!/bin/bash
 cd "${tome4_home}"
