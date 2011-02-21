@@ -1,7 +1,7 @@
-# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Copyright 2010-2011 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
-export_exlib_phases src_prepare
+export_exlib_phases src_prepare src_install
 
 SUMMARY="Roguelike game for Mac OS X, Windows and Linux by Brian Walker"
 DESCRIPTION="
@@ -15,8 +15,8 @@ items which confer no benefit except an increased score upon victory.
 MY_PNV="${PNV}-linux"
 HOMEPAGE="http://sites.google.com/site/broguegame"
 DOWNLOADS="${HOMEPAGE}/${MY_PNV}.tar.gz"
-UPSTREAM_RELEASE_NOTES="${HOMEPAGE} [[ lang = en ]]"
 UPSTREAM_DOCUMENTATION="${HOMEPAGE} [[ lang = en ]]"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE} [[ lang = en ]]"
 
 LICENCES="GPL-3"
 SLOT="0"
@@ -28,6 +28,8 @@ DEPENDENCIES="
 
 BUGS_TO="leycec@gmail.com"
 WORK="${WORKBASE}/${MY_PNV}/Brogue-${PV}"
+
+BROGUE_HOME="/usr/share/brogue"
 
 brogue_src_prepare() {
     default
@@ -49,14 +51,25 @@ brogue_src_prepare() {
 
     #FIXME: Mail to developer as a diff.
     # Add an "install" target to this Makefile. (Yes, it doesn't supply one...)
-    local install_dir="${IMAGE}/usr/share/brogue"
+    local install_dir="${IMAGE}${BROGUE_HOME}"
     cat <<EOF >> Makefile 
 install : brogue
-	install -d "\$(DESTDIR)/usr/bin/"
 	install -d "${install_dir}"
 	install -m 0755 brogue "${install_dir}"
 	install -m 0755 *.png "${install_dir}"
-	ln -s /usr/share/brogue/brogue "\$(DESTDIR)/usr/bin"
+EOF
+#install -d "\$(DESTDIR)/usr/bin/"
+#ln -s /usr/share/brogue/brogue "\$(DESTDIR)/usr/bin"
+}
+
+brogue_src_install() {
+    default
+
+    # The main executable expects to be executed in "${BROGUE_HOME}".
+    herebin brogue <<EOF
+#!/bin/bash
+cd "${BROGUE_HOME}"
+./brogue
 EOF
 }
 
