@@ -1,4 +1,4 @@
-# Copyright 2010 Cecil Curry <leycec@gmail.com>
+# Copyright 2010-2011 Cecil Curry <leycec@gmail.com>
 # Distributed under the terms of the GNU General Public License v2
 
 # libtcod is a bit of an oddity; its publicly available downloads provide the
@@ -7,7 +7,7 @@
 # bad as you think it is.)
 SCM_REPOSITORY="http://doryen.eptalys.net/svn-libtcod"
 
-require cmake scm-svn
+require cmake python scm-svn
 export_exlib_phases src_prepare src_install
 
 SUMMARY="Free, fast, portable and uncomplicated API for roguelike developers"
@@ -17,18 +17,21 @@ uncomplicated API for roguelike developers. It provides an advanced true color
 console, input and lots of other utilities frequently used in roguelikes.
 "
 
-HOMEPAGE="http://doryen.eptalys.net/libtcod"
-UPSTREAM_RELEASE_NOTES="http://doryen.eptalys.net/files/libtcod-CHANGELOG.txt [[ lang = en ]]"
-UPSTREAM_DOCUMENTATION="http://doryen.eptalys.net/data/libtcod/doc/${PV}/index2.html?c=true&cpp=true&cs=true&py=true&lua=true [[ lang = en ]]"
+TLDN="http://doryen.eptalys.net"
+HOMEPAGE="${TLDN}/libtcod"
+UPSTREAM_RELEASE_NOTES="${TLDN}/files/libtcod-CHANGELOG.txt [[ lang = en ]]"
+UPSTREAM_DOCUMENTATION="${TLDN}/data/libtcod/doc/${PV}/index2.html [[ lang = en ]]"
 
 LICENCES="BSD-3"
 SLOT="0"
-MYOPTIONS="doc"
+MYOPTIONS="doc
+    python [[ description = [ Install Python bindings ] ]]"
 DEPENDENCIES="
     build+run:
         media-libs/libpng[>=1.2.31]
         media-libs/SDL[>=1.2.12][X]
         sys-libs/zlib[>=1.2.3]
+        python? ( dev-lang/python:= )
 "
 
 BUGS_TO="leycec@gmail.com"
@@ -59,10 +62,20 @@ libtcod_src_install() {
     dolib "${ECMAKE_BUILD_DIR}/src/"${PN}*.so
 
     # Install shared headers, taking care to remove all ".svn" directories.
-    edo find "include" -type d -name .svn -print0 | xargs -0 rm -rf
+    edo find include -type d -name .svn -print0 | xargs -0 rm -rf
     insinto /usr/include/${PN}
-    doins -r "include/"*
+    doins -r include/*
 
+    # Install optional Python bindings.
+    if option python; then
+        local python_libdir="$(python_get_libdir)"
+        dodir   "${python_libdir}"
+        insinto "${python_libdir}"
+        doins libtcodpy.py
+        python_bytecompile
+    fi
+
+    # Install optional documentation.
     if option doc; then
         docinto  html
         dodoc -r doc
