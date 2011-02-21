@@ -1,0 +1,66 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+require googlecode [ suffix=zip ] python [ python_dep=2.6 ]
+export_exlib_phases src_prepare src_install
+
+SUMMARY="Variant of Madness, a 7-day roguelike by hmp"
+DESCRIPTION="
+featurecreeper is a small game, based largely on Madness. Madness itself was a
+7dRL (7-day roguelike: that is, a roguelike developed in 7 days), and primary
+development on it was halted by the developer after its release.
+
+Technical features include:
+* Cross-platform development with development done in Python
+* False terminal with true color effects
+* Roguelike bookkeeping done by libtcod 
+
+Gameplay features include:
+* Relatively short play time, with no save files
+* No character classes (for now)
+* Primary gameplay driver is insanity, not hunger
+* Decreasing sanity has in-game effects
+* Monster spawning dependent on specific sanity effects 
+"
+
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/wiki/Manual [[ lang = en ]]"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/wiki/ChangesByRelease [[ lang = en ]]"
+
+LICENCES="MIT"
+SLOT="0"
+MYOPTIONS=""
+DEPENDENCIES="
+    build+run:
+        games-roguelike/libtcod[>=1.5.1][python]
+"
+
+BUGS_TO="leycec@gmail.com"
+
+featurecreeper_src_prepare() {
+    default
+
+    # Remove bundled compiled code and dependencies.
+    edo rm -f *.{dll,exe,so} {libtcodpy,win_setup}.py
+
+    # Add symbolic links to system dependencies.
+    edo ln -s "/usr/$(get_libdir)/libtcod.so" .
+#   edo ln -s "$(python_get_libdir)/libtcodpy.py" .
+}
+
+featurecreeper_src_install() {
+    default
+
+    # "featurecreeper" supplies no Makefile. Do it by hand, curse your eyes!
+    local featurecreeper_home="/usr/share/featurecreeper"
+    insinto "${featurecreeper_home}"
+    doins *
+    doins -r fonts
+
+    # The main script expects to executed in "${featurecreeper_home}".
+    herebin featurecreeper <<EOF
+#!/bin/bash
+cd "${featurecreeper_home}"
+python$(python_get_abi) creeper.py
+EOF
+}
+
