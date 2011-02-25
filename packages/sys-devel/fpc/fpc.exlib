@@ -1,0 +1,110 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+# Based in part upon 'fpc-2.4.0.ebuild' from Gentoo, which is:
+#     Copyright 1999-2010 Gentoo Foundation
+#
+# Free Pascal is an extremely circuitous installation. For details, see:
+#      http://www.stack.nl/~marcov/buildfaq
+
+export_exlib_phases src_unpack src_compile src_install
+
+SUMMARY="Free Pascal (aka FPK Pascal)"
+DESCRIPTION="
+Free Pascal (aka FPK Pascal) is a 32- and 64-bit professional Pascal compiler.
+The language syntax has excellent compatibility with Turbo Pascal 7.0 as well as
+with most versions of Delphi (classes, rtti, exceptions, ansistrings,
+widestrings, interfaces). Furthermore Free Pascal supports function overloading,
+operator overloading, global properties and several other extra features. 
+"
+
+HOMEPAGE="http://freepascal.org"
+
+FPC_DOWNLOAD_HOME="mirror://sourceforge/freepascal"
+DOWNLOADS="${FPC_DOWNLOAD_HOME}/fpcbuild-${PV}.tar.gz
+    platform:amd64? ( ${FPC_DOWNLOAD_HOME}/${PNV}.x86_64-linux.tar )
+    platform:x86?   ( ${FPC_DOWNLOAD_HOME}/${PNV}.i386-linux.tar )"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/docs.var [[ lang = en ]]"
+
+LICENCES=""
+SLOT="0"
+MYOPTIONS="platform: amd64 x86"
+DEPENDENCIES=""
+
+BUGS_TO="leycec@gmail.com"
+WORK="${WORKBASE}/fpcbuild-${PV}"
+
+# Relative path under "${WORK}" having Free Pascal documentation.
+DEFAULT_SRC_INSTALL_EXTRA_SUBDIRS="fpcdocs"
+
+# Absolute path and basename of the newly compiled Free Pascal compiler.
+FPC_COMPILER=
+FPC_COMPILER_BASENAME=
+
+fpc_src_unpack() {
+    default
+
+    # Free Pascal-specific platform specifiers used for various filenames.
+    local fpc_platform_tarball fpc_platform_compiler
+
+    # Set platform specifiers.
+    if   option platform:amd64; then
+        fpc_platform_tarball="x86_64"
+        fpc_platform_compiler="x64"
+    elif option platform:x86; then
+        fpc_platform_tarball="i386"
+        fpc_platform_compiler="386"
+    fi
+
+    # Set globals dependent on these specifiers.
+    FPC_COMPILER_BASENAME="ppc${fpc_platform_compiler}"
+
+    # Unpack recursively embedded tarballs.
+    edo tar xf  "binary.${fpc_platform_tarball}-linux.tar"
+    edo tar zxf "base.${fpc_platform_tarball}-linux.tar.gz"
+}
+
+fpc_src_compile() {
+    # Do not call default(), since compilation is non-straightforward.
+
+    # Absolute paths to Free Pascal compilers. To quote the buildfaq: "Using a
+    # relative path usually won't work since during the process, the make
+    # utility changes directories."
+    FPC_COMPILER="${WORK}/fpcsrc/compiler/${FPC_COMPILER_BASENAME}"
+    local fpc_temporary_compiler="${TEMP}/${FPC_COMPILER_BASENAME}"
+    local fpc_bootstrap_compiler="${WORKBASE}/lib/fpc/${PV}/${FPC_COMPILER_BASENAME}"
+
+    # Bootstrap a new compiler from the default compiler, disabling debugging.
+    # Note this Makefile target does not exist under the top-level Makefile...
+    emake -C fpcsrc PP="${fpc_bootstrap_compiler}" NOGDB=1 compiler_cycle
+
+    # Copy the new compiler away to prevent the "build" target from cleaning it.
+    # (The "build" target cleans "${FPC_COMPILER}", then eventually rebuilds it
+    # such that this path is valid in time for the "install" target below.)
+    edo mv "${FPC_COMPILER}" "${fpc_temporary_compiler}"
+
+    # Build the Free Pascal Run-Time Library and friends, disabling debugging.
+    emake PP="${fpc_temporary_compiler}" NOGDB=1 build
+}
+
+fpc_src_install() {
+    # Do not call default(), since installation is non-straightforward. First,
+    # install documentation.
+    emagicdocs
+
+    # Install Free Pascal under this directory, disabling debugging. (Stuupid.)
+    local fpc_home="/usr/lib/fpc/${PV}"
+    emake PP="${FPC_COMPILER}" NOGDB=1 install\
+        INSTALL_PREFIX="${IMAGE}usr"\
+        INSTALL_DOCDIR="${IMAGE}usr/share/doc/${PNV}"\
+        INSTALL_MANDIR="${IMAGE}usr/share/man"\
+        INSTALL_SOURCEDIR="${IMAGE}${fpc_home}"
+
+    # Install a symbolic link to the Free Pascal compiler.
+    dosym "${fpc_home}/${FPC_COMPILER_BASENAME}" "/usr/bin/"
+
+    # Install the system-wide Free Pascal configuration file using the
+    # "samplecfg" binary. Yes, this is sad.
+    edo "${IMAGE}${fpc_home}/samplecfg" "${IMAGE}${fpc_home}" "${IMAGE}etc"
+    edo sed -e "s~${IMAGE}~~g" -i "${IMAGE}etc/fpc.cfg"
+}
+
