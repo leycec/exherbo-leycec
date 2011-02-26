@@ -1,0 +1,91 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+export_exlib_phases src_prepare src_install
+
+SUMMARY="Dungeon Crawl Stone Soup"
+DESCRIPTION="
+Dungeon Crawl Stone Soup is a free roguelike game of exploration and treasure-
+hunting in dungeons filled with dangerous and unfriendly monsters in a quest for
+the mystifyingly fabulous Orb of Zot.
+
+Dungeon Crawl Stone Soup has diverse species and many different character
+backgrounds to choose from, deep tactical game-play, sophisticated magic,
+religion and skill systems, and a grand variety of monsters to fight and run
+from, making each game unique and challenging.
+
+Dungeon Crawl Stone Soup can be played offline, or online on a public telnet/ssh
+server thanks to the good folks at crawl.akrasiac.org (CAO) and crawl.develz.org
+(CDO). These public servers allow you to meet other players’ ghosts, watch other
+people playing, and, in general, have a blast!
+"
+
+HOMEPAGE="http://crawl.develz.org"
+DOWNLOADS="mirror://sourceforge/crawl-ref/${PNV}-nodeps.tar.bz2"
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/other/manual.html [[ lang = en ]]"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/main/${PV}.txt [[ lang = en ]]"
+
+LICENCES="Crawl-GPL"
+SLOT="0"
+MYOPTIONS=""
+DEPENDENCIES="
+    build+run:
+        media-libs/freetype:2
+        media-libs/libpng
+        media-libs/SDL[>=1.2.0][X]
+        media-libs/SDL_image[>=1.2.0]
+        sys-devel/bison
+        sys-devel/flex
+    run:
+        dev-lang/lua[>=5.1.4]
+"
+
+BUGS_TO="leycec@gmail.com"
+
+DEFAULT_SRC_COMPILE_PARAMS=(
+    # Run make under the "source/" directory.
+    -C "source"
+
+    # Install DCSS under "/usr".
+    prefix=/usr
+
+    # DCSS expects CFLAGS to be named something else. Fiend!
+    EXTERNAL_FLAGS="${CFLAGS}"
+
+    # Always enable tiles (i.e., graphics). This allows the user to selectively
+    # enable or disable tiles at runtime.
+    TILES=y
+
+    # Always enable Unicode.
+    USE_UNICODE=y
+)
+DEFAULT_SRC_INSTALL_PARAMS=( "${DEFAULT_SRC_COMPILE_PARAMS[@]}" )
+
+stone_soup_src_prepare() {
+    default
+
+    # Make a "mock" top-level makefile to ensure emake() is called.
+    edo touch makefile
+
+    # Kill Windows-specific files and extraneous licenses.
+    edo rm -f dat/tiles/stone_soup_icon-win32.png
+    edo rm -f docs/license/*.txt
+
+    # Copy back in the DCSS license to avoid makefile complaints.
+    edo cp licence.txt docs/license
+
+    # Avoid overwriting user "${CFLAGS}" and "${LDFLAGS}"; avoid stripping;
+    # install to "/usr/bin" rather than "/usr/games".
+    edo sed\
+        -e '/^\(CFOPTIMIZE\|LDFLAGS\)\s\+\(:\|+\)=/d'\
+        -e '/STRIP/d'\
+        -e 's~:= games$~:= bin~'\
+        -e 's~-pipe ~~'\
+        -i 'source/makefile'
+}
+
+stone_soup_src_install() {
+    default
+    keepdir '/var/games/crawl/morgue'
+}
+
