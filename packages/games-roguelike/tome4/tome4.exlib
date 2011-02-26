@@ -65,7 +65,7 @@ DEPENDENCIES="
         sys-devel/premake:4
     build+run:
         dev-lang/lua
-        media-libs/SDL[>=1.2.0]
+        media-libs/SDL[>=1.2.0][X]
         media-libs/SDL_image[>=1.2.0]
         media-libs/SDL_mixer[>=1.2.0]
         media-libs/SDL_ttf[>=1.2.0]

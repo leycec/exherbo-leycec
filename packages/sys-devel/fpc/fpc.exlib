@@ -100,7 +100,7 @@ fpc_src_install() {
         INSTALL_SOURCEDIR="${IMAGE}${fpc_home}"
 
     # Install a symbolic link to the Free Pascal compiler.
-    dosym "${fpc_home}/${FPC_COMPILER_BASENAME}" "/usr/bin/"
+#   dosym "${fpc_home}/${FPC_COMPILER_BASENAME}" "/usr/bin/"
 
     # Install the system-wide Free Pascal configuration file using the
     # "samplecfg" binary. Yes, this is sad.
