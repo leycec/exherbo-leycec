@@ -1,0 +1,65 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+export_exlib_phases src_prepare src_compile src_install
+
+# "trapper" internally versions itself differently than it externally packages
+# itself... Woes is us.
+myexparam pv_binary="${PV}"
+exparam -v PV_BINARY pv_binary
+
+PNV_BINARY="${PN}${PV_BINARY}"
+
+SUMMARY="Toby the Trapper, a 7-day roguelike by Darren Grey"
+DESCRIPTION="
+Toby the Trapper is a coffeebreak roguelike written in Free Pascal by
+Darren Grey for the 7DRL 2010 competition. It features a somewhat
+novel battle system whereby enemies can only be harmed by traps laid
+by the player. It's a moderately difficult game whereby any misstep
+can lead to instant death, but careful play can get you far. There
+are 13 levels, 6 bosses and 15 ending variations. Have fun, and be
+sure to try out many of the other great roguelikes written for the 
+2010 7DRL competition.
+"
+
+HOMEPAGE="http://www.gruesomegames.com/blog/?p=50"
+DOWNLOADS="http://www.gruesomegames.com/${PN}${PV}.zip"
+UPSTREAM_DOCUMENTATION="${HOMEPAGE}/wiki/Manual [[ lang = en ]]"
+UPSTREAM_RELEASE_NOTES="${HOMEPAGE}/wiki/ChangesByRelease [[ lang = en ]]"
+
+LICENCES="public-domain"
+SLOT="0"
+MYOPTIONS=""
+DEPENDENCIES="
+    build+run:
+        sys-devel/fpc[>=2.4.0]
+"
+
+BUGS_TO="leycec@gmail.com"
+WORK="${WORKBASE}/${PN}"
+
+trapper_src_prepare() {
+    default
+
+    # Remove bundled compiled code.
+    edo rm -f *{.exe,-linux}
+
+    # Rename the history file to have emagicdocs() install it as documentation.
+    edo mv 'version history.txt' HISTORY.txt
+}
+
+trapper_src_compile() {
+    default
+
+    # "trapper" supplies no Makefile. Do it by hand, curse your eyes!
+    edo fpc "${PNV_BINARY}.pas"
+}
+
+trapper_src_install() {
+    default
+
+    # "trapper" supplies no Makefile and, in fact, consists of only one binary.
+    edo mv "${PNV_BINARY}" "${PN}"
+    dobin  "${PN}"
+}
+
