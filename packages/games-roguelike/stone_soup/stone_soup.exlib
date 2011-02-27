@@ -37,6 +37,7 @@ DEPENDENCIES="
             media-libs/libpng
             media-libs/SDL[>=1.2.0][X]
             media-libs/SDL_image[>=1.2.0]
+            x11-dri/mesa
         )
         sys-devel/bison
         sys-devel/flex
@@ -94,16 +95,20 @@ stone_soup_src_compile() {
     emake "${STONE_SOUP_MAKEFILE_OPTIONS[@]}"
 }
 
-#FIXME: Also install docs, copy "/usr/share/crawl/settings/init.txt" to
-#/etc/crawlrc (?) and always enable Unicode in this file.
 stone_soup_src_install() {
     emagicdocs
     emake "${STONE_SOUP_MAKEFILE_OPTIONS[@]}" DESTDIR="${IMAGE}" install
 
     # Symlink the system-wide DCSS configuration to its expected location.
-    dosym "{STONE_SOUP_HOME}/settings/init.txt" /etc/stone_soup.conf
+    local stone_soup_config_file="${STONE_SOUP_HOME}/data/settings/init.txt"
+    dodir /etc
+    dosym "${stone_soup_config_file}" /etc/stone_soup.conf
+
+    # Reconfigure DCSS for default Unicode support.
+    edo sed -e 's~^# char_set.* = ascii$~char_set = unicode~'\
+            -i "${IMAGE}${stone_soup_config_file}"
 
     # DCSS requires the "docs" directory for in-game use, so symlink it.
-    dosym "${STONE_SOUP_HOME}/docs" /usr/share/doc/${PNV}
+    dosym "${STONE_SOUP_HOME}/docs" "/usr/share/doc/${PNV}/manual"
 }
 
