@@ -1,0 +1,66 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+require allegro
+
+MYOPTIONS="
+    alsa
+    jpeg
+    opengl
+    oss
+    png
+    vorbis
+    X [[ requires = opengl ]]
+
+    ( jpeg opengl png ) [[ requires = X ]]
+"
+
+DEPENDENCIES="
+    build+run:
+        alsa? ( sys-sound/alsa-lib )
+        jpeg? ( media-libs/jpeg )
+        opengl? ( x11-dri/mesa )
+        png? ( media-libs/libpng )
+        vorbis? (
+            media-libs/libvorbis
+            media-libs/libogg
+        )
+"
+
+SLOT="4.4"
+PLATFORMS="~amd64 ~x86"
+
+# Allegro 4.4 configure options differ from those in Allegro 5.
+CMAKE_SRC_CONFIGURE_PARAMS=(
+    -DWANT_EXAMPLES:BOOL=OFF
+    -DWANT_LINUX_CONSOLE:BOOL=OFF
+)
+
+CMAKE_SRC_CONFIGURE_OPTION_WANTS=(
+    alsa
+    'jpeg JPGALLEG'
+    'opengl ALLEGROGL'
+    oss
+    'png LOADPNG'
+    'vorbis LOGG'
+    'X TOOLS'
+    'X X11'
+)
+
+src_install() {
+    # Allegro 4.4 fails to build documentation, then dies on discovering this.
+    # Prevent stupidity by symlinking in pre-built documentation. *sigh*
+    edo rmdir "${WORKBASE}/build/docs/txt"
+    edo ln -s "${WORK}/docs/txt" "${WORKBASE}/build/docs"
+
+    cmake_src_install
+}
+
+#src_prepare() {
+#    default
+#
+#    # Allegro 4.4 ships with semi-broken Makefiles. Keep up the good work.
+##   edo sed -e "s~allegro-\${ALLEGRO_VERSION}~${PNV}~" -i docs/CMakeLists.txt
+#}
+
+
