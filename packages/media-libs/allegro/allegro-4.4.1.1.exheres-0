@@ -33,14 +33,15 @@ PLATFORMS="~amd64 ~x86"
 # Allegro 4.4 configure options differ from those in Allegro 5.
 CMAKE_SRC_CONFIGURE_PARAMS=(
     -DWANT_EXAMPLES:BOOL=OFF
+    -DWANT_TESTS:BOOL=OFF
     -DWANT_LINUX_CONSOLE:BOOL=OFF
 )
 
 CMAKE_SRC_CONFIGURE_OPTION_WANTS=(
-    alsa
+    'alsa ALSA'
     'jpeg JPGALLEG'
     'opengl ALLEGROGL'
-    oss
+    'oss OSS'
     'png LOADPNG'
     'vorbis LOGG'
     'X TOOLS'
@@ -55,12 +56,4 @@ src_install() {
 
     cmake_src_install
 }
-
-#src_prepare() {
-#    default
-#
-#    # Allegro 4.4 ships with semi-broken Makefiles. Keep up the good work.
-##   edo sed -e "s~allegro-\${ALLEGRO_VERSION}~${PNV}~" -i docs/CMakeLists.txt
-#}
-
 
