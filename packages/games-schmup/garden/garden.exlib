@@ -1,0 +1,42 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+require\
+    autotools [ supported_autoconf=[ 2.5 ] supported_automake=[ 1.11 1.10 ] ]\
+    sourceforge [ suffix='tar.gz' ]
+export_exlib_phases src_prepare src_install
+
+SUMMARY="Garden of Coloured Lights"
+DESCRIPTION="
+Garden of Coloured Lights is an old-school, 2D vertical shoot-em-up with some
+innovative elements. Innovative graphics, soundtrack and game concept. The game
+itself is very challenging and as you progress, you will understand that you are
+dealing with a true piece of art... [Ed. note: It's *all* true!]
+"
+
+LICENCES="GPL-3"
+SLOT="0"
+MYOPTIONS=""
+DEPENDENCIES="
+    build+run:
+        media-libs/allegro:4.4
+"
+
+BUGS_TO="leycec@gmail.com"
+
+# "garden" bundles additional m4 macros required for eaclocal() here.
+AT_M4DIR="${WORK}/m4"
+
+garden_src_prepare() {
+    # "garden" tries to cleverly update the desktop with a new icon. Stop that.
+    edo sed -e 's~\$have_freedesktop~~' -i configure.ac
+    autotools_src_prepare
+}
+
+garden_src_install() {
+    default
+
+    # "garden" installs empty directories. Stop that!
+    edo rm -rf "${IMAGE}usr/share/"{applications,icons}
+}
+
