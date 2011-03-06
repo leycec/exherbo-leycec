@@ -31,6 +31,9 @@ MYOPTIONS="
     X [[ description = [ Build a graphical- rather than ASCII-based UI ] ]]"
 DEPENDENCIES="
     build+run:
+        dev-db/sqlite:3
+        sys-devel/bison
+        sys-devel/flex
         !X? ( sys-libs/ncurses )
          X? (
             media-libs/freetype:2
@@ -39,8 +42,6 @@ DEPENDENCIES="
             media-libs/SDL_image[>=1.2.0]
             x11-dri/mesa
         )
-        sys-devel/bison
-        sys-devel/flex
     run:
         dev-lang/lua[>=5.1.4]
 "

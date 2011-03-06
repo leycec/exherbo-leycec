@@ -1,0 +1,16 @@
+# Copyright 2011 Cecil Curry <leycec@gmail.com>
+# Distributed under the terms of the GNU General Public License v2
+
+# "stone_soup" SCM distributes itself across an extreme number of submodules.
+SCM_REPOSITORY="git://gitorious.org/crawl/crawl.git"
+for STONE_SOUP_SUBMODULE in\
+    sqlite lua luajit pcre freetype sdl sdl-image libpng zlib; do
+    SCM_EXTERNAL_REFS+=" crawl-ref/source/contrib/${STONE_SOUP_SUBMODULE}: "
+done
+
+require stone_soup scm-git
+
+DOWNLOADS=""
+PLATFORMS="~amd64 ~x86"
+WORK="${WORK}/crawl-ref"
+
