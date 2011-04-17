@@ -47,8 +47,8 @@ WORK="${WORKBASE}"/${PN}
 #
 # Can anyone comment?
 bzrtools_src_test_expensive() {
-    BUILD_LIB="${WORK}/build/lib"
-    BUILD_BZRLIB="${BUILD_LIB}/bzrlib"
+    local build_libdir="${WORK}/build/lib"
+    local build_bzrlibdir="${build_libdir}/bzrlib"
 
     einfo "Testing ${PN}..."
 
@@ -58,8 +58,8 @@ bzrtools_src_test_expensive() {
     find "$(python_get_libdir)/site-packages/bzrlib/" \
         -mindepth 1 -maxdepth 1 \
         \( \( -type d -and -not -name "plugins" \) -or -name "*.py" \) \
-        -exec ln -s '{}' "${BUILD_BZRLIB}" \;
-    edo touch "${BUILD_BZRLIB}/plugins/__init__.py"
+        -exec ln -s '{}' "${build_bzrlibdir}" \;
+    edo touch "${build_bzrlibdir}/plugins/__init__.py"
 
     #FIXME: Still fails. Wonder why?
     # Temporarily disable path sandboxing. "bzrtools" tests require read access
@@ -69,7 +69,7 @@ bzrtools_src_test_expensive() {
 
     # Test against the above temporaries. 
     einfo "Running test.py..."
-    edo "${WORK}/test.py" "${BUILD_LIB}"
+    edo "${WORK}/test.py" "${build_libdir}"
 
     # Reenable path sandboxing.
 #   einfo "Reenabling path sandboxing..."
@@ -77,8 +77,9 @@ bzrtools_src_test_expensive() {
 
     # Delete the above temporaries.
     einfo "Unlinking bzrlib..."
-    edo rm "${BUILD_BZRLIB}/plugins/__init__.py"
-    edo find "${BUILD_BZRLIB}" \
+    edo rm "${build_bzrlibdir}/plugins/__init__.py"
+    edo find "${build_bzrlibdir}" \
         -mindepth 1 -maxdepth 1 \
         -type l -exec rm '{}' \;
 }
+

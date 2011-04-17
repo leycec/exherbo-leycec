@@ -43,7 +43,7 @@ featurecreeper_src_prepare() {
     edo rm -f *.{dll,exe,so} {libtcodpy,win_setup}.py
 
     # Add symbolic links to system dependencies.
-    edo ln -s "/usr/$(get_libdir)/libtcod.so" .
+    edo ln -s "/usr/${LIBDIR}/libtcod.so" .
 #   edo ln -s "$(python_get_libdir)/libtcodpy.py" .
 }
 
